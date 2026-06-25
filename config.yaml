@@ -1,0 +1,67 @@
+# CoBWeaverClaw Configuration
+# ================================
+
+agent:
+  name: CoBWeaverClaw
+  version: "0.1.0"
+  language: auto          # auto-detect from user message
+  specialization: general # general | trading | medicine | engineering | law | education
+
+# Brain / Models
+brain:
+  primary: claude-sonnet-4-6    # deep analysis
+  fast: groq/llama-3.3-70b      # quick responses (150ms)
+  local: ollama/mistral          # offline fallback
+  fallback_chain: [primary, fast, local]
+  auto_select: true              # auto-choose model per task type
+
+# Memory System
+memory:
+  sqlite_path: ~/.cobweaverclaw/memory.db
+  lightrag_path: ~/.cobweaverclaw/lightrag/
+  compression_threshold: 1000   # compress after N entries
+  sync_across_devices: false    # enable for cloud sync
+
+# Heartbeat
+heartbeat:
+  enabled: true
+  interval_seconds: 300         # 5 minutes default (auto-adjusts per device)
+  tasks:
+    - check_open_positions
+    - monitor_alerts
+    - update_memory
+
+# Interfaces
+interfaces:
+  telegram:
+    enabled: true
+    token: ""                   # set your bot token
+  cli:
+    enabled: true
+  dashboard:
+    enabled: false
+    port: 8080
+    host: localhost
+
+# Security
+security:
+  sandbox_all_plugins: true
+  trust_level_default: 0
+  tls_only: true
+  auto_audit_interval_days: 7
+
+# Self-Learning
+learning:
+  enabled: true
+  schedule: "0 2 * * 0"        # every Sunday 2am
+  sources:
+    - web
+    - youtube_transcripts
+    - arxiv
+  max_sources_per_run: 10
+
+# Swarm Trading Engine
+swarm:
+  enabled: false               # enable for trading specialization
+  agents_count: 50
+  simulation_timeout_seconds: 30
