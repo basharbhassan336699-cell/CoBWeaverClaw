@@ -1,0 +1,11 @@
+{
+  "welcome": "Welcome to CoBWeaverClaw 🕷️",
+  "thinking": "Thinking...",
+  "error": "An error occurred: {error}",
+  "skill_created": "New skill created: {name}",
+  "doctor_ok": "All systems operational ✅",
+  "doctor_issues": "{count} issue(s) found",
+  "memory_saved": "Memory updated",
+  "learning_start": "Starting self-learning cycle...",
+  "learning_done": "Learning complete. {count} new items stored."
+}
