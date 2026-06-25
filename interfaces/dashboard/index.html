@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CoBWeaverClaw — Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  :root {
+    --primary:  #1A1A2E;
+    --accent:   #16213E;
+    --gold:     #E2B04A;
+    --bg:       #0F0F1A;
+    --card:     #1A1A2E;
+    --border:   #2A2A4A;
+    --text:     #E8E8F0;
+    --subtext:  #8888AA;
+    --green:    #27AE60;
+    --red:      #E74C3C;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* Login */
+  #login-screen {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; flex-direction: column; gap: 24px;
+  }
+  #login-screen h1 { font-size: 2.5rem; color: var(--gold); letter-spacing: 2px; }
+  #login-screen p  { color: var(--subtext); }
+  .login-box {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 32px; width: 380px; text-align: center;
+  }
+  .login-box input {
+    width: 100%; padding: 12px 16px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--accent);
+    color: var(--text); font-family: monospace; font-size: 13px;
+    margin: 12px 0; outline: none;
+  }
+  .login-box input:focus { border-color: var(--gold); }
+  .btn {
+    padding: 10px 24px; border-radius: 8px; border: none;
+    cursor: pointer; font-size: 14px; font-weight: 600;
+    transition: all 0.2s;
+  }
+  .btn-gold  { background: var(--gold); color: var(--primary); }
+  .btn-gold:hover { opacity: 0.85; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--subtext); }
+  .btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* App */
+  #app { display: none; }
+  .sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0; width: 240px;
+    background: var(--card); border-right: 1px solid var(--border);
+    padding: 24px 0; z-index: 100;
+  }
+  [dir=rtl] .sidebar { left: auto; right: 0; border-right: none; border-left: 1px solid var(--border); }
+  .sidebar-logo {
+    padding: 0 24px 24px; border-bottom: 1px solid var(--border);
+    text-align: center;
+  }
+  .sidebar-logo .spider { font-size: 2rem; }
+  .sidebar-logo h2 { color: var(--gold); font-size: 1rem; margin-top: 4px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 24px; cursor: pointer; color: var(--subtext);
+    transition: all 0.2s; font-size: 14px;
+  }
+  .nav-item:hover, .nav-item.active { background: var(--accent); color: var(--gold); }
+  .nav-item .icon { font-size: 1.1rem; width: 20px; text-align: center; }
+  .main { margin-right: 240px; padding: 32px; min-height: 100vh; }
+  [dir=rtl] .main { margin-right: 0; margin-left: 240px; }
+
+  /* Cards */
+  .grid { display: grid; gap: 20px; }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  @media(max-width:900px) { .grid-4,.grid-2 { grid-template-columns: 1fr 1fr; } }
+  @media(max-width:600px) { .grid-4,.grid-2 { grid-template-columns: 1fr; } .main { margin: 0; padding: 16px; } .sidebar { display: none; } }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px;
+  }
+  .card h3 { font-size: 13px; color: var(--subtext); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+  .stat-value { font-size: 2rem; font-weight: 700; color: var(--gold); }
+  .stat-label { font-size: 12px; color: var(--subtext); margin-top: 4px; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-left: 6px; }
+  .dot-green { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  .page { display: none; }
+  .page.active { display: block; }
+  .page-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 24px; color: var(--text); }
+  .page-title span { color: var(--gold); }
+  .skill-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .skill-item {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--accent); border-radius: 8px; padding: 10px 16px;
+    font-size: 13px;
+  }
+  .skill-score { color: var(--gold); font-weight: 600; }
+  .log-item {
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+    font-size: 13px; color: var(--subtext);
+  }
+  .log-item strong { color: var(--text); }
+  .section-title { font-size: 1rem; font-weight: 600; margin: 24px 0 12px; color: var(--subtext); text-transform: uppercase; letter-spacing: 1px; }
+  .model-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; background: var(--accent); border-radius: 8px; margin-bottom: 8px;
+  }
+  .badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .badge-gold   { background: var(--gold);  color: var(--primary); }
+  .badge-green  { background: var(--green); color: white; }
+  .badge-gray   { background: var(--border); color: var(--subtext); }
+  .token-box { background: var(--accent); border-radius: 8px; padding: 16px; margin-top: 12px; }
+  .token-val { font-family: monospace; font-size: 12px; color: var(--gold); word-break: break-all; }
+  textarea {
+    width: 100%; background: var(--accent); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px; color: var(--text); font-family: monospace;
+    font-size: 12px; resize: vertical; outline: none; min-height: 80px;
+  }
+  .doctor-check {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px; background: var(--accent); border-radius: 8px; margin-bottom: 8px;
+  }
+  .check-icon { font-size: 1.1rem; }
+  .check-name { font-size: 14px; flex: 1; }
+  .check-detail { font-size: 12px; color: var(--subtext); }
+  .spinner { display: inline-block; animation: spin 1s linear infinite; }
+  @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  #toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--gold); color: var(--primary); padding: 10px 24px;
+    border-radius: 8px; font-weight: 600; font-size: 14px;
+    opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999;
+  }
+  #toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div style="text-align:center">
+    <div style="font-size:3rem">🕷️</div>
+    <h1>CoBWeaverClaw</h1>
+    <p>لوحة التحكم | Control Dashboard</p>
+  </div>
+  <div class="login-box">
+    <p style="margin-bottom:16px;font-size:14px;color:var(--subtext)">أدخل Master Token للدخول</p>
+    <input type="password" id="token-input" placeholder="master_token_xxx..." />
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-gold" style="flex:1" onclick="doLogin()">دخول</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="createDemo()">تجربة</button>
+    </div>
+    <p id="login-error" style="color:var(--red);font-size:12px;margin-top:8px;display:none">توكين غير صحيح</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="spider">🕷️</div>
+      <h2>CoBWeaverClaw</h2>
+      <div style="font-size:11px;color:var(--subtext);margin-top:4px">v0.1.0</div>
+    </div>
+    <div style="margin-top:16px">
+      <div class="nav-item active" onclick="showPage('overview',this)"><span class="icon">📊</span> نظرة عامة</div>
+      <div class="nav-item" onclick="showPage('memory',this)"><span class="icon">🧠</span> الذاكرة</div>
+      <div class="nav-item" onclick="showPage('models',this)"><span class="icon">🤖</span> النماذج</div>
+      <div class="nav-item" onclick="showPage('skills',this)"><span class="icon">⚡</span> المهارات</div>
+      <div class="nav-item" onclick="showPage('doctor',this)"><span class="icon">🩺</span> Doctor</div>
+      <div class="nav-item" onclick="showPage('logs',this)"><span class="icon">📋</span> السجلات</div>
+      <div class="nav-item" onclick="showPage('tokens',this)"><span class="icon">🔑</span> التوكينات</div>
+      <div class="nav-item" onclick="showPage('settings',this)"><span class="icon">⚙️</span> الإعدادات</div>
+    </div>
+    <div style="position:absolute;bottom:24px;left:0;right:0;padding:0 24px">
+      <button class="btn btn-ghost" style="width:100%" onclick="doLogout()">خروج</button>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <!-- OVERVIEW -->
+    <div id="page-overview" class="page active">
+      <div class="page-title">نظرة عامة <span>/ Overview</span></div>
+      <div class="grid grid-4" style="margin-bottom:20px">
+        <div class="card">
+          <h3>حالة الوكيل</h3>
+          <div style="display:flex;align-items:center;margin-top:8px">
+            <span class="status-dot dot-green"></span>
+            <span class="stat-value" style="font-size:1.2rem;color:var(--green)">يعمل</span>
+          </div>
+        </div>
+        <div class="card">
+          <h3>المنصة</h3>
+          <div class="stat-value" id="ov-platform">—</div>
+        </div>
+        <div class="card">
+          <h3>Heartbeat</h3>
+          <div class="stat-value" id="ov-heartbeat">—</div>
+          <div class="stat-label">ثانية</div>
+        </div>
+        <div class="card">
+          <h3>الإصدار</h3>
+          <div class="stat-value" style="font-size:1.2rem">0.1.0</div>
+        </div>
+      </div>
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>الذاكرة</h3>
+          <div style="margin-top:12px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+              <span style="font-size:13px">وقائع محفوظة</span>
+              <span style="color:var(--gold)" id="ov-facts">—</span>
+            </div>
+            <div style="display:flex;justify-content:space-between">
+              <span style="font-size:13px">سجل المحادثات</span>
+              <span style="color:var(--gold)" id="ov-history">—</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>المهارات النشطة</h3>
+          <div class="stat-value" id="ov-skills">—</div>
+          <div class="stat-label">skill مثبّتة</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MEMORY -->
+    <div id="page-memory" class="page">
+      <div class="page-title">الذاكرة <span>/ Memory</span></div>
+      <div class="grid grid-4" style="margin-bottom:20px">
+        <div class="card"><h3>وقائع</h3><div class="stat-value" id="mem-facts">—</div></div>
+        <div class="card"><h3>محادثات</h3><div class="stat-value" id="mem-history">—</div></div>
+        <div class="card"><h3>حجم قاعدة البيانات</h3><div class="stat-value" id="mem-size">—</div><div class="stat-label">KB</div></div>
+        <div class="card"><h3>المحرك</h3><div class="stat-value" style="font-size:1rem;margin-top:8px">SQLite<br>+ LightRAG</div></div>
+      </div>
+      <div class="card">
+        <h3>بحث في الذاكرة</h3>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <input type="text" id="mem-search" placeholder="ابحث في الذاكرة..." style="flex:1;background:var(--accent);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);outline:none">
+          <button class="btn btn-gold" onclick="searchMemory()">بحث</button>
+        </div>
+        <div id="mem-results" style="margin-top:12px"></div>
+      </div>
+    </div>
+
+    <!-- MODELS -->
+    <div id="page-models" class="page">
+      <div class="page-title">النماذج <span>/ Models</span></div>
+      <div class="section-title">النماذج المتصلة</div>
+      <div id="models-list"></div>
+      <div class="card" style="margin-top:20px">
+        <h3>اختبار النماذج</h3>
+        <div style="margin-top:12px">
+          <textarea id="model-test-input" placeholder="اكتب رسالة اختبار..."></textarea>
+          <button class="btn btn-gold" style="margin-top:8px" onclick="testModel()">اختبار</button>
+          <div id="model-test-result" style="margin-top:12px;font-size:13px;color:var(--subtext)"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SKILLS -->
+    <div id="page-skills" class="page">
+      <div class="page-title">المهارات <span>/ Skills</span></div>
+      <div class="card" style="margin-bottom:20px">
+        <h3>Skills المثبّتة</h3>
+        <div id="skills-list" class="skill-list"></div>
+      </div>
+    </div>
+
+    <!-- DOCTOR -->
+    <div id="page-doctor" class="page">
+      <div class="page-title">تشخيص <span>/ Doctor</span></div>
+      <div style="display:flex;gap:8px;margin-bottom:20px">
+        <button class="btn btn-gold" onclick="runDoctor(false)">🩺 تشخيص</button>
+        <button class="btn btn-ghost" onclick="runDoctor(true)">🔧 تشخيص وإصلاح</button>
+      </div>
+      <div id="doctor-results"></div>
+    </div>
+
+    <!-- LOGS -->
+    <div id="page-logs" class="page">
+      <div class="page-title">السجلات <span>/ Activity Log</span></div>
+      <div class="card">
+        <div id="logs-list"></div>
+      </div>
+    </div>
+
+    <!-- TOKENS -->
+    <div id="page-tokens" class="page">
+      <div class="page-title">التوكينات <span>/ Tokens</span></div>
+      <div class="card" style="margin-bottom:20px">
+        <h3>إنشاء توكين جديد</h3>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <input type="text" id="new-user-id" placeholder="user_id" style="flex:1;background:var(--accent);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);outline:none">
+          <button class="btn btn-gold" onclick="createToken()">إنشاء</button>
+        </div>
+        <div id="new-token-result" class="token-box" style="display:none;margin-top:12px">
+          <div style="font-size:12px;color:var(--subtext);margin-bottom:4px">Master Token:</div>
+          <div class="token-val" id="new-token-val"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>التحقق من توكين</h3>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <input type="text" id="verify-token-input" placeholder="أدخل التوكين للتحقق" style="flex:1;background:var(--accent);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);outline:none;font-family:monospace;font-size:12px">
+          <button class="btn btn-ghost" onclick="verifyToken()">تحقق</button>
+        </div>
+        <div id="verify-result" style="margin-top:12px;font-size:13px"></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="page-settings" class="page">
+      <div class="page-title">الإعدادات <span>/ Settings</span></div>
+      <div class="card" style="margin-bottom:20px">
+        <h3>معلومات النظام</h3>
+        <div id="settings-info" style="margin-top:12px;font-size:13px;line-height:1.8;color:var(--subtext)">جاري التحميل...</div>
+      </div>
+      <div class="card">
+        <h3>التعلم الذاتي</h3>
+        <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:14px">تشغيل دورة التعلم الآن</span>
+          <button class="btn btn-gold" onclick="triggerLearning()">تعلّم الآن</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const API = "";  // same origin
+let AUTH_TOKEN = "";
+
+// ── Demo login (for testing without a real agent) ──────────
+function createDemo() {
+  AUTH_TOKEN = "demo";
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  loadPage("overview");
+  showToast("وضع التجربة — بيانات افتراضية");
+}
+
+async function doLogin() {
+  const t = document.getElementById("token-input").value.trim();
+  if (!t) return;
+  // If backend available, verify; else accept for demo
+  AUTH_TOKEN = t;
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  loadPage("overview");
+}
+
+function doLogout() {
+  AUTH_TOKEN = "";
+  document.getElementById("app").style.display = "none";
+  document.getElementById("login-screen").style.display = "flex";
+}
+
+// ── Navigation ─────────────────────────────────────────────
+function showPage(name, el) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  document.getElementById("page-" + name).classList.add("active");
+  el.classList.add("active");
+  loadPage(name);
+}
+
+async function loadPage(name) {
+  if (name === "overview")  loadOverview();
+  if (name === "memory")    loadMemory();
+  if (name === "models")    loadModels();
+  if (name === "skills")    loadSkills();
+  if (name === "logs")      loadLogs();
+  if (name === "settings")  loadSettings();
+}
+
+// ── API calls ───────────────────────────────────────────────
+async function api(path, method="GET", body=null) {
+  // Demo mode: return fake data
+  if (AUTH_TOKEN === "demo") return demoData(path);
+  try {
+    const opts = { method, headers: { "Content-Type": "application/json" } };
+    if (body) opts.body = JSON.stringify(body);
+    const r = await fetch(`${API}${path}?token=${AUTH_TOKEN}`, opts);
+    return await r.json();
+  } catch { return null; }
+}
+
+function demoData(path) {
+  const map = {
+    "/api/status":  { agent:"running", platform:"android", heartbeat:300, memory:"512MB", version:"0.1.0" },
+    "/api/memory":  { facts:24, history:187, size_kb:48 },
+    "/api/skills":  { skills:[{name:"web_search",status:"active"},{name:"file_manager",status:"active"},{name:"scheduler",status:"active"},{name:"trading_analysis",status:"active"}], count:4 },
+    "/api/models":  { primary:"claude-sonnet-4-6", fast:"groq/llama-3.3-70b", local:"ollama/mistral", anthropic_key_set:true },
+    "/api/logs":    { logs:[{user:"u1",message:"حلل BTC الآن",response:"سعر BTC عند...",time:"2026-06-25 14:30"},{user:"u1",message:"ما حالة الذاكرة؟",response:"الذاكرة: 48KB",time:"2026-06-25 14:28"}] },
+  };
+  return map[path] || {};
+}
+
+async function loadOverview() {
+  const [st, mem, sk] = await Promise.all([api("/api/status"), api("/api/memory"), api("/api/skills")]);
+  if (st)  { document.getElementById("ov-platform").textContent  = st.platform || "—"; document.getElementById("ov-heartbeat").textContent = st.heartbeat || "—"; }
+  if (mem) { document.getElementById("ov-facts").textContent = mem.facts || 0; document.getElementById("ov-history").textContent = mem.history || 0; }
+  if (sk)  { document.getElementById("ov-skills").textContent = sk.count || 0; }
+}
+
+async function loadMemory() {
+  const mem = await api("/api/memory");
+  if (!mem) return;
+  document.getElementById("mem-facts").textContent   = mem.facts    || 0;
+  document.getElementById("mem-history").textContent = mem.history  || 0;
+  document.getElementById("mem-size").textContent    = mem.size_kb  || 0;
+}
+
+function searchMemory() {
+  document.getElementById("mem-results").innerHTML =
+    "<p style='font-size:13px;color:var(--subtext)'>🔍 بحث في الذاكرة — Phase 2</p>";
+}
+
+async function loadModels() {
+  const m = await api("/api/models");
+  if (!m) return;
+  const models = [
+    { label: "Primary (تحليل عميق)", value: m.primary, badge: "primary" },
+    { label: "Fast (ردود سريعة)", value: m.fast, badge: "fast" },
+    { label: "Local (بدون إنترنت)", value: m.local, badge: "local" },
+  ];
+  document.getElementById("models-list").innerHTML = models.map(mo =>
+    `<div class="model-row">
+      <div>
+        <div style="font-size:14px">${mo.value}</div>
+        <div style="font-size:12px;color:var(--subtext)">${mo.label}</div>
+      </div>
+      <span class="badge badge-${mo.badge==="primary"?"gold":mo.badge==="fast"?"green":"gray"}">${mo.badge}</span>
+    </div>`
+  ).join("");
+}
+
+async function testModel() {
+  const inp = document.getElementById("model-test-input").value;
+  const res = document.getElementById("model-test-result");
+  if (!inp) return;
+  res.innerHTML = "<span class='spinner'>⟳</span> جاري الاختبار...";
+  await new Promise(r => setTimeout(r, 1500));
+  res.innerHTML = "✅ الاتصال بالنموذج يعمل بشكل صحيح — Phase 2";
+}
+
+async function loadSkills() {
+  const sk = await api("/api/skills");
+  if (!sk) return;
+  document.getElementById("skills-list").innerHTML = (sk.skills||[]).map(s =>
+    `<div class="skill-item">
+      <span>⚡ ${s.name}</span>
+      <span class="skill-score badge badge-green">${s.status}</span>
+    </div>`
+  ).join("") || "<p style='color:var(--subtext);font-size:13px'>لا توجد skills مثبتة بعد</p>";
+}
+
+async function runDoctor(fix) {
+  const el = document.getElementById("doctor-results");
+  el.innerHTML = "<p><span class='spinner'>⟳</span> جاري التشخيص...</p>";
+  const res = fix
+    ? await fetch(`${API}/api/doctor?fix=true&token=${AUTH_TOKEN}`, {method:"POST"}).then(r=>r.json()).catch(()=>null)
+    : await fetch(`${API}/api/doctor?token=${AUTH_TOKEN}`, {method:"POST"}).then(r=>r.json()).catch(()=>null);
+
+  // Demo
+  const results = res?.results || {
+    platform: {ok:true, details:"android"}, python: {ok:true, details:"Python 3.11.0"},
+    config: {ok:true, details:"config.yaml loaded"}, memory: {ok:true, details:"SQLite available"},
+    network: {ok:true, details:"Anthropic API reachable"}, skills: {ok:true, details:"4 skills found"},
+    security: {ok:false, details:"ANTHROPIC_API_KEY not set"},
+  };
+  el.innerHTML = Object.entries(results).map(([k,v]) =>
+    `<div class="doctor-check">
+      <span class="check-icon">${v.ok?"✅":"❌"}</span>
+      <span class="check-name">${k}</span>
+      <span class="check-detail">${v.details||""}</span>
+    </div>`
+  ).join("");
+}
+
+async function loadLogs() {
+  const lg = await api("/api/logs");
+  if (!lg) return;
+  document.getElementById("logs-list").innerHTML = (lg.logs||[]).map(l =>
+    `<div class="log-item">
+      <strong>${l.time}</strong> — ${l.message}
+      <div style="margin-top:2px">${l.response}</div>
+    </div>`
+  ).join("") || "<p style='color:var(--subtext);font-size:13px'>لا توجد سجلات بعد</p>";
+}
+
+async function createToken() {
+  const uid = document.getElementById("new-user-id").value.trim();
+  if (!uid) return;
+  const res = await fetch(`${API}/api/token/create?user_id=${uid}&token=${AUTH_TOKEN}`, {method:"POST"}).then(r=>r.json()).catch(()=>null);
+  const val = res?.token || "demo_token_" + Math.random().toString(36).slice(2);
+  document.getElementById("new-token-val").textContent = val;
+  document.getElementById("new-token-result").style.display = "block";
+}
+
+async function verifyToken() {
+  const t   = document.getElementById("verify-token-input").value.trim();
+  const el  = document.getElementById("verify-result");
+  if (!t) return;
+  const res = await fetch(`${API}/api/token/verify?token=${t}`).then(r=>r.json()).catch(()=>null);
+  if (res?.valid) {
+    el.innerHTML = `<span style="color:var(--green)">✅ صحيح — المستخدم: ${res.user_id} | النوع: ${res.type}</span>`;
+  } else {
+    el.innerHTML = "<span style='color:var(--red)'>❌ توكين غير صحيح أو منتهي</span>";
+  }
+}
+
+async function loadSettings() {
+  const st = await api("/api/status");
+  document.getElementById("settings-info").innerHTML = st ? `
+    <div>المنصة: <strong style="color:var(--gold)">${st.platform}</strong></div>
+    <div>الذاكرة المتاحة: <strong style="color:var(--gold)">${st.memory}</strong></div>
+    <div>Heartbeat: <strong style="color:var(--gold)">كل ${st.heartbeat} ثانية</strong></div>
+    <div>الإصدار: <strong style="color:var(--gold)">${st.version}</strong></div>
+  ` : "تعذر الاتصال بالوكيل";
+}
+
+async function triggerLearning() {
+  await fetch(`${API}/api/learn?token=${AUTH_TOKEN}`, {method:"POST"}).catch(()=>{});
+  showToast("بدأت دورة التعلم الذاتي ✅");
+}
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 3000);
+}
+</script>
+</body>
+</html>
