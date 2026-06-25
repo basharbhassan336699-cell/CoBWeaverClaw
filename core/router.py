@@ -1,13 +1,20 @@
 """
-Command Router — Directs messages to the right skill or brain.
+Command Router — يوجّه الرسائل للمهارة المناسبة أو للنموذج.
 """
+import importlib
+import os
+import glob
+import logging
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from core.agent import CoBWeaverClaw
 
+logger = logging.getLogger(__name__)
+
 
 class Router:
-    """Routes incoming messages to skills or the AI brain."""
+    """يوزّع الرسائل الواردة على Skills أو على نموذج AI."""
 
     def __init__(self, agent: "CoBWeaverClaw"):
         self.agent  = agent
@@ -15,12 +22,12 @@ class Router:
         self._load_skills()
 
     def _load_skills(self):
-        """Auto-discover and load all skills from skills/ directory."""
-        import importlib, os, glob
-        skill_files = glob.glob("skills/*.py")
-        for f in skill_files:
+        """يكتشف ويحمّل كل skills من مجلد skills/."""
+        skill_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "skills")
+        pattern   = os.path.join(skill_dir, "*.py")
+        for f in glob.glob(pattern):
             name = os.path.basename(f)[:-3]
-            if name.startswith("_"):
+            if name.startswith("_") or name in ("base", "factory", "evolver"):
                 continue
             try:
                 mod = importlib.import_module(f"skills.{name}")
@@ -28,18 +35,25 @@ class Router:
                     skill = mod.SKILL()
                     for trigger in skill.trigger:
                         self.skills[trigger.lower()] = skill
-            except Exception:
-                pass
+                    logger.debug(f"Loaded skill: {name}")
+            except Exception as e:
+                logger.warning(f"Failed to load skill {name}: {e}")
 
     async def handle(self, message: str, context: dict, lang: str) -> str:
-        """Route message to appropriate skill or fall through to brain."""
-        lower = message.lower()
+        """يوجّه الرسالة لمهارة مناسبة أو للنموذج."""
+        lower = message.lower().strip()
 
-        # Check skill triggers
+        # فحص triggers — تطابق كلمة كاملة أو بداية الرسالة
         for trigger, skill in self.skills.items():
-            if trigger in lower:
-                if skill.score >= 0.3:  # Only use skills with decent score
-                    return await skill.run(message, context)
+            if trigger in lower and skill.score >= 0.3:
+                try:
+                    result = await skill.run(message, context)
+                    skill.log_success()
+                    return result
+                except Exception as e:
+                    skill.log_failure()
+                    logger.warning(f"Skill {skill.name} failed: {e}")
+                    break
 
-        # Fall through to AI brain
+        # لا توجد مهارة مطابقة → النموذج
         return await self.agent.brain.complete(message, context, lang)
