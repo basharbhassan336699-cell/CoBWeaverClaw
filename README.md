@@ -1,6 +1,9 @@
-# 🕷️ CoBWeaverClaw
+# CoBWeaverClaw
 
 <div align="center">
+
+<img src="assets/icon.svg" width="120" height="120" alt="CoBWeaverClaw Icon"
+     style="border-radius:24px; margin-bottom:16px"/>
 
 **وكيل ذكاء اصطناعي مفتوح المصدر | Open-Source AI Agent**
 
