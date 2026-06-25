@@ -4,38 +4,55 @@
 agent:
   name: CoBWeaverClaw
   version: "0.1.0"
-  language: auto          # auto-detect from user message
-  specialization: general # general | trading | medicine | engineering | law | education
+  language: auto            # auto-detect from user message
+  specialization: general   # general | trading | medicine | engineering | law | education
 
-# Brain / Models
+# ── Brain / Models ──────────────────────────────────────────
 brain:
-  primary: claude-sonnet-4-6    # deep analysis
-  fast: groq/llama-3.3-70b      # quick responses (150ms)
-  local: ollama/mistral          # offline fallback
+  primary: claude-sonnet-4-6     # deep analysis
+  fast: groq/llama-3.3-70b       # quick responses (150ms)
+  local: ollama/mistral           # offline fallback
   fallback_chain: [primary, fast, local]
-  auto_select: true              # auto-choose model per task type
+  auto_select: true               # auto-choose model per task type
 
-# Memory System
+# ── Memory System ────────────────────────────────────────────
 memory:
   sqlite_path: ~/.cobweaverclaw/memory.db
   lightrag_path: ~/.cobweaverclaw/lightrag/
-  compression_threshold: 1000   # compress after N entries
-  sync_across_devices: false    # enable for cloud sync
+  compression_threshold: 1000
+  sync_across_devices: false
 
-# Heartbeat
+# ── Device Registry ──────────────────────────────────────────
+devices:
+  db_path: ~/.cobweaverclaw/devices.db
+  notify_new_device: true       # إشعار فوري عند تسجيل جهاز جديد
+  auto_register: true           # تسجيل الجهاز تلقائياً عند أول تشغيل
+
+# ── Update System ────────────────────────────────────────────
+updates:
+  auto_check: true
+  check_interval_hours: 6       # فحص كل 6 ساعات
+  notify_on_update: true        # إشعار فوري عند وجود تحديث
+  notify_on_commit: true        # إشعار بكل commit جديد (للمطور)
+  github_repo: basharbhassan336699-cell/CoBWeaverClaw
+  auto_install: false           # لا تثبّت تلقائياً — اطلب إذن المستخدم
+
+# ── Heartbeat ────────────────────────────────────────────────
 heartbeat:
   enabled: true
-  interval_seconds: 300         # 5 minutes default (auto-adjusts per device)
+  interval_seconds: 300
   tasks:
-    - check_open_positions
-    - monitor_alerts
-    - update_memory
+    - check_updates             # فحص التحديثات
+    - check_open_positions      # مراقبة الصفقات
+    - monitor_alerts            # التنبيهات
+    - update_memory             # تحديث الذاكرة
 
-# Interfaces
+# ── Interfaces ───────────────────────────────────────────────
 interfaces:
   telegram:
     enabled: true
-    token: ""                   # set your bot token
+    token: ""                   # BOT_TOKEN من BotFather
+    owner_chat_id: ""           # chat_id الخاص بك للإشعارات
   cli:
     enabled: true
   dashboard:
@@ -43,25 +60,25 @@ interfaces:
     port: 8080
     host: localhost
 
-# Security
+# ── Security ─────────────────────────────────────────────────
 security:
   sandbox_all_plugins: true
   trust_level_default: 0
   tls_only: true
   auto_audit_interval_days: 7
 
-# Self-Learning
+# ── Self-Learning ────────────────────────────────────────────
 learning:
   enabled: true
-  schedule: "0 2 * * 0"        # every Sunday 2am
+  schedule: "0 2 * * 0"
   sources:
     - web
     - youtube_transcripts
     - arxiv
   max_sources_per_run: 10
 
-# Swarm Trading Engine
+# ── Swarm Trading Engine ─────────────────────────────────────
 swarm:
-  enabled: false               # enable for trading specialization
+  enabled: false
   agents_count: 50
   simulation_timeout_seconds: 30
