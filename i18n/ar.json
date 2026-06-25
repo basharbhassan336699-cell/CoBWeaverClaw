@@ -1,0 +1,11 @@
+{
+  "welcome": "مرحباً بك في CoBWeaverClaw 🕷️",
+  "thinking": "جاري التفكير...",
+  "error": "حدث خطأ: {error}",
+  "skill_created": "تم إنشاء مهارة جديدة: {name}",
+  "doctor_ok": "جميع الأنظمة تعمل بشكل طبيعي ✅",
+  "doctor_issues": "تم العثور على {count} مشكلة",
+  "memory_saved": "تم تحديث الذاكرة",
+  "learning_start": "بدء دورة التعلم الذاتي...",
+  "learning_done": "اكتمل التعلم. تم تخزين {count} عنصر جديد."
+}
