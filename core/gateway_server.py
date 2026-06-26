@@ -74,7 +74,7 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
                 "version":  "0.1.0",
             })
         elif path == "/api/account":
-            from account_manager import AccountManager
+            import sys, os; sys.path.insert(0, os.path.dirname(__file__)); from account_manager import AccountManager
             am = AccountManager()
             self._send_json(am.get_or_create_account())
         else:
