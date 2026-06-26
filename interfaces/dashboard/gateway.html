@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CoBWeaverClaw — بوابة التحكم</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  :root{--bg:#0F0F1A;--card:#1A1A2E;--accent:#16213E;--gold:#E2B04A;--border:#2A2A4A;--text:#E8E8F0;--sub:#8888AA;--green:#27AE60;--red:#E74C3C}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Inter,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+  .topbar{display:flex;align-items:center;gap:12px;padding:16px 24px;background:var(--card);border-bottom:1px solid var(--border)}
+  .topbar .spider{font-size:1.5rem}
+  .topbar h1{font-size:1.1rem;color:var(--gold)}
+  .topbar .ver{font-size:.75rem;color:var(--sub);margin-right:auto}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .wrap{max-width:900px;margin:0 auto;padding:24px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px}
+  .card h3{font-size:.75rem;color:var(--sub);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+  .card .val{font-size:1.5rem;font-weight:700;color:var(--gold)}
+  .card .sub{font-size:.8rem;color:var(--sub);margin-top:4px}
+  .section{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
+  .section h2{font-size:1rem;margin-bottom:16px;color:var(--text)}
+  .row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+  .row:last-child{border:none}
+  .row .label{font-size:.9rem}
+  .row .meta{font-size:.8rem;color:var(--sub)}
+  .btn{padding:8px 18px;border-radius:8px;border:none;cursor:pointer;font-size:.85rem;font-weight:600;font-family:inherit}
+  .btn-gold{background:var(--gold);color:#1A1A2E}
+  .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--sub)}
+  .btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
+  .err{text-align:center;padding:60px 24px;color:var(--sub)}
+  .err .lock{font-size:3rem;margin-bottom:16px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <span class="spider">🕷️</span>
+  <h1>CoBWeaverClaw</h1>
+  <span class="dot" id="statusDot"></span>
+  <span class="ver" id="ver">—</span>
+</div>
+
+<div class="wrap" id="content">
+  <div class="err">
+    <div class="lock">🔒</div>
+    <p>جاري التحقق من التوكين...</p>
+  </div>
+</div>
+
+<script>
+// قراءة التوكين من الـ hash ثم إزالته من الرابط (أمان)
+let TOKEN = "";
+const m = location.hash.match(/token=([a-f0-9]+)/i);
+if (m) {
+  TOKEN = m[1];
+  history.replaceState(null, "", location.pathname);  // إزالة التوكين من الرابط
+}
+
+async function api(path) {
+  const r = await fetch(path + "?token=" + TOKEN);
+  if (r.status === 401) throw new Error("unauthorized");
+  return r.json();
+}
+
+async function load() {
+  const content = document.getElementById("content");
+  try {
+    const [status, account] = await Promise.all([
+      api("/api/status"),
+      api("/api/account")
+    ]);
+    document.getElementById("ver").textContent = "v" + status.version;
+    content.innerHTML = `
+      <div class="grid">
+        <div class="card"><h3>الحالة</h3><div class="val" style="color:var(--green);font-size:1.2rem">يعمل</div></div>
+        <div class="card"><h3>المنصة</h3><div class="val" style="font-size:1.2rem">${status.platform}</div></div>
+        <div class="card"><h3>الإصدار</h3><div class="val" style="font-size:1.2rem">${status.version}</div></div>
+      </div>
+      <div class="section">
+        <h2>الحساب</h2>
+        <div class="row"><span class="label">المعرّف</span><span class="meta">${account.account_id}</span></div>
+        <div class="row"><span class="label">أُنشئ في</span><span class="meta">${(account.created_at||'').slice(0,19)}</span></div>
+        <div class="row"><span class="label">الجهاز</span><span class="meta">${account.device_name||'—'}</span></div>
+      </div>
+      <div class="section">
+        <h2>إجراءات سريعة</h2>
+        <div class="row">
+          <div><div class="label">نسخة احتياطية</div><div class="meta">شغّل في الطرفية: python main.py backup</div></div>
+        </div>
+        <div class="row">
+          <div><div class="label">إعادة التشغيل</div><div class="meta">شغّل في الطرفية: python main.py restart</div></div>
+        </div>
+        <div class="row">
+          <div><div class="label">توكين جديد للبوابة</div><div class="meta">python main.py gateway --new-token</div></div>
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    content.innerHTML = `
+      <div class="err">
+        <div class="lock">🔒</div>
+        <p>توكين غير صحيح أو مفقود</p>
+        <p style="margin-top:12px;font-size:.85rem">
+          افتح البوابة بالرابط الكامل من الطرفية:<br>
+          <code style="color:var(--gold)">python main.py gateway --url</code>
+        </p>
+      </div>
+    `;
+    document.getElementById("statusDot").style.background = "var(--red)";
+  }
+}
+
+load();
+</script>
+</body>
+</html>
