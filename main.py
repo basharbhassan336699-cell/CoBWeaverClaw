@@ -85,11 +85,15 @@ def cmd_gateway(args):
     host = "0.0.0.0" if "--network" in args else cfg.get("gateway", {}).get("host", "127.0.0.1")
     port = cfg.get("gateway", {}).get("port", 7878)
 
+    # افتراضياً: localhost بلا توكين (أسهل). --secure يفعّل التوكين.
+    # على الشبكة (--network) التوكين إجباري دائماً.
+    require_token = ("--secure" in args) or ("--network" in args)
+
     # تحميل HTML لوحة التحكم
     html_path = os.path.join(BASE_DIR, "interfaces", "dashboard", "gateway.html")
     dashboard_html = open(html_path).read() if os.path.exists(html_path) else "<html><body><h1>CoBWeaverClaw Gateway</h1></body></html>"
 
-    run_gateway(host=host, port=port, dashboard_html=dashboard_html)
+    run_gateway(host=host, port=port, dashboard_html=dashboard_html, require_token=require_token)
 
 
 def cmd_account(args):
