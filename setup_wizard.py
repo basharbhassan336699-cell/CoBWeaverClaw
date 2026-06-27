@@ -543,9 +543,11 @@ def step11_gateway(cfg):
 def step12_finish(cfg):
     diamond("١٢/١٢ — اكتمل الإعداد! 🎉")
     # تنظيف المفاتيح المؤقتة
+    run_mode_tmp = cfg.get("_run_mode","")
     for k in ["_chosen_provider","_setup_mode","_config_handling","_run_mode"]:
         cfg.pop(k, None)
     save_config(cfg)
+    cfg["_run_mode_saved"] = run_mode_tmp
 
     # إعداد الحساب
     try:
@@ -568,6 +570,15 @@ def step12_finish(cfg):
     if cfg.get("gateway",{}).get("enabled"):
         print(f"  🔒 البوابة: {G}{cfg['gateway']['host']}:{GATEWAY_PORT}{R}")
     print(f"  🆔 الحساب:  {G}{account_id}{R}")
+
+    # تشغيل تلقائي حسب اختيار المستخدم في خطوة 10
+    run_mode = cfg.get("_run_mode_saved", "")
+    if cfg.get("gateway",{}).get("enabled"):
+        print(f"\n  {Y}━━━ لفتح بوابة التحكم ━━━{R}")
+        print(f"  شغّل الأمر التالي في الطرفية:")
+        print(f"  {G}{B}python main.py gateway{R}")
+        print(f"  ثم افتح الرابط في المتصفح.")
+        print(f"  {DIM}(البوابة تحتاج أن تبقى تعمل — لا تغلق الطرفية){R}")
 
     print(f"""
   {B}أوامر البدء:{R}
