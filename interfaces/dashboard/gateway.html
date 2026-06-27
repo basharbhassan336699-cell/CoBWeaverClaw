@@ -76,6 +76,9 @@
 <script>
 let TOKEN = "";
 (function(){
+  // أولاً: جرّب الدخول بلا توكين (وضع localhost المباشر)
+  tryLogin(true);
+  // أو اقرأ التوكين من الرابط إن وُجد
   const m = location.hash.match(/token=([a-f0-9]+)/i);
   if (m) { TOKEN = m[1]; history.replaceState(null, "", location.pathname); tryLogin(); }
 })();
@@ -91,11 +94,12 @@ function doLogout(){
   document.getElementById("token-input").value = "";
 }
 async function api(path){
-  const r = await fetch(path + "?token=" + TOKEN);
+  const sep = TOKEN ? ("?token=" + TOKEN) : "";
+  const r = await fetch(path + sep);
   if (r.status === 401) throw new Error("unauthorized");
   return r.json();
 }
-async function tryLogin(){
+async function tryLogin(silent){
   try {
     const [status, account] = await Promise.all([api("/api/status"), api("/api/account")]);
     document.getElementById("login").style.display = "none";
@@ -103,6 +107,8 @@ async function tryLogin(){
     document.getElementById("ver").textContent = "v" + status.version;
     render(status, account);
   } catch(e){
+    // إن كانت محاولة صامتة (بلا توكين) وفشلت، لا تُظهر خطأ — انتظر إدخال المستخدم
+    if (silent) return;
     const err = document.getElementById("login-err");
     if (err) err.style.display = "block";
   }
