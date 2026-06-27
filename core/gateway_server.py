@@ -105,12 +105,59 @@ def run_gateway(host: str = "127.0.0.1", port: int = 7878,
         print(f"\n   🔒 localhost فقط — آمن، لا أحد على الشبكة يصله")
     print(f"\n   لإيقاف البوابة: Ctrl+C\n")
 
-    with socketserver.TCPServer((host, port), GatewayHandler) as httpd:
-        httpd.allow_reuse_address = True
+    # خادم يضبط SO_REUSEADDR *قبل* الربط — يمنع خطأ "Address already in use"
+    class ReusableServer(socketserver.TCPServer):
+        allow_reuse_address = True  # يُطبَّق قبل bind تلقائياً
+
+    try:
+        httpd = ReusableServer((host, port), GatewayHandler)
+    except OSError as e:
+        if e.errno in (98, 48):  # 98=Linux, 48=Mac: المنفذ مشغول
+            print(f"   ⚠️  المنفذ {port} مشغول — غالباً بوابة قديمة ما زالت تعمل.\n")
+            print(f"   الحل:")
+            print(f"   1) أغلق البوابة القديمة: python main.py stop")
+            print(f"   2) أو أغلق نوافذ Termux الأخرى التي تشغّل gateway")
+            print(f"   3) ثم أعد: python main.py gateway\n")
+            # محاولة أخيرة: إيقاف العملية القديمة تلقائياً
+            _try_free_port(port)
+            try:
+                httpd = ReusableServer((host, port), GatewayHandler)
+                print(f"   ✅ تم تحرير المنفذ تلقائياً — البوابة تعمل الآن.\n")
+            except OSError:
+                print(f"   ❌ تعذّر تحرير المنفذ تلقائياً. استخدم: python main.py stop")
+                return
+        else:
+            raise
+
+    with httpd:
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
             print("\n   تم إيقاف البوابة.")
+            httpd.shutdown()
+
+
+def _try_free_port(port: int):
+    """يحاول إيقاف أي عملية تشغّل البوابة على هذا المنفذ (Termux/Linux)."""
+    import subprocess
+    import signal
+    try:
+        # ابحث عن PID المستخدم للمنفذ عبر /proc (يعمل في Termux بلا أدوات إضافية)
+        my_pid = os.getpid()
+        for pid in os.listdir("/proc"):
+            if not pid.isdigit() or int(pid) == my_pid:
+                continue
+            try:
+                cmdline = open(f"/proc/{pid}/cmdline", "rb").read().decode("utf-8", "ignore")
+                # عملية python تشغّل gateway (وليست هذه العملية)
+                if "python" in cmdline and "gateway" in cmdline:
+                    os.kill(int(pid), signal.SIGTERM)
+            except Exception:
+                continue
+        import time
+        time.sleep(1)  # مهلة لتحرير المنفذ
+    except Exception:
+        pass
 
 
 if __name__ == "__main__":
