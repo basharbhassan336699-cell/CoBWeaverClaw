@@ -70,7 +70,7 @@ def cmd_gateway(args):
     if "--url" in args:
         cfg  = load_config()
         host = cfg.get("gateway", {}).get("host", "127.0.0.1")
-        port = cfg.get("gateway", {}).get("port", 8787)
+        port = cfg.get("gateway", {}).get("port", 7878)
         disp = host if host != "0.0.0.0" else "<عنوان-جهازك>"
         token = auth.get_or_create_token()
         print(f"\n🔗 رابط بوابة التحكم:\n   http://{disp}:{port}/#token={token}\n")
@@ -80,7 +80,7 @@ def cmd_gateway(args):
     from gateway_server import run_gateway
     cfg  = load_config()
     host = "0.0.0.0" if "--network" in args else cfg.get("gateway", {}).get("host", "127.0.0.1")
-    port = cfg.get("gateway", {}).get("port", 8787)
+    port = cfg.get("gateway", {}).get("port", 7878)
 
     # تحميل HTML لوحة التحكم
     html_path = os.path.join(BASE_DIR, "interfaces", "dashboard", "gateway.html")
