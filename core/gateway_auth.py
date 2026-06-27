@@ -58,7 +58,7 @@ class GatewayAuth:
         actual = self.get_or_create_token()
         return hmac.compare_digest(provided_token, actual)
 
-    def get_dashboard_url(self, host: str = "127.0.0.1", port: int = 8787) -> str:
+    def get_dashboard_url(self, host: str = "127.0.0.1", port: int = 7878) -> str:
         """يبني رابط لوحة التحكم مع التوكين."""
         token = self.get_or_create_token()
         return f"http://{host}:{port}/#token={token}"
