@@ -27,20 +27,22 @@ sys.path.insert(0, os.path.join(BASE_DIR, "core"))
 sys.path.insert(0, os.path.join(BASE_DIR, "browser"))
 
 
+CONFIG_DIR = os.path.expanduser("~/.cobweaverclaw")
+
 def load_env():
-    """تحميل .env إن وُجد."""
-    env = os.path.join(BASE_DIR, ".env")
-    if os.path.exists(env):
-        for line in open(env):
-            line = line.strip()
-            if line and "=" in line and not line.startswith("#"):
-                k, v = line.split("=", 1)
-                os.environ.setdefault(k.strip(), v.strip())
+    """تحميل .env من المجلد الآمن (ثم المحلي كاحتياط)."""
+    for env in [os.path.join(CONFIG_DIR, ".env"), os.path.join(BASE_DIR, ".env")]:
+        if os.path.exists(env):
+            for line in open(env):
+                line = line.strip()
+                if line and "=" in line and not line.startswith("#"):
+                    k, v = line.split("=", 1)
+                    os.environ.setdefault(k.strip(), v.strip())
 
 
 def load_config():
     import yaml
-    for p in ["config.yaml", os.path.expanduser("~/.cobweaverclaw/config.yaml")]:
+    for p in [os.path.join(CONFIG_DIR, "config.yaml"), "config.yaml"]:
         if os.path.exists(p):
             with open(p) as f:
                 return yaml.safe_load(f) or {}
@@ -50,7 +52,8 @@ def load_config():
 def is_first_run():
     cfg = load_config()
     has_brain = bool(cfg.get("brain", {}).get("primary") or cfg.get("brain", {}).get("fast"))
-    has_env   = os.path.exists(os.path.join(BASE_DIR, ".env"))
+    has_env   = (os.path.exists(os.path.join(CONFIG_DIR, ".env"))
+                 or os.path.exists(os.path.join(BASE_DIR, ".env")))
     return not (has_brain or has_env)
 
 
