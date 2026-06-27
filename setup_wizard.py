@@ -71,8 +71,15 @@ def warn(m): print(f"  {Y}⚠️  {m}{R}")
 def info(m): print(f"  {C}ℹ️  {m}{R}")
 def err(m):  print(f"  {RD}❌ {m}{R}")
 
+CONFIG_DIR = os.path.expanduser("~/.cobweaverclaw")
+
+def _ensure_config_dir():
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+    return CONFIG_DIR
+
 def load_config():
-    for p in ["config.yaml", os.path.expanduser("~/.cobweaverclaw/config.yaml")]:
+    # يُحمّل من المجلد الآمن أولاً (لا يُحذف مع git)، ثم المحلي كاحتياط
+    for p in [os.path.join(CONFIG_DIR, "config.yaml"), "config.yaml"]:
         if os.path.exists(p):
             try:
                 import yaml
@@ -83,16 +90,21 @@ def load_config():
     return {}
 
 def save_config(cfg):
+    # يُحفظ في المجلد الآمن ~/.cobweaverclaw (يبقى رغم git clone/pull)
+    _ensure_config_dir()
     try:
         import yaml
-        with open("config.yaml", "w", encoding="utf-8") as f:
+        path = os.path.join(CONFIG_DIR, "config.yaml")
+        with open(path, "w", encoding="utf-8") as f:
             yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
     except Exception as e:
         warn(f"تعذّر حفظ config.yaml: {e}")
 
 def save_env(env_vars):
+    # يُحفظ في المجلد الآمن ~/.cobweaverclaw/.env (يبقى رغم git)
     from pathlib import Path
-    env_path = Path(".env")
+    _ensure_config_dir()
+    env_path = Path(CONFIG_DIR) / ".env"
     existing = {}
     if env_path.exists():
         for line in env_path.read_text().splitlines():
