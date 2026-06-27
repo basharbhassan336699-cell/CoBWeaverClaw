@@ -60,27 +60,26 @@ class AccountManager:
         if output_path is None:
             output_path = str(self.config_dir / f"cbw_backup_{timestamp}.tar.gz")
 
-        # الملفات التي تُحفظ في النسخة
+        # الملفات التي تُحفظ في النسخة (كلها في المجلد الآمن)
         items_to_backup = [
             "account.json",
             "gateway_token",
             "memory.db",
             "devices.db",
+            "config.yaml",
+            ".env",
         ]
-        # config.yaml قد يكون في مجلد العمل
-        config_yaml = Path("config.yaml")
 
         with tarfile.open(output_path, "w:gz") as tar:
             for item in items_to_backup:
                 p = self.config_dir / item
                 if p.exists():
                     tar.add(p, arcname=f"cobweaverclaw/{item}")
-            if config_yaml.exists():
-                tar.add(config_yaml, arcname="cobweaverclaw/config.yaml")
-            # .env إن وُجد (يحتوي المفاتيح)
-            env_file = Path(".env")
-            if env_file.exists():
-                tar.add(env_file, arcname="cobweaverclaw/.env")
+            # احتياط: config.yaml أو .env في مجلد العمل (نسخ قديمة)
+            for legacy in ["config.yaml", ".env"]:
+                lp = Path(legacy)
+                if lp.exists() and not (self.config_dir / legacy).exists():
+                    tar.add(lp, arcname=f"cobweaverclaw/{legacy}")
 
         try:
             os.chmod(output_path, 0o600)
@@ -115,15 +114,14 @@ class AccountManager:
                     continue
                 content = src.read()
 
-                # حدّد الوجهة الصحيحة لكل ملف
+                # كل الملفات تُستعاد للمجلد الآمن ~/.cobweaverclaw
                 if name == "config.yaml":
-                    dest = Path("config.yaml")
+                    dest = self.config_dir / "config.yaml"
                     restored.append("config.yaml")
                 elif name == ".env":
-                    dest = Path(".env")
-                    restored.append(".env (API keys)")
+                    dest = self.config_dir / ".env"
+                    restored.append(".env (المفاتيح)")
                 else:
-                    # account.json, gateway_token, memory.db, devices.db
                     dest = self.config_dir / name
                     restored.append(name)
 
