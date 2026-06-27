@@ -49,12 +49,16 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         path   = parsed.path
 
-        # الصفحة الرئيسية تُقدّم HTML (التوكين يُتحقق منه عبر JS من الـ hash)
+        # الصفحة الرئيسية تُقدّم HTML
         if path == "/" or path == "/index.html":
             body = self.dashboard_html.encode()
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
+            # منع التخزين المؤقت — يضمن تحميل أحدث نسخة دائماً
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Expires", "0")
             self.end_headers()
             self.wfile.write(body)
             return
