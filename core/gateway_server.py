@@ -19,12 +19,18 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
 
     auth = None          # تُحقن من الخارج
     dashboard_html = ""  # محتوى HTML
+    require_token = True  # عند False: localhost يدخل بلا توكين
 
     def log_message(self, fmt, *args):
         pass  # كتم سجل الطلبات الافتراضي
 
     def _check_auth(self) -> bool:
-        """يتحقق من التوكين في الـ query أو الـ header."""
+        """يتحقق من التوكين، أو يسمح مباشرة إن كان الوضع بلا توكين."""
+        # وضع بلا توكين: الوصول المحلي (localhost) مسموح مباشرة
+        if not self.require_token:
+            client = self.client_address[0] if self.client_address else ""
+            if client in ("127.0.0.1", "::1", "localhost"):
+                return True
         parsed = urllib.parse.urlparse(self.path)
         qs     = urllib.parse.parse_qs(parsed.query)
         token  = (qs.get("token", [None])[0]
@@ -82,27 +88,38 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
 
 
 def run_gateway(host: str = "127.0.0.1", port: int = 7878,
-                config_dir: str = None, dashboard_html: str = ""):
+                config_dir: str = None, dashboard_html: str = "",
+                require_token: bool = True):
     """
     يشغّل بوابة التحكم.
     host=127.0.0.1 → localhost فقط (افتراضي، أأمن)
     host=0.0.0.0   → الشبكة المحلية (يحتاج توكيناً، يُفعّل بأمر صريح)
+    require_token=False → localhost يدخل بلا توكين (أسهل، آمن محلياً فقط)
     """
     auth  = GatewayAuth(config_dir)
     token = auth.get_or_create_token()
 
+    # على الشبكة المفتوحة، التوكين إجباري دائماً (أمان)
+    if host == "0.0.0.0":
+        require_token = True
+
     GatewayHandler.auth           = auth
     GatewayHandler.dashboard_html = dashboard_html
-
-    url = f"http://{host if host != '0.0.0.0' else '<your-ip>'}:{port}/#token={token}"
+    GatewayHandler.require_token  = require_token
 
     print(f"\n🕷️  CoBWeaverClaw Gateway")
-    print(f"   الرابط (مع التوكين):")
-    print(f"   {url}")
-    if host == "0.0.0.0":
-        print(f"\n   ⚠️  مفتوح على الشبكة المحلية — التوكين إجباري للحماية")
+    if not require_token:
+        print(f"   افتح في المتصفح مباشرة (بلا توكين):")
+        print(f"   http://{host}:{port}/")
+        print(f"\n   🔓 localhost بلا توكين — الدخول مباشر")
     else:
-        print(f"\n   🔒 localhost فقط — آمن، لا أحد على الشبكة يصله")
+        url = f"http://{host if host != '0.0.0.0' else '<your-ip>'}:{port}/#token={token}"
+        print(f"   الرابط (مع التوكين):")
+        print(f"   {url}")
+        if host == "0.0.0.0":
+            print(f"\n   ⚠️  مفتوح على الشبكة المحلية — التوكين إجباري للحماية")
+        else:
+            print(f"\n   🔒 localhost فقط — آمن، لا أحد على الشبكة يصله")
     print(f"\n   لإيقاف البوابة: Ctrl+C\n")
 
     # خادم يضبط SO_REUSEADDR *قبل* الربط — يمنع خطأ "Address already in use"
