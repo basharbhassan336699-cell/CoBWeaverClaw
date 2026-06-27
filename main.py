@@ -58,6 +58,9 @@ def is_first_run():
 
 def cmd_gateway(args):
     """فتح بوابة التحكم."""
+    if "--stop" in args:
+        cmd_stop(args)
+        return
     from gateway_auth import GatewayAuth
     auth = GatewayAuth()
 
@@ -151,6 +154,31 @@ async def cmd_doctor(args):
         print(f"\n🔧 أُصلح: {', '.join(result['fixed'])}")
 
 
+
+def cmd_stop(args):
+    """إيقاف أي بوابة عالقة تعمل في الخلفية."""
+    import signal
+    my_pid = os.getpid()
+    killed = 0
+    try:
+        for pid in os.listdir("/proc"):
+            if not pid.isdigit() or int(pid) == my_pid:
+                continue
+            try:
+                cmdline = open(f"/proc/{pid}/cmdline", "rb").read().decode("utf-8", "ignore")
+                if "python" in cmdline and "gateway" in cmdline and "stop" not in cmdline:
+                    os.kill(int(pid), signal.SIGTERM)
+                    killed += 1
+            except Exception:
+                continue
+    except Exception:
+        pass
+    if killed:
+        print(f"\n✅ أُغلقت {killed} بوابة عالقة. يمكنك الآن: python main.py gateway\n")
+    else:
+        print("\n✅ لا توجد بوابة عالقة. المنفذ حر.\n")
+
+
 def cmd_status(args):
     from gateway_auth import GatewayAuth
     from account_manager import AccountManager
@@ -187,6 +215,7 @@ def cmd_help():
   python main.py backup [path]      نسخة احتياطية
   python main.py restore <file>     استعادة نسخة
   python main.py restart            إعادة التشغيل
+  python main.py stop               إيقاف بوابة عالقة
 
   python main.py doctor [--fix]     تشخيص وإصلاح
   python main.py status             الحالة
@@ -228,6 +257,8 @@ def main():
         cmd_restart(rest)
     elif cmd == "doctor":
         asyncio.run(cmd_doctor(rest))
+    elif cmd == "stop":
+        cmd_stop(rest)
     elif cmd == "status":
         cmd_status(rest)
     elif cmd == "help":
