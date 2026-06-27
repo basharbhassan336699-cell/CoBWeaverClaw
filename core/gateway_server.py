@@ -81,7 +81,7 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
             self._send_json({"error": "not_found"}, 404)
 
 
-def run_gateway(host: str = "127.0.0.1", port: int = 8787,
+def run_gateway(host: str = "127.0.0.1", port: int = 7878,
                 config_dir: str = None, dashboard_html: str = ""):
     """
     يشغّل بوابة التحكم.
