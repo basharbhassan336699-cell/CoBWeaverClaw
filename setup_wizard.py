@@ -261,8 +261,9 @@ def step2_mode(cfg):
     return "next"
 
 def step3_config_handling(cfg):
-    # تظهر فقط إن وُجد إعداد سابق
-    existing = bool(cfg.get("brain", {}).get("primary") or os.path.exists(".env"))
+    # تظهر فقط إن وُجد إعداد سابق (في المجلد الآمن فقط)
+    existing = bool(cfg.get("brain", {}).get("primary")
+                    or os.path.exists(os.path.join(CONFIG_DIR, ".env")))
     if not existing:
         return "next"
     diamond("٣/١٢ — Config handling · معالجة الإعداد السابق")
@@ -275,10 +276,11 @@ def step3_config_handling(cfg):
     if sel == BACK:
         return BACK
     if sel == 2:
-        # إعادة ضبط
+        # إعادة ضبط — تحذف من المجلد الآمن (لا مجلد المشروع)
         for f in [".env", "config.yaml"]:
-            if os.path.exists(f):
-                os.remove(f)
+            p = os.path.join(CONFIG_DIR, f)
+            if os.path.exists(p):
+                os.remove(p)
         cfg.clear()
         ok("تمت إعادة الضبط")
     cfg["_config_handling"] = ["keep","review","reset"][sel]
