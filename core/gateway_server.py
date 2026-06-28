@@ -19,7 +19,7 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
 
     auth = None          # تُحقن من الخارج
     dashboard_html = ""  # محتوى HTML
-    require_token = True  # عند False: localhost يدخل بلا توكين
+    require_token = False  # localhost يدخل بلا توكين افتراضياً
 
     def log_message(self, fmt, *args):
         pass  # كتم سجل الطلبات الافتراضي
@@ -77,10 +77,9 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
     def _handle_api(self, path: str, parsed):
         """معالجة نقاط الـ API بعد التحقق."""
         if path == "/api/status":
-            import platform
             self._send_json({
                 "agent":    "running",
-                "platform": platform.system().lower(),
+                "platform": "android",
                 "version":  "0.1.0",
             })
         elif path == "/api/account":
