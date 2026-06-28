@@ -173,7 +173,8 @@ def cmd_stop(args):
                 continue
             try:
                 cmdline = open(f"/proc/{pid}/cmdline", "rb").read().decode("utf-8", "ignore")
-                if "python" in cmdline and "gateway" in cmdline and "stop" not in cmdline:
+                is_service = ("gateway" in cmdline) or ("telegram" in cmdline)
+                if "python" in cmdline and is_service and "stop" not in cmdline:
                     os.kill(int(pid), signal.SIGTERM)
                     killed += 1
             except Exception:
@@ -218,6 +219,8 @@ def cmd_help():
   python main.py gateway --network  فتحها للشبكة المحلية
   python main.py gateway --new-token توليد توكين جديد
 
+  python main.py telegram           تشغيل بوت تيليجرام
+
   python main.py account            عرض الحساب
   python main.py backup [path]      نسخة احتياطية
   python main.py restore <file>     استعادة نسخة
@@ -254,6 +257,9 @@ def main():
         subprocess.run([sys.executable, os.path.join(BASE_DIR, "setup_wizard.py")] + rest)
     elif cmd == "gateway":
         cmd_gateway(rest)
+    elif cmd == "telegram":
+        from interfaces.telegram import run_telegram
+        run_telegram(load_config())
     elif cmd == "account":
         cmd_account(rest)
     elif cmd == "backup":
