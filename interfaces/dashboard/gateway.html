@@ -230,6 +230,8 @@ async function tryLogin(silent){
     document.getElementById("app").style.display="flex";
     document.getElementById("ver").textContent = "v"+status.version;
     loadIdentity(); loadModels(); loadSettings();
+    const tm = location.hash.match(/tab=(\w+)/);
+    showTab(tm ? tm[1] : "chat");
   }catch(e){
     if (silent) return;
     document.getElementById("login-err").style.display="block";
@@ -237,9 +239,12 @@ async function tryLogin(silent){
 }
 
 function showTab(name){
+  const valid = ["chat","identity","settings","channels","skills"];
+  if (!valid.includes(name)) name = "chat";
   document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.tab===name));
   document.querySelectorAll(".pane").forEach(p=>p.classList.remove("active"));
   document.getElementById(name+"-pane").classList.add("active");
+  try{ history.replaceState(null,"","#tab="+name); }catch(e){}
   if (name==="channels") loadChannels();
   if (name==="skills")   loadSkills();
 }
