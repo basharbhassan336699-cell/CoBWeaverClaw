@@ -190,12 +190,13 @@ def cmd_stop(args):
 def cmd_status(args):
     from gateway_auth import GatewayAuth
     from account_manager import AccountManager
-    import platform
     cfg = load_config()
     am  = AccountManager()
+    # ملاحظة: core/ على sys.path يحجب stdlib 'platform' — نستعمل sys.platform
+    plat = {"linux": "Linux", "darwin": "macOS", "win32": "Windows"}.get(sys.platform, sys.platform)
     print(f"\n🕷️  CoBWeaverClaw")
     print(f"   الحساب:    {am.get_account_id()}")
-    print(f"   المنصة:    {platform.system()}")
+    print(f"   المنصة:    {plat}")
     keys = [k for k in os.environ if k.endswith("_API_KEY")]
     print(f"   المفاتيح:  {len(keys)} مُعدّ")
     gw = cfg.get("gateway", {})
