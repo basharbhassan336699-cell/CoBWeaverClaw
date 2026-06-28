@@ -167,6 +167,26 @@ def channels_status() -> dict:
     }
 
 
+def telegram_test() -> dict:
+    """يختبر اتصال بوت تيليجرام المُعدّ عبر getMe."""
+    load_env_into_os()
+    cfg = load_config()
+    tg = cfg.get("interfaces", {}).get("telegram", {})
+    token = os.environ.get("TELEGRAM_BOT_TOKEN", "") or tg.get("token", "")
+    if not token:
+        return {"ok": False, "error": "no_token"}
+    import urllib.request
+    try:
+        with urllib.request.urlopen(
+                f"https://api.telegram.org/bot{token}/getMe", timeout=8) as r:
+            d = json.loads(r.read())
+        if d.get("ok"):
+            return {"ok": True, "username": d["result"].get("username", "")}
+        return {"ok": False, "error": "invalid_token"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:80]}
+
+
 def config_public() -> dict:
     """config كامل للعرض في الـ dashboard مع إخفاء المفاتيح الحساسة."""
     cfg = load_config()
@@ -299,6 +319,8 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
                 self._send_json({"skills": list_skills()})
             elif path == "/api/channels":
                 self._send_json(channels_status())
+            elif path == "/api/channels/telegram/test":
+                self._send_json(telegram_test())
             else:
                 self._send_json({"error": "not_found"}, 404)
         except Exception as e:

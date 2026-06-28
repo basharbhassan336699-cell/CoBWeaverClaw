@@ -78,14 +78,24 @@
   .bubble.user{align-self:flex-start;background:var(--userbg);color:#1a1a2e;border-bottom-right-radius:4px}
   .bubble.bot{align-self:flex-end;background:var(--card);border:1px solid var(--border);
               border-bottom-left-radius:4px}
-  .bubble .who{font-size:.68rem;opacity:.7;margin-bottom:3px}
+  .bubble .who{font-size:.68rem;opacity:.7;margin-bottom:3px;display:flex;gap:8px;justify-content:space-between}
+  .bubble .who .ts{opacity:.7}
   .composer{display:flex;gap:8px;padding:12px;background:var(--card);border-top:1px solid var(--border);
             align-items:center}
   .composer select{width:auto;max-width:170px;font-size:.8rem}
   .composer input{flex:1}
   .composer .send{background:var(--accent);color:#1a1a2e;font-weight:700;padding:11px 18px;
                   border-radius:9px;border:none;cursor:pointer}
-  .typing{align-self:flex-end;color:var(--sub);font-size:.85rem;padding:6px 12px}
+  .typing{align-self:flex-end;color:var(--sub);font-size:.9rem;padding:8px 14px;background:var(--card);
+          border:1px solid var(--border);border-radius:14px;border-bottom-left-radius:4px}
+  .typing .dot{display:inline-block;width:6px;height:6px;margin:0 1px;border-radius:50%;
+               background:var(--sub);animation:blink 1.4s infinite both}
+  .typing .dot:nth-child(2){animation-delay:.2s}
+  .typing .dot:nth-child(3){animation-delay:.4s}
+  @keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
+  .btn-sm{font-size:.78rem;padding:7px 12px;border-radius:8px;border:1px solid var(--border);
+          background:var(--bg);color:var(--text);cursor:pointer}
+  .btn-sm.on{background:var(--accent);color:#1a1a2e;font-weight:600;border-color:var(--accent)}
 </style>
 </head>
 <body>
@@ -235,12 +245,20 @@ function showTab(name){
 }
 
 /* ── chat ── */
+const FRIENDLY = {anthropic:"Anthropic Claude",openai:"OpenAI",groq:"Groq",
+  deepseek:"DeepSeek Chat",openrouter:"OpenRouter",mistral:"Mistral",xai:"xAI Grok",
+  zai:"Z.AI GLM-4.6",gemini:"Google Gemini",ollama:"Ollama (local)"};
+function friendly(v){
+  if(!v) return "تلقائي (Auto)";
+  const prov = v.split("/")[0];
+  return FRIENDLY[prov] || v;
+}
 function modelOptions(){
   const opts = [["","تلقائي (Auto)"]];
   const brain = CONFIG.brain || {};
   const seen = new Set();
   Object.values(brain).forEach(v=>{
-    if (typeof v==="string" && v.includes("/") && !seen.has(v)){ seen.add(v); opts.push([v, v]); }
+    if (typeof v==="string" && v.includes("/") && !seen.has(v)){ seen.add(v); opts.push([v, friendly(v)]); }
   });
   return opts;
 }
@@ -248,11 +266,19 @@ function loadModels(){
   const sel = document.getElementById("model-sel");
   sel.innerHTML = modelOptions().map(([v,l])=>`<option value="${v}">${l}</option>`).join("");
 }
+function nowTime(){
+  const d = new Date();
+  return d.getHours().toString().padStart(2,"0")+":"+d.getMinutes().toString().padStart(2,"0");
+}
 function addBubble(text, who, model){
   const m = document.getElementById("messages");
   const b = document.createElement("div");
   b.className = "bubble "+(who==="user"?"user":"bot");
-  b.innerHTML = `<div class="who">${who==="user"?"أنت":(model||"الوكيل")}</div>`;
+  const name = who==="user" ? "أنت" : (friendly(model)||"الوكيل");
+  const head = document.createElement("div");
+  head.className = "who";
+  head.innerHTML = `<span>${name}</span><span class="ts">${nowTime()}</span>`;
+  b.appendChild(head);
   b.appendChild(document.createTextNode(text));
   m.appendChild(b); m.scrollTop = m.scrollHeight;
 }
@@ -263,7 +289,8 @@ async function sendMsg(){
   addBubble(msg,"user");
   const m = document.getElementById("messages");
   const typing = document.createElement("div");
-  typing.className="typing"; typing.textContent="🕷️ يكتب...";
+  typing.className="typing";
+  typing.innerHTML='🕷️ <span class="dot"></span><span class="dot"></span><span class="dot"></span>';
   m.appendChild(typing); m.scrollTop=m.scrollHeight;
   try{
     const out = await api("/api/chat","POST",{message:msg, model:document.getElementById("model-sel").value});
@@ -329,15 +356,38 @@ async function saveSettings(){
 /* ── channels ── */
 async function loadChannels(){
   const c = await api("/api/channels");
-  const names={telegram:"Telegram",discord:"Discord",slack:"Slack",whatsapp:"WhatsApp",signal:"Signal"};
-  document.getElementById("channels-list").innerHTML = Object.entries(c).map(([k,v])=>{
-    let pill;
-    if(v.status==="active") pill='<span class="pill on">مفعّل</span>';
-    else if(v.status==="inactive") pill='<span class="pill off">متوقف</span>';
-    else pill='<span class="pill soon">قريباً</span>';
-    const extra = v.token_masked? `<span class="muted">${v.token_masked}</span>`:"";
-    return `<div class="row"><span>${names[k]||k}</span><span>${extra} ${pill}</span></div>`;
-  }).join("");
+  const tg = c.telegram || {};
+  const tgOn = tg.status === "active";
+  const others = {discord:"Discord",slack:"Slack",whatsapp:"WhatsApp",signal:"Signal"};
+  let html = `
+    <div class="row">
+      <div><div>🤖 تيليجرام</div>
+        <div class="muted">${tg.token_masked || "لا يوجد توكين"}</div></div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <span class="pill ${tgOn?'on':'off'}">${tgOn?'🟢 نشط':'🔴 متوقف'}</span>
+        <button class="btn-sm ${tgOn?'on':''}" onclick="toggleTelegram(${!tgOn})">${tgOn?'إيقاف':'تشغيل'}</button>
+        <button class="btn-sm" onclick="testTelegram(this)">اختبار</button>
+      </div>
+    </div>
+    <div id="tg-test" class="muted" style="padding:6px 0"></div>`;
+  html += Object.entries(others).map(([k,name])=>
+    `<div class="row"><span>${name}</span><span class="pill soon">قريباً</span></div>`).join("");
+  document.getElementById("channels-list").innerHTML = html;
+}
+async function toggleTelegram(on){
+  await api("/api/config","POST",{interfaces:{telegram:{enabled:on}}});
+  CONFIG.interfaces = CONFIG.interfaces||{}; CONFIG.interfaces.telegram = CONFIG.interfaces.telegram||{};
+  CONFIG.interfaces.telegram.enabled = on;
+  loadChannels();
+}
+async function testTelegram(btn){
+  const out = document.getElementById("tg-test");
+  out.textContent = "⟳ جارٍ الاختبار...";
+  try{
+    const r = await api("/api/channels/telegram/test");
+    out.innerHTML = r.ok ? `<span style="color:var(--green)">🟢 متصل: @${r.username}</span>`
+                         : `<span style="color:var(--red)">🔴 فشل: ${r.error}</span>`;
+  }catch(e){ out.innerHTML = `<span style="color:var(--red)">🔴 ${e.message}</span>`; }
 }
 
 /* ── skills ── */
