@@ -12,10 +12,33 @@ class Doctor:
     Inspired by OpenClaw doctor, significantly expanded.
     """
 
+    # المزود → (متغير البيئة, رابط فحص الاتصال)
+    PROVIDER_INFO = {
+        "anthropic":  ("ANTHROPIC_API_KEY",  "https://api.anthropic.com/v1/models"),
+        "openai":     ("OPENAI_API_KEY",     "https://api.openai.com/v1/models"),
+        "groq":       ("GROQ_API_KEY",       "https://api.groq.com/openai/v1/models"),
+        "deepseek":   ("DEEPSEEK_API_KEY",   "https://api.deepseek.com/models"),
+        "openrouter": ("OPENROUTER_API_KEY", "https://openrouter.ai/api/v1/models"),
+        "mistral":    ("MISTRAL_API_KEY",    "https://api.mistral.ai/v1/models"),
+        "xai":        ("XAI_API_KEY",        "https://api.x.ai/v1/models"),
+        "zai":        ("ZAI_API_KEY",        "https://api.z.ai/api/paas/v4/models"),
+        "gemini":     ("GEMINI_API_KEY",     "https://generativelanguage.googleapis.com"),
+        "ollama":     ("",                   "http://localhost:11434/api/tags"),
+    }
+
     def __init__(self, config: dict):
         self.config = config
         self.issues = []
         self.fixed  = []
+
+    def _primary_provider(self) -> str:
+        """يستخرج المزوّد المُعدّ من config (brain.primary أو أول دور مُعدّ)."""
+        brain = self.config.get("brain", {})
+        for role in ["primary", "fast", "coding", "arabic", "local"]:
+            val = brain.get(role)
+            if val and "/" in val:
+                return val.split("/", 1)[0]
+        return "anthropic"
 
     async def run(self, fix: bool = False, full: bool = False, dry_run: bool = False) -> dict:
         """
@@ -70,12 +93,18 @@ class Doctor:
             return {"ok": False, "details": str(e)}
 
     async def _check_network(self) -> dict:
-        import urllib.request
+        """يفحص الاتصال بمزوّد النماذج المُعدّ فعلياً (لا Anthropic دائماً)."""
+        import urllib.request, urllib.error
+        provider = self._primary_provider()
+        _, url = self.PROVIDER_INFO.get(provider, ("", "https://api.anthropic.com"))
         try:
-            urllib.request.urlopen("https://api.anthropic.com", timeout=5)
-            return {"ok": True, "details": "Anthropic API reachable"}
+            urllib.request.urlopen(url, timeout=6)
+            return {"ok": True, "details": f"{provider} API reachable"}
+        except urllib.error.HTTPError:
+            # استجابة HTTP (حتى 401) تعني أن الخادم وصُل
+            return {"ok": True, "details": f"{provider} API reachable"}
         except Exception:
-            return {"ok": False, "details": "Cannot reach Anthropic API"}
+            return {"ok": False, "details": f"Cannot reach {provider} API"}
 
     async def _check_skills(self) -> dict:
         skills_dir = "skills/"
@@ -83,9 +112,18 @@ class Doctor:
         return {"ok": count > 0, "details": f"{count} skills found"}
 
     async def _check_security(self) -> dict:
-        api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+        """يتحقق من مفتاح المزوّد المُعدّ فعلياً (لا ANTHROPIC دائماً)."""
+        provider = self._primary_provider()
+        env_key, _ = self.PROVIDER_INFO.get(provider, ("ANTHROPIC_API_KEY", ""))
+        if not env_key:   # ollama لا يحتاج مفتاحاً
+            return {"ok": True, "details": f"{provider}: لا يحتاج مفتاحاً (محلي)"}
+        api_key = os.environ.get(env_key, "")
         ok = bool(api_key)
-        return {"ok": ok, "details": "API key set" if ok else "ANTHROPIC_API_KEY not set"}
+        if not ok:
+            self.issues.append("api_key_missing")
+        return {"ok": ok,
+                "details": f"{provider} API: ✅ مفتاح مضبوط" if ok
+                           else f"{provider} API: ❌ {env_key} غير مضبوط"}
 
     async def _fix(self, check: str, result: dict):
         """Attempt to fix a failed check."""

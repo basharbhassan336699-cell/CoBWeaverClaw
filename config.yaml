@@ -20,9 +20,9 @@ keys:
 
 # ── Brain / Models ──────────────────────────────────────────
 brain:
-  primary: claude-sonnet-4-6     # deep analysis
-  fast: groq/llama-3.3-70b       # quick responses (150ms)
-  local: ollama/mistral           # offline fallback
+  primary: anthropic/claude-sonnet-4-6        # deep analysis
+  fast: groq/llama-3.3-70b-versatile          # quick responses (150ms)
+  local: ollama/mistral                       # offline fallback
   fallback_chain: [primary, fast, local]
   auto_select: true               # auto-choose model per task type
 
