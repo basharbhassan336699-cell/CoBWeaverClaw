@@ -3,411 +3,928 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CoBWeaverClaw — لوحة التحكم</title>
+<title>CoBWeaverClaw</title>
 <style>
-  :root{
-    --bg:#0d1117; --card:#1a1f35; --accent:#FF8C00; --border:#2a2f45;
-    --text:#e8e8f0; --sub:#8b93a7; --green:#27c093; --red:#e74c3c; --userbg:#FF8C00;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Signifier-like fallback via system serif for English headings */
+@font-face {
+  font-family: 'Signifier';
+  src: local('Georgia'), local('Times New Roman');
+  unicode-range: U+0000-007F; /* Latin only */
+}
+:root {
+  --bg:#0d1117; --card:#1a1f35; --card2:#141824; --card3:#0f1420;
+  --orange:#FF8C00; --orange2:#cc7000; --green:#22c55e;
+  --red:#ef4444; --text:#e6edf3; --muted:#8b949e;
+  --border:#30363d; --input:#0d1117; --r:12px; --rs:8px;
+  --sidebar-w:220px;
+}
+
+/* ── THEMES ──────────────────────────── */
+[data-theme="light"] {
+  --bg:#f4f6fa; --card:#ffffff; --card2:#eef1f7; --card3:#e8ecf4;
+  --orange:#E07000; --orange2:#b85c00; --orange-text:#c06000;
+  --green:#16a34a; --red:#dc2626; --text:#111827; --muted:#6b7280;
+  --border:#d1d5db; --input:#ffffff;
+  --bubble-user-bg: rgba(224,112,0,0.12);
+  --bubble-user-border: rgba(224,112,0,0.3);
+}
+@media (prefers-color-scheme: light) {
+  [data-theme="system"] {
+    --bg:#f4f6fa; --card:#ffffff; --card2:#eef1f7; --card3:#e8ecf4;
+    --orange:#E07000; --orange2:#b85c00; --orange-text:#c06000;
+    --green:#16a34a; --red:#dc2626; --text:#111827; --muted:#6b7280;
+    --border:#d1d5db; --input:#ffffff;
+    --bubble-user-bg: rgba(224,112,0,0.12);
+    --bubble-user-border: rgba(224,112,0,0.3);
   }
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:Inter,'Segoe UI',system-ui,-apple-system,sans-serif;
-       background:var(--bg);color:var(--text);min-height:100vh}
-  /* login */
-  #login{display:flex;flex-direction:column;align-items:center;justify-content:center;
-         min-height:100vh;padding:24px;gap:18px}
-  #login .spider{font-size:3rem}
-  #login h1{color:var(--accent);font-size:1.6rem}
-  .login-box{background:var(--card);border:1px solid var(--border);border-radius:16px;
-             padding:26px;width:100%;max-width:420px;text-align:center}
-  .login-box input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--border);
-                   background:var(--bg);color:var(--accent);font-family:monospace;font-size:13px;
-                   outline:none;direction:ltr;text-align:left}
-  .btn{padding:12px 22px;border-radius:10px;border:none;cursor:pointer;font-size:.95rem;
-       font-weight:600;font-family:inherit}
-  .btn-gold{background:var(--accent);color:#1a1a2e;width:100%;margin-top:12px}
-  .btn-gold:active{opacity:.85}
-  .login-err{color:var(--red);font-size:.85rem;margin-top:10px;display:none}
-  /* app shell */
-  #app{display:none;flex-direction:column;min-height:100vh}
-  .topbar{display:flex;align-items:center;gap:10px;padding:14px 20px;background:var(--card);
-          border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20}
-  .topbar .spider{font-size:1.4rem}
-  .topbar h1{font-size:1.05rem;color:var(--accent)}
-  .topbar .ver{font-size:.72rem;color:var(--sub);margin-right:auto}
-  .dot{width:8px;height:8px;border-radius:50%;background:var(--green);
-       box-shadow:0 0 6px var(--green);animation:pulse 2s infinite}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-  /* tabs */
-  .tabs{display:flex;gap:4px;padding:8px 12px;background:var(--card);overflow-x:auto;
-        border-bottom:1px solid var(--border);position:sticky;top:50px;z-index:19}
-  .tab{padding:9px 14px;border-radius:9px;border:none;background:transparent;color:var(--sub);
-       cursor:pointer;font-size:.9rem;font-family:inherit;white-space:nowrap}
-  .tab.active{background:var(--accent);color:#1a1a2e;font-weight:600}
-  .pane{display:none;flex:1;padding:18px;max-width:840px;margin:0 auto;width:100%}
-  .pane.active{display:block}
-  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;
-        padding:18px;margin-bottom:14px}
-  .card h2{font-size:1rem;margin-bottom:14px;color:var(--accent)}
-  label{display:block;font-size:.82rem;color:var(--sub);margin:12px 0 5px}
-  input,select,textarea{width:100%;padding:11px;border-radius:9px;border:1px solid var(--border);
-        background:var(--bg);color:var(--text);font-family:inherit;font-size:.9rem;outline:none}
-  input:focus,select:focus,textarea:focus{border-color:var(--accent)}
-  textarea{min-height:80px;resize:vertical}
-  .save{background:var(--accent);color:#1a1a2e;font-weight:600;margin-top:16px;width:auto;
-        padding:11px 28px}
-  .muted{color:var(--sub);font-size:.82rem}
-  .row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;
-       border-bottom:1px solid var(--border);gap:10px}
-  .row:last-child{border:none}
-  .pill{font-size:.72rem;padding:3px 9px;border-radius:20px}
-  .pill.on{background:rgba(39,192,147,.18);color:var(--green)}
-  .pill.off{background:rgba(231,76,60,.18);color:var(--red)}
-  .pill.soon{background:rgba(139,147,167,.18);color:var(--sub)}
-  .keyrow{display:flex;gap:6px;align-items:center}
-  .keyrow input{flex:1}
-  .toggle{cursor:pointer;font-size:.8rem;color:var(--sub);background:none;border:1px solid var(--border);
-          border-radius:8px;padding:8px 10px}
-  .ok-msg{color:var(--green);font-size:.85rem;margin-top:10px;display:none}
-  /* chat */
-  #chat-pane{display:none;flex-direction:column;height:calc(100vh - 110px);max-width:840px;
-             margin:0 auto;width:100%;padding:0}
-  #chat-pane.active{display:flex}
-  #messages{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:10px}
-  .bubble{max-width:78%;padding:11px 14px;border-radius:14px;font-size:.92rem;line-height:1.55;
-          white-space:pre-wrap;word-break:break-word}
-  .bubble.user{align-self:flex-start;background:var(--userbg);color:#1a1a2e;border-bottom-right-radius:4px}
-  .bubble.bot{align-self:flex-end;background:var(--card);border:1px solid var(--border);
-              border-bottom-left-radius:4px}
-  .bubble .who{font-size:.68rem;opacity:.7;margin-bottom:3px;display:flex;gap:8px;justify-content:space-between}
-  .bubble .who .ts{opacity:.7}
-  .composer{display:flex;gap:8px;padding:12px;background:var(--card);border-top:1px solid var(--border);
-            align-items:center}
-  .composer select{width:auto;max-width:170px;font-size:.8rem}
-  .composer input{flex:1}
-  .composer .send{background:var(--accent);color:#1a1a2e;font-weight:700;padding:11px 18px;
-                  border-radius:9px;border:none;cursor:pointer}
-  .typing{align-self:flex-end;color:var(--sub);font-size:.9rem;padding:8px 14px;background:var(--card);
-          border:1px solid var(--border);border-radius:14px;border-bottom-left-radius:4px}
-  .typing .dot{display:inline-block;width:6px;height:6px;margin:0 1px;border-radius:50%;
-               background:var(--sub);animation:blink 1.4s infinite both}
-  .typing .dot:nth-child(2){animation-delay:.2s}
-  .typing .dot:nth-child(3){animation-delay:.4s}
-  @keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
-  .btn-sm{font-size:.78rem;padding:7px 12px;border-radius:8px;border:1px solid var(--border);
-          background:var(--bg);color:var(--text);cursor:pointer}
-  .btn-sm.on{background:var(--accent);color:#1a1a2e;font-weight:600;border-color:var(--accent)}
+}
+@media (prefers-color-scheme: dark) {
+  [data-theme="system"] {
+    --bg:#0d1117; --card:#1a1f35; --card2:#141824; --card3:#0f1420;
+    --orange:#FF8C00; --orange2:#cc7000; --orange-text:#FF8C00;
+    --green:#22c55e; --red:#ef4444; --text:#e6edf3; --muted:#8b949e;
+    --border:#30363d; --input:#0d1117;
+    --bubble-user-bg: rgba(255,140,0,0.18);
+    --bubble-user-border: rgba(255,140,0,0.35);
+  }
+}
+/* English serif headings */
+h1,h2,h3,.brand { font-family: Georgia, 'Times New Roman', serif; }
+h1,h2,h3 { font-style: normal; }
+/* Keep brand styled */
+.brand { font-family: 'Inter', system-ui, sans-serif; font-style: normal; }
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif; /* Arabic & UI */background:var(--bg);color:var(--text);height:100vh;overflow:hidden;font-size:13px}
+
+/* ── TOPBAR ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 14px;height:50px;background:var(--card2);border-bottom:1px solid var(--border);position:relative;z-index:200}
+.topbar-left{display:flex;align-items:center;gap:10px}
+.topbar-right{display:flex;align-items:center;gap:8px}
+
+/* sidebar toggle button */
+.sidebar-toggle{width:34px;height:34px;background:var(--card);border:1px solid var(--border);border-radius:var(--rs);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;flex-shrink:0;transition:all .2s}
+.sidebar-toggle:hover{border-color:var(--orange)}
+.sidebar-toggle span{display:block;width:16px;height:2px;background:var(--muted);border-radius:2px;transition:all .3s}
+.sidebar-toggle.open span:nth-child(1){transform:translateY(6px) rotate(45deg);background:var(--orange)}
+.sidebar-toggle.open span:nth-child(2){opacity:0}
+.sidebar-toggle.open span:nth-child(3){transform:translateY(-6px) rotate(-45deg);background:var(--orange)}
+
+.brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;color:var(--orange)}
+.status-pill{display:flex;align-items:center;gap:5px;background:var(--card3);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:11px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);flex-shrink:0}
+.dot.red{background:var(--red);box-shadow:0 0 6px var(--red)}
+.lang-btn{background:var(--card);border:1px solid var(--border);border-radius:var(--rs);color:var(--muted);font-size:11px;padding:4px 10px;cursor:pointer;font-family:inherit;transition:all .2s}
+.theme-switcher{display:flex;align-items:center;gap:2px;background:var(--card3);border:1px solid var(--border);border-radius:var(--rs);padding:2px;}
+.theme-btn{background:none;border:none;border-radius:6px;color:var(--muted);cursor:pointer;width:26px;height:26px;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.theme-btn:hover{color:var(--text);}
+.theme-btn.active{background:var(--orange);color:#fff;}
+.lang-btn.active{border-color:var(--orange);color:var(--orange)}
+.ver{font-size:11px;color:var(--muted)}
+
+/* ── LAYOUT ── */
+.layout{display:flex;height:calc(100vh - 50px);overflow:hidden}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sidebar-w);background:var(--card2);border-left:1px solid var(--border);overflow-y:auto;flex-shrink:0;transition:width .25s ease, opacity .25s ease;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.sidebar.collapsed{width:0;opacity:0;pointer-events:none;overflow:hidden}
+
+/* sidebar is on LEFT (in RTL this is the right side visually but we want it left of content) */
+/* We force LTR order: sidebar left, main right */
+.layout{direction:ltr}
+.sidebar{border-left:none;border-right:1px solid var(--border)}
+.sidebar *{direction:rtl}
+
+.sidebar-section{padding:8px 0}
+.sidebar-lbl{font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.7px;text-transform:uppercase;padding:4px 14px 6px;display:flex;align-items:center;gap:6px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:7px 14px;cursor:pointer;color:var(--muted);font-size:12px;border:none;background:none;width:100%;font-family:inherit;text-align:right;border-right:2px solid transparent;transition:all .15s}
+.nav-item .ni{font-size:16px;flex-shrink:0;width:20px;text-align:center}
+.nav-item:hover{background:rgba(255,140,0,.06);color:var(--text)}
+.nav-item.active{background:rgba(255,140,0,.12);color:var(--orange);border-right-color:var(--orange)}
+.sdiv{height:1px;background:var(--border);margin:4px 10px}
+
+/* ── MAIN ── */
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column;direction:rtl}
+.page{display:none;flex-direction:column;height:100%;overflow:hidden}
+.page.active{display:flex}
+.pscroll{flex:1;overflow-y:auto;padding:16px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.ctitle{font-size:11px;font-weight:600;color:var(--orange);letter-spacing:.5px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+
+/* ── GRID ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+
+/* ── STAT ── */
+.stat{background:var(--card3);border:1px solid var(--border);border-radius:var(--rs);padding:12px;text-align:center}
+.snum{font-size:22px;font-weight:700;color:var(--orange);line-height:1}
+.slbl{font-size:10px;color:var(--muted);margin-top:4px}
+
+/* ── FIELDS ── */
+.field{margin-bottom:12px}.field:last-child{margin-bottom:0}
+.field label,.lbl{display:block;font-size:11px;color:var(--muted);margin-bottom:4px}
+input,select,textarea{width:100%;background:var(--input);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:inherit;font-size:13px;padding:8px 11px;transition:border-color .2s;direction:rtl}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--orange)}
+textarea{min-height:70px;resize:vertical;line-height:1.5}
+input::placeholder,textarea::placeholder{color:var(--muted)}
+
+/* ── BUTTONS ── */
+.btn{border:none;border-radius:var(--rs);font-family:inherit;font-size:13px;font-weight:500;padding:8px 14px;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.btn-p{background:var(--orange);color:#fff}.btn-p:hover{background:var(--orange2)}
+.btn-g{background:var(--card);border:1px solid var(--border);color:var(--text)}.btn-g:hover{border-color:var(--orange);color:var(--orange)}
+.btn-d{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--red)}
+.btn-f{width:100%;justify-content:center}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── BADGE ── */
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500}
+.bg{background:rgba(34,197,94,.15);color:var(--green)}
+.br{background:rgba(239,68,68,.1);color:var(--red)}
+.bm{background:rgba(139,148,158,.1);color:var(--muted);border:1px solid var(--border)}
+.bo{background:rgba(255,140,0,.15);color:var(--orange)}
+
+/* ── TOGGLE ── */
+.tgl{position:relative;width:38px;height:22px;flex-shrink:0}
+.tgl input{opacity:0;width:0;height:0}
+.tgl-t{position:absolute;inset:0;background:var(--border);border-radius:20px;cursor:pointer;transition:background .2s}
+.tgl-t::after{content:'';position:absolute;top:3px;right:3px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s}
+.tgl input:checked+.tgl-t{background:var(--orange)}
+.tgl input:checked+.tgl-t::after{transform:translateX(-16px)}
+
+/* ── TABLE ── */
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:right;padding:7px 10px;border-bottom:1px solid var(--border);color:var(--muted);font-weight:500;font-size:11px}
+.tbl td{padding:8px 10px;border-bottom:1px solid rgba(48,54,61,.5)}
+.tbl tr:last-child td{border-bottom:none}
+code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);padding:2px 6px;border-radius:4px;color:var(--orange)}
+
+/* ── KEY ROW ── */
+.krow{display:flex;align-items:center;gap:7px;margin-bottom:8px}
+.krow label{width:85px;flex-shrink:0;font-size:11px;color:var(--muted)}
+.krow input{flex:1;font-family:monospace;font-size:11px}
+.ibtn{background:var(--card);border:1px solid var(--border);border-radius:var(--rs);color:var(--muted);cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;transition:all .2s}
+.ibtn:hover{border-color:var(--orange);color:var(--orange)}
+
+/* ── CHAT ── */
+#page-chat{height:calc(100vh - 50px)}
+.chat-wrap{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.msg{display:flex;flex-direction:column;max-width:78%}
+.msg.user{align-self:flex-start;align-items:flex-start}
+.msg.agent{align-self:flex-end;align-items:flex-end}
+.bubble{padding:9px 13px;border-radius:var(--r);line-height:1.55;font-size:13px;word-break:break-word}
+.msg.user .bubble{
+  background: rgba(255,140,0,0.18);
+  color: var(--orange-text, #FF8C00);
+  border: 1px solid rgba(255,140,0,0.35);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom-right-radius:3px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.msg.agent .bubble{background:var(--card);border:1px solid var(--border);border-bottom-left-radius:3px}
+.mmeta{font-size:10px;color:var(--muted);padding:0 3px;margin-top:3px}
+.typing{display:none;align-self:flex-end}
+.typing.show{display:flex}
+.typing .bubble{display:flex;gap:5px;align-items:center;padding:11px 14px}
+.td{width:7px;height:7px;background:var(--muted);border-radius:50%;animation:bop 1.2s infinite}
+.td:nth-child(2){animation-delay:.2s}.td:nth-child(3){animation-delay:.4s}
+@keyframes bop{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+.cwelcome{text-align:center;padding:50px 20px;color:var(--muted);flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.cwelcome h3{color:var(--text);margin:12px 0 6px;font-size:17px}
+.cbar{padding:10px 12px;background:var(--card2);border-top:1px solid var(--border);display:flex;gap:7px;align-items:flex-end}
+.cbar select{width:auto;min-width:130px;font-size:12px;padding:7px 10px}
+.cinput{flex:1;min-height:38px;max-height:110px;resize:none;padding:9px 12px;line-height:1.4}
+.sbtn{width:38px;height:38px;background:var(--orange);border:none;border-radius:var(--rs);color:#fff;font-size:16px;cursor:pointer;flex-shrink:0;transition:background .2s;display:flex;align-items:center;justify-content:center}
+.sbtn:hover{background:var(--orange2)}.sbtn:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── SKILL ROW ── */
+.skr{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.skr:last-child{border-bottom:none;padding-bottom:0}
+.ski{font-size:18px;flex-shrink:0}
+.skinfo{flex:1}
+.skn{font-weight:500;margin-bottom:2px;font-size:13px}
+.skd{font-size:11px;color:var(--muted)}
+
+/* ── CHANNEL CARD ── */
+.chc{display:flex;align-items:center;gap:12px;padding:13px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);margin-bottom:10px}
+.chico{font-size:26px;flex-shrink:0}
+.chinfo{flex:1}
+.chn{font-weight:600;margin-bottom:3px}
+.chs{font-size:11px;color:var(--muted)}
+
+/* ── MEM LAYER ── */
+.meml{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card3);border:1px solid var(--border);border-radius:var(--rs);margin-bottom:8px}
+.memico{font-size:18px;flex-shrink:0}
+.meminfo{flex:1}
+.memt{font-weight:500;font-size:12px;margin-bottom:2px}
+.memd{font-size:11px;color:var(--muted)}
+.memc{font-size:18px;font-weight:700;color:var(--orange);min-width:28px;text-align:center}
+
+/* ── NOTE ── */
+.note{background:var(--card3);border:1px solid var(--border);border-right:3px solid var(--orange);border-radius:var(--rs);padding:9px 12px;font-size:11px;color:var(--muted);line-height:1.5;margin-top:10px}
+
+/* ── CRON ── */
+.cronr{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);font-size:12px}
+.cronr:last-child{border-bottom:none}
+
+/* ── GOAL ── */
+.goalr{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.goalr:last-child{border-bottom:none}
+.goaln{width:22px;height:22px;border-radius:50%;background:rgba(255,140,0,.15);border:1px solid rgba(255,140,0,.3);color:var(--orange);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.goalinfo{flex:1}
+.goalt{font-weight:500;margin-bottom:2px;font-size:12px}
+.goald{font-size:11px;color:var(--muted)}
+.progress{height:3px;background:var(--border);border-radius:2px;margin-top:6px}
+.pf{height:100%;background:var(--orange);border-radius:2px;transition:width .4s}
+
+/* ── SESS ── */
+.sessr{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.sessr:last-child{border-bottom:none}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:9px 18px;font-size:12px;opacity:0;transition:all .3s;pointer-events:none;z-index:999;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.success{border-color:var(--green);color:var(--green)}
+.toast.error{border-color:var(--red);color:var(--red)}
+.toast.info{border-color:var(--orange);color:var(--orange)}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:28px 16px;color:var(--muted)}
+.empty .ei{font-size:30px;margin-bottom:8px}
+.divider{height:1px;background:var(--border);margin:12px 0}
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* ── SPIDER SVG ── */
+.spider-icon{width:52px;height:52px;margin-bottom:4px}
+.spider-sm{width:28px;height:28px}
 </style>
 </head>
 <body>
-<!-- ── login (يظهر فقط في وضع التوكين) ── -->
-<div id="login">
-  <div style="text-align:center"><div class="spider">🕷️</div>
-    <h1>CoBWeaverClaw</h1><p class="muted">لوحة التحكم</p></div>
-  <div class="login-box">
-    <label style="text-align:right">الصق توكين البوابة:</label>
-    <input id="token-input" placeholder="697b6f7a98ec..." autocomplete="off" spellcheck="false">
-    <button class="btn btn-gold" onclick="doLogin()">دخول</button>
-    <p class="login-err" id="login-err">توكين غير صحيح</p>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <!-- Hamburger toggle -->
+    <button class="sidebar-toggle" id="sb-toggle" onclick="toggleSidebar()" title="فتح/إغلاق القائمة">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="brand">
+      <!-- Cute orange spider SVG -->
+      <svg class="spider-sm" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Body -->
+        <ellipse cx="30" cy="34" rx="11" ry="13" fill="#FF8C00"/>
+        <ellipse cx="30" cy="22" rx="8" ry="8" fill="#FF6B00"/>
+        <!-- Eyes -->
+        <circle cx="27" cy="20" r="2.5" fill="white"/>
+        <circle cx="33" cy="20" r="2.5" fill="white"/>
+        <circle cx="27.8" cy="20.5" r="1.2" fill="#1a1f35"/>
+        <circle cx="33.8" cy="20.5" r="1.2" fill="#1a1f35"/>
+        <!-- Smile -->
+        <path d="M26 24 Q30 27 34 24" stroke="white" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <!-- Left legs -->
+        <path d="M19 26 L8 20" stroke="#FF8C00" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M18 31 L5 29" stroke="#FF8C00" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M19 36 L7 38" stroke="#FF8C00" stroke-width="2.5" stroke-linecap="round"/>
+        <!-- Right legs -->
+        <path d="M41 26 L52 20" stroke="#FF8C00" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M42 31 L55 29" stroke="#FF8C00" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M41 36 L53 38" stroke="#FF8C00" stroke-width="2.5" stroke-linecap="round"/>
+        <!-- Belly pattern -->
+        <ellipse cx="30" cy="36" rx="5" ry="4" fill="#FF6B00" opacity="0.5"/>
+        <!-- Thread -->
+        <line x1="30" y1="14" x2="30" y2="8" stroke="#cc7000" stroke-width="1.5"/>
+      </svg>
+      CoBWeaverClaw
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="status-pill">
+      <div class="dot" id="dot"></div>
+      <span id="status-txt">يعمل</span>
+    </div>
+    <!-- Theme switcher -->
+    <div class="theme-switcher" id="theme-switcher">
+      <button class="theme-btn active" id="th-dark" onclick="setTheme('dark')" title="داكن / Dark">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="theme-btn" id="th-light" onclick="setTheme('light')" title="فاتح / Light">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <button class="theme-btn" id="th-system" onclick="setTheme('system')" title="نظام / System">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <button class="lang-btn active" id="btn-ar" onclick="setLang('ar')">ع</button>
+    <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+    <span class="ver" id="ver-lbl">v0.1.0</span>
   </div>
 </div>
 
-<!-- ── app ── -->
-<div id="app">
-  <div class="topbar">
-    <span class="spider">🕷️</span><h1>CoBWeaverClaw</h1>
-    <span class="dot"></span><span class="ver" id="ver">—</span>
-    <button class="toggle" onclick="doLogout()">خروج</button>
-  </div>
-  <div class="tabs">
-    <button class="tab active" data-tab="chat" onclick="showTab('chat')">💬 دردشة</button>
-    <button class="tab" data-tab="identity" onclick="showTab('identity')">🎭 شخصية الوكيل</button>
-    <button class="tab" data-tab="settings" onclick="showTab('settings')">⚙️ إعدادات</button>
-    <button class="tab" data-tab="channels" onclick="showTab('channels')">📡 قنوات</button>
-    <button class="tab" data-tab="skills" onclick="showTab('skills')">🛠️ مهارات</button>
-  </div>
+<div class="layout">
 
-  <!-- chat -->
-  <div class="pane active" id="chat-pane">
-    <div id="messages"></div>
-    <div class="composer">
-      <select id="model-sel" title="اختر النموذج"></select>
-      <input id="chat-input" placeholder="اكتب رسالتك..." onkeydown="if(event.key==='Enter')sendMsg()">
-      <button class="send" onclick="sendMsg()">إرسال</button>
+<!-- SIDEBAR (LEFT) -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-section">
+    <div class="sidebar-lbl" data-ar="الدردشة" data-en="Chat">الدردشة</div>
+    <button class="nav-item active" onclick="nav('chat',this)">
+      <!-- Chat icon SVG -->
+      <span class="ni"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span data-ar="محادثة" data-en="Chat">محادثة</span>
+    </button>
+  </div>
+  <div class="sdiv"></div>
+  <div class="sidebar-section">
+    <div class="sidebar-lbl" data-ar="التحكم" data-en="Control">التحكم</div>
+    <button class="nav-item" onclick="nav('overview',this)">
+      <span class="ni"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/></svg></span>
+      <span data-ar="نظرة عامة" data-en="Overview">نظرة عامة</span>
+    </button>
+    <button class="nav-item" onclick="nav('memory',this)">
+      <span class="ni"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" fill="currentColor"/></svg></span>
+      <span data-ar="الذاكرة" data-en="Memory">الذاكرة</span>
+    </button>
+    <button class="nav-item" onclick="nav('sessions',this)">
+      <span class="ni"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 10h16M4 14h10M4 18h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+      <span data-ar="الجلسات" data-en="Sessions">الجلسات</span>
+    </button>
+    <button class="nav-item" onclick="nav('cron',this)">
+      <span class="ni"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+      <span data-ar="مهام Cron" data-en="Cron Tasks">مهام Cron</span>
+    </button>
+  </div>
+  <div class="sdiv"></div>
+  <div class="sidebar-section">
+    <div class="sidebar-lbl" data-ar="الوكيل" data-en="Agent">الوكيل</div>
+    <button class="nav-item" onclick="nav('identity',this)">
+      <span class="ni"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/></svg></span>
+      <span data-ar="الشخصية" data-en="Identity">الشخصية</span>
+    </button>
+    <button class="nav-item" onclick="nav('skills',this)">
+      <span class="ni"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span data-ar="المهارات" data-en="Skills">المهارات</span>
+    </button>
+    <button class="nav-item" onclick="nav('goals',this)">
+      <span class="ni"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg></span>
+      <span data-ar="الأهداف" data-en="Goals">الأهداف</span>
+    </button>
+  </div>
+  <div class="sdiv"></div>
+  <div class="sidebar-section">
+    <div class="sidebar-lbl" data-ar="الإعدادات" data-en="Settings">الإعدادات</div>
+    <button class="nav-item" onclick="nav('channels',this)">
+      <span class="ni"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 01-2.18 2A19.79 19.79 0 013.09 4.18 2 2 0 015.09 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L9.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span data-ar="القنوات" data-en="Channels">القنوات</span>
+    </button>
+    <button class="nav-item" onclick="nav('settings',this)">
+      <span class="ni"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="1.8"/></svg></span>
+      <span data-ar="الإعدادات" data-en="Settings">الإعدادات</span>
+    </button>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- CHAT -->
+<div id="page-chat" class="page active">
+  <div class="chat-wrap" id="chat-wrap">
+    <div class="cwelcome" id="cwelcome">
+      <!-- Big cute spider -->
+      <svg class="spider-icon" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="40" cy="48" rx="14" ry="17" fill="#FF8C00"/>
+        <ellipse cx="40" cy="30" rx="11" ry="11" fill="#FF6B00"/>
+        <circle cx="36" cy="27" r="3.5" fill="white"/>
+        <circle cx="44" cy="27" r="3.5" fill="white"/>
+        <circle cx="37" cy="28" r="1.8" fill="#1a1f35"/>
+        <circle cx="45" cy="28" r="1.8" fill="#1a1f35"/>
+        <circle cx="37.8" cy="27.2" r=".7" fill="white"/>
+        <circle cx="45.8" cy="27.2" r=".7" fill="white"/>
+        <path d="M35 33 Q40 37 45 33" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/>
+        <path d="M26 34 L10 25" stroke="#FF8C00" stroke-width="3" stroke-linecap="round"/>
+        <path d="M25 42 L7 40" stroke="#FF8C00" stroke-width="3" stroke-linecap="round"/>
+        <path d="M26 50 L9 55" stroke="#FF8C00" stroke-width="3" stroke-linecap="round"/>
+        <path d="M54 34 L70 25" stroke="#FF8C00" stroke-width="3" stroke-linecap="round"/>
+        <path d="M55 42 L73 40" stroke="#FF8C00" stroke-width="3" stroke-linecap="round"/>
+        <path d="M54 50 L71 55" stroke="#FF8C00" stroke-width="3" stroke-linecap="round"/>
+        <ellipse cx="40" cy="50" rx="7" ry="5.5" fill="#FF6B00" opacity=".5"/>
+        <line x1="40" y1="19" x2="40" y2="10" stroke="#cc7000" stroke-width="2"/>
+        <!-- Power fist accessories -->
+        <path d="M28 58 L24 65" stroke="#FF8C00" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M52 58 L56 65" stroke="#FF8C00" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+      <h3 data-ar="مرحباً! كيف أساعدك اليوم؟" data-en="Hello! How can I help you today?">مرحباً! كيف أساعدك اليوم؟</h3>
+      <p style="font-size:12px;margin-top:5px;color:var(--muted)" data-ar="اكتب رسالتك وسأرد فوراً" data-en="Type a message and I'll reply instantly">اكتب رسالتك وسأرد فوراً</p>
+    </div>
+    <div class="typing msg agent" id="typing">
+      <div class="bubble"><div class="td"></div><div class="td"></div><div class="td"></div></div>
     </div>
   </div>
+  <div class="cbar">
+    <select id="model-sel"></select>
+    <textarea class="cinput" id="chat-in" rows="1" placeholder="اكتب رسالتك..." onkeydown="ck(event)" oninput="ar(this)"></textarea>
+    <button class="sbtn" id="send-btn" onclick="send()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+</div>
 
-  <!-- identity -->
-  <div class="pane" id="identity-pane">
+<!-- OVERVIEW -->
+<div id="page-overview" class="page">
+  <div class="pscroll">
+    <div class="g3" style="margin-bottom:12px">
+      <div class="stat"><div class="snum" id="ov-msgs">—</div><div class="slbl" data-ar="رسائل اليوم" data-en="Today's Messages">رسائل اليوم</div></div>
+      <div class="stat"><div class="snum" id="ov-mem">—</div><div class="slbl" data-ar="في الذاكرة" data-en="In Memory">في الذاكرة</div></div>
+      <div class="stat"><div class="snum">5</div><div class="slbl" data-ar="مهارة نشطة" data-en="Active Skills">مهارة نشطة</div></div>
+    </div>
     <div class="card">
-      <h2>🎭 شخصية الوكيل</h2>
-      <p class="muted">حقول منظّمة يبني منها النظام هوية الوكيل تلقائياً (ليست خانة أوامر حرّة).</p>
-      <label>اسم الوكيل</label><input id="id-name">
-      <label>اللغة</label>
-      <select id="id-language"><option value="ar">العربية</option>
-        <option value="en">English</option><option value="both">كلاهما</option></select>
-      <label>الأسلوب</label>
-      <select id="id-style"><option value="professional">احترافي</option>
-        <option value="friendly">ودّي</option><option value="direct">مباشر</option>
-        <option value="formal">رسمي</option></select>
-      <label>التخصّص</label>
-      <select id="id-specialization"><option value="general">عام</option>
-        <option value="trading">تداول</option><option value="academic">أكاديمي</option>
-        <option value="technical">تقني</option><option value="business">أعمال</option></select>
-      <label>حجم الذاكرة العاملة (1–100)</label><input id="id-memory_size" type="number" min="1" max="100">
-      <label>مرساة المهمة (بيان الهوية الأساسي)</label>
-      <textarea id="id-mission_anchor"></textarea>
-      <button class="save" onclick="saveIdentity()">حفظ الهوية</button>
-      <p class="ok-msg" id="id-ok">✅ حُفظت الهوية</p>
-    </div>
-  </div>
-
-  <!-- settings -->
-  <div class="pane" id="settings-pane">
-    <div class="card">
-      <h2>⚙️ إعدادات</h2>
-      <div class="row"><span>المزوّد الأساسي</span><span class="muted" id="set-primary">—</span></div>
-      <div class="row"><span>منفذ البوابة</span><span class="muted" id="set-port">—</span></div>
-      <label>لغة الواجهة</label>
-      <select id="set-lang"><option value="ar">العربية</option><option value="en">English</option></select>
+      <div class="ctitle">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <span data-ar="معلومات النظام" data-en="System Info">معلومات النظام</span>
+      </div>
+      <table class="tbl">
+        <tr><td style="color:var(--muted)" data-ar="الإصدار" data-en="Version">الإصدار</td><td id="sys-ver">v0.1.0</td></tr>
+        <tr><td style="color:var(--muted)" data-ar="المنصة" data-en="Platform">المنصة</td><td>Android / Termux</td></tr>
+        <tr><td style="color:var(--muted)" data-ar="الحساب" data-en="Account">الحساب</td><td id="sys-acc">—</td></tr>
+        <tr><td style="color:var(--muted)" data-ar="المزوّد" data-en="Provider">المزوّد</td><td id="sys-prov">—</td></tr>
+        <tr><td style="color:var(--muted)" data-ar="الجهاز" data-en="Device">الجهاز</td><td>localhost</td></tr>
+      </table>
     </div>
     <div class="card">
-      <h2>🔑 مفاتيح المزوّدين</h2>
-      <p class="muted">تُحفظ في <code>~/.cobweaverclaw/.env</code> (مقنّعة).</p>
-      <div id="keys-list"></div>
-      <button class="save" onclick="saveSettings()">حفظ الإعدادات</button>
-      <p class="ok-msg" id="set-ok">✅ حُفظت الإعدادات</p>
-    </div>
-  </div>
-
-  <!-- channels -->
-  <div class="pane" id="channels-pane">
-    <div class="card"><h2>📡 قنوات الاتصال</h2><div id="channels-list"></div></div>
-  </div>
-
-  <!-- skills -->
-  <div class="pane" id="skills-pane">
-    <div class="card"><h2>🛠️ المهارات</h2><div id="skills-list"></div>
-      <button class="save" onclick="alert('قريباً: إضافة مهارة جديدة')">+ إضافة مهارة</button>
+      <div class="ctitle">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span data-ar="إجراءات سريعة" data-en="Quick Actions">إجراءات سريعة</span>
+      </div>
+      <div class="g2">
+        <button class="btn btn-g" onclick="doBackup()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span data-ar="نسخ احتياطي" data-en="Backup">نسخ احتياطي</span>
+        </button>
+        <button class="btn btn-g" onclick="nav('memory',document.querySelectorAll('.nav-item')[2])">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" fill="currentColor"/></svg>
+          <span data-ar="الذاكرة" data-en="Memory">الذاكرة</span>
+        </button>
+        <button class="btn btn-g" onclick="nav('chat',document.querySelectorAll('.nav-item')[0])">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span data-ar="محادثة" data-en="Chat">محادثة</span>
+        </button>
+        <button class="btn btn-d" onclick="restartAgent()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M23 4v6h-6M1 20v-6h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span data-ar="إعادة تشغيل" data-en="Restart">إعادة تشغيل</span>
+        </button>
+      </div>
     </div>
   </div>
 </div>
+
+<!-- MEMORY -->
+<div id="page-memory" class="page">
+  <div class="pscroll">
+    <div class="card">
+      <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" stroke="currentColor" stroke-width="1.8"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span data-ar="طبقات الذاكرة" data-en="Memory Layers">طبقات الذاكرة</span></div>
+      <div class="meml"><div class="memico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#FF8C00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="meminfo"><div class="memt" data-ar="ذاكرة العمل — الجلسة الحالية" data-en="Working Memory — Current Session">ذاكرة العمل — الجلسة الحالية</div><div class="memd" data-ar="رسائل الجلسة النشطة، تُمسح عند الإغلاق" data-en="Active session messages, cleared on restart">رسائل الجلسة النشطة، تُمسح عند الإغلاق</div></div><div class="memc" id="mem-w">—</div></div>
+      <div class="meml"><div class="memico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke="#FF8C00" stroke-width="2" stroke-linecap="round"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke="#FF8C00" stroke-width="2"/></svg></div><div class="meminfo"><div class="memt" data-ar="الذاكرة الحلقية — جلسات سابقة" data-en="Episodic Memory — Past Sessions">الذاكرة الحلقية — جلسات سابقة</div><div class="memd" data-ar="ملخصات محادثات سابقة، تُسترجع تلقائياً حسب الموضوع" data-en="Past conversation summaries, auto-retrieved by topic">ملخصات محادثات سابقة، تُسترجع تلقائياً حسب الموضوع</div></div><div class="memc" id="mem-e">—</div></div>
+      <div class="meml"><div class="memico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke="#FF8C00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="meminfo"><div class="memt" data-ar="المعرفة الأساسية — دائمة" data-en="Core Knowledge — Permanent">المعرفة الأساسية — دائمة</div><div class="memd" data-ar="تفضيلاتك وعاداتك، لا تُحذف تلقائياً" data-en="Your preferences and habits, never auto-deleted">تفضيلاتك وعاداتك، لا تُحذف تلقائياً</div></div><div class="memc" id="mem-c">—</div></div>
+    </div>
+    <div class="card">
+      <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="1.8"/><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span data-ar="البحث في الذاكرة" data-en="Search Memory">البحث في الذاكرة</span></div>
+      <div style="display:flex;gap:7px">
+        <input id="mem-q" type="text" placeholder="ابحث...">
+        <button class="btn btn-p" onclick="searchMem()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="white" stroke-width="2"/><path d="M21 21l-4.35-4.35" stroke="white" stroke-width="2" stroke-linecap="round"/></svg></button>
+      </div>
+      <div id="mem-res" style="margin-top:10px;font-size:12px;color:var(--muted)"></div>
+    </div>
+    <div class="card">
+      <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-ar="إدارة الذاكرة" data-en="Manage Memory">إدارة الذاكرة</span></div>
+      <div class="g2">
+        <button class="btn btn-g" onclick="clearMem('working')"><span data-ar="مسح الجلسة" data-en="Clear Session">مسح الجلسة</span></button>
+        <button class="btn btn-d" onclick="clearMem('all')"><span data-ar="مسح الكل" data-en="Clear All">مسح الكل</span></button>
+      </div>
+      <div class="note" data-ar="💡 المعرفة الأساسية لا تُمسح إلا يدوياً — هي ما يجعل الوكيل يتذكر تفضيلاتك الدائمة" data-en="💡 Core knowledge is only deleted manually — it makes the agent remember your permanent preferences">💡 المعرفة الأساسية لا تُمسح إلا يدوياً — هي ما يجعل الوكيل يتذكر تفضيلاتك الدائمة</div>
+    </div>
+  </div>
+</div>
+
+<!-- SESSIONS -->
+<div id="page-sessions" class="page">
+  <div class="pscroll">
+    <div class="card">
+      <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 10h16M4 14h10M4 18h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span data-ar="الجلسات النشطة" data-en="Active Sessions">الجلسات النشطة</span></div>
+      <div class="sessr">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="#22c55e"><circle cx="12" cy="12" r="10"/></svg>
+        <div style="flex:1"><div style="font-weight:500;font-size:12px">Main Session</div><div style="font-size:11px;color:var(--muted)" data-ar="الجلسة الرئيسية — نشطة الآن" data-en="Main session — active now">الجلسة الرئيسية — نشطة الآن</div></div>
+        <span class="badge bg" data-ar="نشطة" data-en="Active">نشطة</span>
+      </div>
+      <div id="sess-list"><div class="empty"><div class="ei">📋</div><span data-ar="لا توجد جلسات إضافية" data-en="No additional sessions">لا توجد جلسات إضافية</span></div></div>
+    </div>
+    <div class="card">
+      <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-ar="إحصائيات الجلسة" data-en="Session Stats">إحصائيات الجلسة</span></div>
+      <table class="tbl">
+        <tr><td style="color:var(--muted)" data-ar="النموذج" data-en="Model">النموذج</td><td id="ss-model">—</td></tr>
+        <tr><td style="color:var(--muted)" data-ar="التوكينات" data-en="Tokens">التوكينات</td><td id="ss-tokens">—</td></tr>
+        <tr><td style="color:var(--muted)" data-ar="وقت البدء" data-en="Start Time">وقت البدء</td><td id="ss-start">—</td></tr>
+        <tr><td style="color:var(--muted)" data-ar="القنوات" data-en="Channels">القنوات</td><td id="ss-ch">—</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- CRON -->
+<div id="page-cron" class="page">
+  <div class="pscroll">
+    <div class="card">
+      <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span data-ar="المهام المجدولة" data-en="Scheduled Tasks">المهام المجدولة</span></div>
+      <div id="cron-list"><div class="empty"><div class="ei">⏰</div><span data-ar="لا توجد مهام" data-en="No tasks">لا توجد مهام</span></div></div>
+    </div>
+    <div class="card">
+      <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span data-ar="مهمة جديدة" data-en="New Task">مهمة جديدة</span></div>
+      <div class="field"><label data-ar="النوع" data-en="Type">النوع</label><select id="cr-type"><option value="once" data-ar="مرة واحدة" data-en="Once">مرة واحدة</option><option value="every" data-ar="كل فترة" data-en="Recurring">كل فترة</option><option value="cron" data-ar="تعبير Cron" data-en="Cron">تعبير Cron</option></select></div>
+      <div class="field"><label data-ar="الوصف" data-en="Description">الوصف</label><input id="cr-desc" type="text" placeholder="مثال: تقرير يومي"></div>
+      <div class="field"><label data-ar="الوقت / التعبير" data-en="Time / Expression">الوقت / التعبير</label><input id="cr-time" type="text" placeholder="مثال: 08:00"></div>
+      <button class="btn btn-p btn-f" onclick="addCron()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="white" stroke-width="2" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="white" stroke-width="2" stroke-linecap="round"/></svg><span data-ar="إضافة" data-en="Add">إضافة</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- IDENTITY -->
+<div id="page-identity" class="page">
+  <div class="pscroll">
+    <div class="card">
+      <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/></svg><span data-ar="هوية الوكيل" data-en="Agent Identity">هوية الوكيل</span></div>
+      <div class="field"><label data-ar="اسم الوكيل" data-en="Agent Name">اسم الوكيل</label><input id="ag-name" type="text" value="كلاو"></div>
+      <div class="field"><label data-ar="لغة التواصل" data-en="Language">لغة التواصل</label><select id="ag-lang"><option value="ar" data-ar="العربية" data-en="Arabic">العربية</option><option value="en" data-ar="الإنجليزية" data-en="English">الإنجليزية</option><option value="both" data-ar="كلاهما" data-en="Both">كلاهما</option></select></div>
+      <div class="field"><label data-ar="الأسلوب" data-en="Style">الأسلوب</label><select id="ag-style"><option value="professional" data-ar="احترافي" data-en="Professional">احترافي</option><option value="friendly" data-ar="ودّي" data-en="Friendly">ودّي</option><option value="direct" data-ar="مباشر" data-en="Direct">مباشر</option><option value="formal" data-ar="رسمي" data-en="Formal">رسمي</option></select></div>
+      <div class="field"><label data-ar="التخصص" data-en="Specialization">التخصص</label><select id="ag-spec"><option value="general" data-ar="عام" data-en="General">عام</option><option value="trading" data-ar="تداول وعملات رقمية" data-en="Trading & Crypto">تداول وعملات رقمية</option><option value="academic" data-ar="أكاديمي وبحثي" data-en="Academic">أكاديمي وبحثي</option><option value="technical" data-ar="تقني وبرمجي" data-en="Technical">تقني وبرمجي</option><option value="business" data-ar="أعمال وإدارة" data-en="Business">أعمال وإدارة</option></select></div>
+    </div>
+    <div class="card">
+      <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-ar="مرساة الهوية" data-en="Identity Anchor">مرساة الهوية</span></div>
+      <div class="field">
+        <label data-ar="نص المرساة — مدمج تلقائياً في كل محادثة" data-en="Anchor text — auto-embedded in every conversation">نص المرساة — مدمج تلقائياً في كل محادثة</label>
+        <textarea id="ag-anchor" placeholder="أنت وكيل ذكاء اصطناعي شخصي. لا تخرج عن دورك المحدد..."></textarea>
+      </div>
+      <div class="note" data-ar="💡 مرساة الهوية تمنع الوكيل من التشتت والخروج عن دوره حتى في المحادثات الطويلة" data-en="💡 The identity anchor prevents the agent from drifting off-role even in long conversations">💡 مرساة الهوية تمنع الوكيل من التشتت والخروج عن دوره حتى في المحادثات الطويلة</div>
+    </div>
+    <div class="card">
+      <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" stroke="currentColor" stroke-width="1.8"/></svg><span data-ar="إعدادات الذاكرة" data-en="Memory Settings">إعدادات الذاكرة</span></div>
+      <div class="field"><label data-ar="حجم ذاكرة العمل (عدد الرسائل)" data-en="Working memory size (messages)">حجم ذاكرة العمل (عدد الرسائل)</label><input id="ag-mem" type="number" value="20" min="5" max="100"></div>
+    </div>
+    <button class="btn btn-p btn-f" onclick="saveIdentity()" style="margin-bottom:16px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="17 21 17 13 7 13 7 21" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="7 3 7 8 15 8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span data-ar="حفظ الشخصية" data-en="Save Identity">حفظ الشخصية</span>
+    </button>
+  </div>
+</div>
+
+<!-- SKILLS -->
+<div id="page-skills" class="page">
+  <div class="pscroll">
+    <div class="card">
+      <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-ar="المهارات المثبّتة" data-en="Installed Skills">المهارات المثبّتة</span></div>
+      <div class="skr"><svg class="ski" width="18" height="18" viewBox="0 0 24 24" fill="none"><polyline points="17 1 21 5 17 9" stroke="#FF8C00" stroke-width="2" stroke-linecap="round"/><path d="M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 01-4 4H3" stroke="#FF8C00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="skinfo"><div class="skn">echo</div><div class="skd" data-ar="يردد ما تقوله — مهارة اختبار" data-en="Echoes your message — test skill">يردد ما تقوله — مهارة اختبار</div></div><label class="tgl"><input type="checkbox" checked><div class="tgl-t"></div></label></div>
+      <div class="skr"><svg class="ski" width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#FF8C00" stroke-width="2"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01" stroke="#FF8C00" stroke-width="2" stroke-linecap="round"/></svg><div class="skinfo"><div class="skn">help</div><div class="skd" data-ar="يعرض قائمة الأوامر المتاحة" data-en="Shows available commands">يعرض قائمة الأوامر المتاحة</div></div><label class="tgl"><input type="checkbox" checked><div class="tgl-t"></div></label></div>
+      <div class="skr"><svg class="ski" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" stroke="#FF8C00" stroke-width="2"/><path d="M12 6v6l4 2" stroke="#FF8C00" stroke-width="2" stroke-linecap="round"/></svg><div class="skinfo"><div class="skn">memory</div><div class="skd" data-ar="إدارة ذاكرة الوكيل" data-en="Agent memory management">إدارة ذاكرة الوكيل</div></div><label class="tgl"><input type="checkbox" checked><div class="tgl-t"></div></label></div>
+      <div class="skr"><svg class="ski" width="18" height="18" viewBox="0 0 24 24" fill="none"><polygon points="12 2 2 7 12 12 22 7 12 2" stroke="#FF8C00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="2 17 12 22 22 17" stroke="#FF8C00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="2 12 12 17 22 12" stroke="#FF8C00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="skinfo"><div class="skn">base</div><div class="skd" data-ar="المهارات الأساسية للوكيل" data-en="Core agent skills">المهارات الأساسية للوكيل</div></div><label class="tgl"><input type="checkbox" checked><div class="tgl-t"></div></label></div>
+      <div class="skr"><svg class="ski" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#FF8C00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="skinfo"><div class="skn">evolver</div><div class="skd" data-ar="تطوير الوكيل ذاتياً" data-en="Self-improvement skill">تطوير الوكيل ذاتياً</div></div><label class="tgl"><input type="checkbox"><div class="tgl-t"></div></label></div>
+    </div>
+    <div class="card">
+      <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span data-ar="ورشة المهارات" data-en="Skill Workshop">ورشة المهارات</span></div>
+      <button class="btn btn-g btn-f" onclick="toast(LANG==='ar'?'قريباً: ورشة المهارات':'Coming Soon: Skill Workshop','info')"><span data-ar="إنشاء مهارة جديدة — قريباً" data-en="Create New Skill — Coming Soon">إنشاء مهارة جديدة — قريباً</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- GOALS -->
+<div id="page-goals" class="page">
+  <div class="pscroll">
+    <div class="card">
+      <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg><span data-ar="الأهداف النشطة" data-en="Active Goals">الأهداف النشطة</span></div>
+      <div id="goals-list"><div class="empty"><div class="ei">🎯</div><span data-ar="لا توجد أهداف" data-en="No goals">لا توجد أهداف</span></div></div>
+    </div>
+    <div class="card">
+      <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span data-ar="هدف جديد" data-en="New Goal">هدف جديد</span></div>
+      <div class="field"><label data-ar="عنوان الهدف" data-en="Goal Title">عنوان الهدف</label><input id="goal-t" type="text" placeholder="ما الذي تريد تحقيقه؟"></div>
+      <div class="field"><label data-ar="الخطوات (كل خطوة في سطر)" data-en="Steps (one per line)">الخطوات (كل خطوة في سطر)</label><textarea id="goal-s" placeholder="الخطوة الأولى&#10;الخطوة الثانية"></textarea></div>
+      <button class="btn btn-p btn-f" onclick="addGoal()"><span data-ar="إضافة الهدف" data-en="Add Goal">إضافة الهدف</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- CHANNELS -->
+<div id="page-channels" class="page">
+  <div class="pscroll">
+    <div class="chc">
+      <svg class="chico" width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="#FF8C00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="chinfo">
+        <div class="chn">Telegram</div>
+        <div id="tg-badge" class="badge bg" style="margin-bottom:5px">🟢 <span data-ar="نشط" data-en="Active">نشط</span></div>
+        <div class="chs" id="tg-tok">●●●●●●●●●●●●</div>
+        <div style="display:flex;gap:6px;margin-top:7px">
+          <button class="btn btn-g" style="padding:5px 10px;font-size:11px" onclick="toggleTg()"><span data-ar="عرض" data-en="Show">عرض</span></button>
+          <button class="btn btn-g" style="padding:5px 10px;font-size:11px" onclick="testTg()"><span data-ar="اختبار" data-en="Test">اختبار</span></button>
+        </div>
+      </div>
+      <label class="tgl"><input type="checkbox" id="tg-tog" checked onchange="tgChange(this)"><div class="tgl-t"></div></label>
+    </div>
+    <div class="chc"><svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M21 2H3v16h5v4l4-4h5l4-4V2zm-10 9V7m4 4V7" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="chinfo"><div class="chn">Discord</div><span class="badge bm" data-ar="قريباً" data-en="Coming Soon">قريباً</span></div></div>
+    <div class="chc"><svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="chinfo"><div class="chn">Slack</div><span class="badge bm" data-ar="قريباً" data-en="Coming Soon">قريباً</span></div></div>
+    <div class="chc"><svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 01-2.18 2A19.79 19.79 0 013.09 4.18 2 2 0 015.09 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L9.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="chinfo"><div class="chn">WhatsApp</div><span class="badge bm" data-ar="قريباً" data-en="Coming Soon">قريباً</span></div></div>
+    <div class="chc"><svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" stroke="var(--muted)" stroke-width="2"/><path d="M8 12s1.5-2 4-2 4 2 4 2" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"/></svg><div class="chinfo"><div class="chn">Signal</div><span class="badge bm" data-ar="قريباً" data-en="Coming Soon">قريباً</span></div></div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="page-settings" class="page">
+  <div class="pscroll">
+    <div class="card">
+      <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="2" y="2" width="9" height="9" rx="2" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="2" width="9" height="9" rx="2" stroke="currentColor" stroke-width="1.8"/><rect x="2" y="13" width="9" height="9" rx="2" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="13" width="9" height="9" rx="2" stroke="currentColor" stroke-width="1.8"/></svg><span data-ar="النموذج الافتراضي" data-en="Default Model">النموذج الافتراضي</span></div>
+      <div class="field"><label data-ar="المزوّد والنموذج" data-en="Provider & Model">المزوّد والنموذج</label><select id="prim-m"><option value="deepseek/deepseek-chat">DeepSeek Chat</option><option value="zai/glm-4.6">Z.AI GLM-4.6</option><option value="anthropic/claude-sonnet-4-6">Claude Sonnet</option><option value="openai/gpt-4o-mini">GPT-4o mini</option><option value="groq/llama-3.3-70b-versatile">Groq LLaMA 3.3</option><option value="mistral/mistral-small-latest">Mistral Small</option><option value="xai/grok-2">xAI Grok-2</option></select></div>
+    </div>
+    <div class="card">
+      <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-ar="مفاتيح API" data-en="API Keys">مفاتيح API</span></div>
+      <div class="krow"><label>DeepSeek</label><input type="password" id="k-ds" placeholder="sk-..."><button class="ibtn" onclick="tkv('k-ds',this)">👁</button></div>
+      <div class="krow"><label>Z.AI</label><input type="password" id="k-zai" placeholder="..."><button class="ibtn" onclick="tkv('k-zai',this)">👁</button></div>
+      <div class="krow"><label>Anthropic</label><input type="password" id="k-ant" placeholder="sk-ant-..."><button class="ibtn" onclick="tkv('k-ant',this)">👁</button></div>
+      <div class="krow"><label>OpenAI</label><input type="password" id="k-oai" placeholder="sk-..."><button class="ibtn" onclick="tkv('k-oai',this)">👁</button></div>
+      <div class="krow"><label>Groq</label><input type="password" id="k-groq" placeholder="gsk_..."><button class="ibtn" onclick="tkv('k-groq',this)">👁</button></div>
+      <div class="krow"><label>xAI</label><input type="password" id="k-xai" placeholder="xai-..."><button class="ibtn" onclick="tkv('k-xai',this)">👁</button></div>
+      <div class="krow"><label>Mistral</label><input type="password" id="k-mis" placeholder="..."><button class="ibtn" onclick="tkv('k-mis',this)">👁</button></div>
+    </div>
+    <div class="card">
+      <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="1.8"/></svg><span data-ar="إعدادات البوابة" data-en="Gateway">إعدادات البوابة</span></div>
+      <div class="field"><label data-ar="رقم المنفذ" data-en="Port">رقم المنفذ</label><input id="gw-port" type="number" value="7878"></div>
+      <div class="field"><label data-ar="لغة الواجهة" data-en="Interface Language">لغة الواجهة</label><select id="gw-lang"><option value="ar">العربية</option><option value="en">English</option></select></div>
+    </div>
+    <div class="card">
+      <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-ar="النسخ الاحتياطي" data-en="Backup">النسخ الاحتياطي</span></div>
+      <p style="font-size:11px;color:var(--muted);margin-bottom:10px" data-ar="تُحفظ جميع البيانات في ~/.cobweaverclaw — آمنة من تحديثات git" data-en="All data in ~/.cobweaverclaw — safe from git updates">تُحفظ جميع البيانات في ~/.cobweaverclaw — آمنة من تحديثات git</p>
+      <div class="g2">
+        <button class="btn btn-p" onclick="doBackup()"><span data-ar="نسخ احتياطي" data-en="Backup">نسخ احتياطي</span></button>
+        <button class="btn btn-g" onclick="toast(LANG==='ar'?'قريباً: استعادة':'Coming Soon: Restore','info')"><span data-ar="استعادة" data-en="Restore">استعادة</span></button>
+      </div>
+    </div>
+    <button class="btn btn-p btn-f" onclick="saveSettings()" style="margin-bottom:16px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" stroke="white" stroke-width="2"/><polyline points="17 21 17 13 7 13 7 21" stroke="white" stroke-width="2"/><polyline points="7 3 7 8 15 8" stroke="white" stroke-width="2"/></svg>
+      <span data-ar="حفظ الإعدادات" data-en="Save Settings">حفظ الإعدادات</span>
+    </button>
+  </div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /layout -->
+
+<div class="toast" id="toast"></div>
 
 <script>
-let TOKEN = "";
-let CONFIG = {};
-const PROVIDERS = ["anthropic","openai","groq","deepseek","openrouter","mistral","xai","zai","gemini","ollama"];
-const PROVIDER_ENV = {anthropic:"ANTHROPIC_API_KEY",openai:"OPENAI_API_KEY",groq:"GROQ_API_KEY",
-  deepseek:"DEEPSEEK_API_KEY",openrouter:"OPENROUTER_API_KEY",mistral:"MISTRAL_API_KEY",
-  xai:"XAI_API_KEY",zai:"ZAI_API_KEY",gemini:"GEMINI_API_KEY",ollama:""};
+let LANG='ar', sbOpen=true, tgTok='●●●●●●●●●●', tgVis=false;
+let THEME='dark';
 
+function setTheme(t){
+  THEME=t;
+  document.documentElement.setAttribute('data-theme', t);
+  ['dark','light','system'].forEach(x=>{
+    document.getElementById('th-'+x).classList.toggle('active', x===t);
+  });
+  // persist
+  try{localStorage.setItem('cbw-theme',t);}catch(e){}
+}
+// load saved theme on init
 (function(){
-  tryLogin(true);                               // وضع localhost بلا توكين
-  const m = location.hash.match(/token=([a-f0-9]+)/i);
-  if (m){ TOKEN = m[1]; history.replaceState(null,"",location.pathname); tryLogin(); }
+  let saved='dark';
+  try{saved=localStorage.getItem('cbw-theme')||'dark';}catch(e){}
+  setTheme(saved);
 })();
+let crons=[], goals=[];
 
-function doLogin(){
-  TOKEN = document.getElementById("token-input").value.trim().replace(/^.*token=/i,"").replace(/\s+/g,"");
-  tryLogin();
+// ── SIDEBAR TOGGLE ──────────────────────────────────
+function toggleSidebar(){
+  sbOpen=!sbOpen;
+  const sb=document.getElementById('sidebar');
+  const btn=document.getElementById('sb-toggle');
+  if(sbOpen){sb.classList.remove('collapsed');}
+  else{sb.classList.add('collapsed');}
+  btn.classList.toggle('open', !sbOpen);
 }
-function doLogout(){
-  TOKEN=""; document.getElementById("app").style.display="none";
-  document.getElementById("login").style.display="flex";
+
+// ── LANG ────────────────────────────────────────────
+function setLang(l){
+  LANG=l;
+  document.getElementById('btn-ar').classList.toggle('active',l==='ar');
+  document.getElementById('btn-en').classList.toggle('active',l==='en');
+  document.querySelectorAll('[data-ar]').forEach(el=>{
+    const v=el.dataset[l];
+    if(v&&el.tagName!=='INPUT'&&el.tagName!=='TEXTAREA'&&el.tagName!=='SELECT') el.textContent=v;
+  });
+  document.getElementById('chat-in').placeholder=l==='ar'?'اكتب رسالتك...':'Type a message...';
+  document.getElementById('mem-q').placeholder=l==='ar'?'ابحث...':'Search...';
 }
-function q(){ return TOKEN ? ("?token="+TOKEN) : ""; }
-async function api(path, method="GET", body=null){
-  const r = await fetch(path+q(), {method,
-    headers: body? {"Content-Type":"application/json"} : {},
-    body: body? JSON.stringify(body) : null});
-  if (r.status===401) throw new Error("unauthorized");
-  return r.json();
+
+// ── NAV ─────────────────────────────────────────────
+function nav(page,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(page==='memory') loadMem();
+  if(page==='overview') loadOv();
 }
-async function tryLogin(silent){
-  try{
-    const status = await api("/api/status");
-    CONFIG = await api("/api/config");
-    document.getElementById("login").style.display="none";
-    document.getElementById("app").style.display="flex";
-    document.getElementById("ver").textContent = "v"+status.version;
-    loadIdentity(); loadModels(); loadSettings();
-    const tm = location.hash.match(/tab=(\w+)/);
-    showTab(tm ? tm[1] : "chat");
-  }catch(e){
-    if (silent) return;
-    document.getElementById("login-err").style.display="block";
+
+// ── INIT ────────────────────────────────────────────
+window.onload=async()=>{
+  await loadStatus();
+  await loadConfig();
+  await loadMem();
+  document.getElementById('ss-start').textContent=new Date().toLocaleTimeString('ar');
+};
+
+async function api(path,method='GET',body=null){
+  const o={method,headers:{'Content-Type':'application/json'}};
+  if(body) o.body=JSON.stringify(body);
+  try{const r=await fetch(path,o);if(!r.ok)throw 0;return await r.json();}
+  catch{return null;}
+}
+
+async function loadStatus(){
+  const d=await api('/api/status');
+  if(d){
+    if(d.version){document.getElementById('ver-lbl').textContent='v'+d.version;document.getElementById('sys-ver').textContent='v'+d.version;}
+  } else {
+    document.getElementById('dot').classList.add('red');
+    document.getElementById('status-txt').textContent=LANG==='ar'?'غير متصل':'Offline';
   }
 }
 
-function showTab(name){
-  const valid = ["chat","identity","settings","channels","skills"];
-  if (!valid.includes(name)) name = "chat";
-  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.tab===name));
-  document.querySelectorAll(".pane").forEach(p=>p.classList.remove("active"));
-  document.getElementById(name+"-pane").classList.add("active");
-  try{ history.replaceState(null,"","#tab="+name); }catch(e){}
-  if (name==="channels") loadChannels();
-  if (name==="skills")   loadSkills();
+async function loadConfig(){
+  const d=await api('/api/config');
+  if(!d) return;
+  if(d.agent){
+    document.getElementById('ag-name').value=d.agent.name||'كلاو';
+    document.getElementById('ag-lang').value=d.agent.language||'ar';
+    document.getElementById('ag-style').value=d.agent.style||'professional';
+    document.getElementById('ag-spec').value=d.agent.specialization||'general';
+    document.getElementById('ag-mem').value=d.agent.memory_size||20;
+    document.getElementById('ag-anchor').value=d.agent.mission_anchor||'';
+  }
+  if(d.brain?.primary){
+    const pm=document.getElementById('prim-m');
+    for(let o of pm.options) if(o.value===d.brain.primary){o.selected=true;break;}
+    populateModels(d.brain.primary);
+    document.getElementById('sys-prov').textContent=d.brain.primary;
+    document.getElementById('ss-model').textContent=d.brain.primary;
+  }
+  if(d.gateway?.port) document.getElementById('gw-port').value=d.gateway.port;
+  if(d.account) document.getElementById('sys-acc').textContent=d.account;
+  if(d.channels?.telegram?.token) tgTok=d.channels.telegram.token;
 }
 
-/* ── chat ── */
-const FRIENDLY = {anthropic:"Anthropic Claude",openai:"OpenAI",groq:"Groq",
-  deepseek:"DeepSeek Chat",openrouter:"OpenRouter",mistral:"Mistral",xai:"xAI Grok",
-  zai:"Z.AI GLM-4.6",gemini:"Google Gemini",ollama:"Ollama (local)"};
-function friendly(v){
-  if(!v) return "تلقائي (Auto)";
-  const prov = v.split("/")[0];
-  return FRIENDLY[prov] || v;
-}
-function modelOptions(){
-  const opts = [["","تلقائي (Auto)"]];
-  const brain = CONFIG.brain || {};
-  const seen = new Set();
-  Object.values(brain).forEach(v=>{
-    if (typeof v==="string" && v.includes("/") && !seen.has(v)){ seen.add(v); opts.push([v, friendly(v)]); }
-  });
-  return opts;
-}
-function loadModels(){
-  const sel = document.getElementById("model-sel");
-  sel.innerHTML = modelOptions().map(([v,l])=>`<option value="${v}">${l}</option>`).join("");
-}
-function nowTime(){
-  const d = new Date();
-  return d.getHours().toString().padStart(2,"0")+":"+d.getMinutes().toString().padStart(2,"0");
-}
-function addBubble(text, who, model){
-  const m = document.getElementById("messages");
-  const b = document.createElement("div");
-  b.className = "bubble "+(who==="user"?"user":"bot");
-  const name = who==="user" ? "أنت" : (friendly(model)||"الوكيل");
-  const head = document.createElement("div");
-  head.className = "who";
-  head.innerHTML = `<span>${name}</span><span class="ts">${nowTime()}</span>`;
-  b.appendChild(head);
-  b.appendChild(document.createTextNode(text));
-  m.appendChild(b); m.scrollTop = m.scrollHeight;
-}
-async function sendMsg(){
-  const inp = document.getElementById("chat-input");
-  const msg = inp.value.trim(); if(!msg) return;
-  inp.value="";
-  addBubble(msg,"user");
-  const m = document.getElementById("messages");
-  const typing = document.createElement("div");
-  typing.className="typing";
-  typing.innerHTML='🕷️ <span class="dot"></span><span class="dot"></span><span class="dot"></span>';
-  m.appendChild(typing); m.scrollTop=m.scrollHeight;
-  try{
-    const out = await api("/api/chat","POST",{message:msg, model:document.getElementById("model-sel").value});
-    typing.remove();
-    addBubble(out.reply||"(لا رد)","bot", out.model_used);
-  }catch(e){ typing.remove(); addBubble("❌ خطأ: "+e.message,"bot"); }
+function populateModels(primary){
+  const s=document.getElementById('model-sel');
+  const ms=[['deepseek/deepseek-chat','DeepSeek Chat'],['zai/glm-4.6','Z.AI GLM-4.6'],['anthropic/claude-sonnet-4-6','Claude Sonnet'],['openai/gpt-4o-mini','GPT-4o mini'],['groq/llama-3.3-70b-versatile','Groq LLaMA'],['mistral/mistral-small-latest','Mistral Small'],['xai/grok-2','xAI Grok-2']];
+  s.innerHTML='';
+  ms.forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;if(v===primary)o.selected=true;s.appendChild(o);});
 }
 
-/* ── identity ── */
-function loadIdentity(){
-  const a = CONFIG.agent||{};
-  document.getElementById("id-name").value = a.name||"كلاو";
-  document.getElementById("id-language").value = a.language||"ar";
-  document.getElementById("id-style").value = a.style||"professional";
-  document.getElementById("id-specialization").value = a.specialization||"general";
-  document.getElementById("id-memory_size").value = a.memory_size||20;
-  document.getElementById("id-mission_anchor").value = a.mission_anchor||"";
+async function loadMem(){
+  const d=await api('/api/memory/stats');
+  if(d){
+    document.getElementById('mem-w').textContent=d.working_memory_count??'0';
+    document.getElementById('mem-e').textContent=d.episodes??'0';
+    document.getElementById('mem-c').textContent=d.core_facts??'0';
+    document.getElementById('ov-mem').textContent=(d.working_memory_count||0)+(d.episodes||0);
+  }
 }
+
+async function loadOv(){loadMem();}
+
+// ── CHAT ────────────────────────────────────────────
+function ck(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}
+function ar(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,110)+'px';}
+function addBubble(role,text){
+  const w=document.getElementById('cwelcome');if(w)w.remove();
+  const typing=document.getElementById('typing');
+  const wrap=document.getElementById('chat-wrap');
+  const d=document.createElement('div');d.className='msg '+role;
+  const t=new Date().toLocaleTimeString('ar',{hour:'2-digit',minute:'2-digit'});
+  d.innerHTML=`<div class="bubble">${text}</div><div class="mmeta">${role==='user'?(LANG==='ar'?'أنت':'You'):(document.getElementById('ag-name')?.value||'كلاو')} · ${t}</div>`;
+  wrap.insertBefore(d,typing);wrap.scrollTop=99999;
+}
+async function send(){
+  const inp=document.getElementById('chat-in');
+  const btn=document.getElementById('send-btn');
+  const msg=inp.value.trim();if(!msg) return;
+  const model=document.getElementById('model-sel').value;
+  addBubble('user',msg);inp.value='';inp.style.height='auto';btn.disabled=true;
+  const typing=document.getElementById('typing');typing.classList.add('show');
+  document.getElementById('chat-wrap').scrollTop=99999;
+  const r=await api('/api/chat','POST',{message:msg,model});
+  typing.classList.remove('show');btn.disabled=false;
+  if(r?.reply) addBubble('agent',r.reply);
+  else addBubble('agent',LANG==='ar'?'⚠️ تعذّر الاتصال. تحقق من مفاتيح API في الإعدادات.':'⚠️ Connection failed. Check API keys in Settings.');
+  inp.focus();
+}
+
+// ── MEMORY ──────────────────────────────────────────
+async function clearMem(layer){
+  const m=layer==='all'?(LANG==='ar'?'مسح جميع طبقات الذاكرة نهائياً؟':'Clear ALL memory?'):(LANG==='ar'?'مسح ذاكرة الجلسة؟':'Clear session memory?');
+  if(!confirm(m)) return;
+  const r=await api('/api/memory/clear','DELETE',{layer});
+  if(r){toast(LANG==='ar'?'✅ تم المسح':'✅ Cleared','success');loadMem();}
+  else toast(LANG==='ar'?'❌ فشل':'❌ Failed','error');
+}
+async function searchMem(){
+  const q=document.getElementById('mem-q').value.trim();if(!q) return;
+  const r=await api('/api/memory/search?q='+encodeURIComponent(q));
+  const el=document.getElementById('mem-res');
+  if(r?.results?.length) el.innerHTML=r.results.map(x=>`<div style="padding:6px 0;border-bottom:1px solid var(--border)">${x.text||x}</div>`).join('');
+  else el.textContent=LANG==='ar'?'لا نتائج':'No results';
+}
+
+// ── TELEGRAM ────────────────────────────────────────
+function toggleTg(){tgVis=!tgVis;document.getElementById('tg-tok').textContent=tgVis?tgTok:'●●●●●●●●●●';}
+async function testTg(){
+  toast(LANG==='ar'?'🔌 جاري الاختبار...':'🔌 Testing...','info');
+  const r=await api('/api/channels/telegram/test');
+  if(r?.ok) toast(LANG==='ar'?'✅ تيليجرام متصل':'✅ Telegram connected','success');
+  else toast(LANG==='ar'?'❌ تعذّر الاتصال':'❌ Connection failed','error');
+}
+function tgChange(el){
+  const b=document.getElementById('tg-badge');
+  b.textContent=el.checked?(LANG==='ar'?'🟢 نشط':'🟢 Active'):(LANG==='ar'?'🔴 متوقف':'🔴 Stopped');
+  b.className='badge '+(el.checked?'bg':'br');
+  api('/api/config','POST',{channels:{telegram:{enabled:el.checked}}});
+  toast(el.checked?(LANG==='ar'?'✅ تيليجرام مفعّل':'✅ Telegram enabled'):(LANG==='ar'?'⛔ موقوف':'⛔ Stopped'),el.checked?'success':'info');
+}
+
+// ── SAVE ────────────────────────────────────────────
 async function saveIdentity(){
-  const agent = {
-    name: document.getElementById("id-name").value,
-    language: document.getElementById("id-language").value,
-    style: document.getElementById("id-style").value,
-    specialization: document.getElementById("id-specialization").value,
-    memory_size: parseInt(document.getElementById("id-memory_size").value)||20,
-    mission_anchor: document.getElementById("id-mission_anchor").value,
-  };
-  await api("/api/config","POST",{agent});
-  CONFIG.agent = Object.assign(CONFIG.agent||{}, agent);
-  flash("id-ok");
-}
-
-/* ── settings ── */
-function loadSettings(){
-  const brain = CONFIG.brain||{};
-  document.getElementById("set-primary").textContent = brain.primary||"—";
-  document.getElementById("set-port").textContent =
-    (CONFIG.gateway&&CONFIG.gateway.port)||7878;
-  document.getElementById("set-lang").value = (CONFIG.agent&&CONFIG.agent.language)||"ar";
-  const box = document.getElementById("keys-list");
-  box.innerHTML = PROVIDERS.filter(p=>PROVIDER_ENV[p]).map(p=>`
-    <label>${p}</label>
-    <div class="keyrow">
-      <input id="key-${p}" type="password" placeholder="${PROVIDER_ENV[p]}">
-      <button class="toggle" onclick="toggleKey('${p}')">👁</button>
-    </div>`).join("");
-}
-function toggleKey(p){
-  const el=document.getElementById("key-"+p);
-  el.type = el.type==="password"?"text":"password";
+  const p={agent:{name:document.getElementById('ag-name').value,language:document.getElementById('ag-lang').value,style:document.getElementById('ag-style').value,specialization:document.getElementById('ag-spec').value,memory_size:parseInt(document.getElementById('ag-mem').value),mission_anchor:document.getElementById('ag-anchor').value}};
+  const r=await api('/api/config','POST',p);
+  if(r?.status==='saved') toast(LANG==='ar'?'✅ حُفظت الشخصية':'✅ Identity saved','success');
+  else toast(LANG==='ar'?'❌ فشل الحفظ':'❌ Save failed','error');
 }
 async function saveSettings(){
-  const keys={};
-  PROVIDERS.filter(p=>PROVIDER_ENV[p]).forEach(p=>{
-    const v=document.getElementById("key-"+p).value.trim();
-    if(v) keys[PROVIDER_ENV[p]]=v;
-  });
-  const agent={language:document.getElementById("set-lang").value};
-  await api("/api/config","POST",{agent, _keys:keys});
-  flash("set-ok");
+  const p={brain:{primary:document.getElementById('prim-m').value},gateway:{port:parseInt(document.getElementById('gw-port').value)},interface:{language:document.getElementById('gw-lang').value},keys:{deepseek:document.getElementById('k-ds').value,zai:document.getElementById('k-zai').value,anthropic:document.getElementById('k-ant').value,openai:document.getElementById('k-oai').value,groq:document.getElementById('k-groq').value,xai:document.getElementById('k-xai').value,mistral:document.getElementById('k-mis').value}};
+  const r=await api('/api/config','POST',p);
+  if(r?.status==='saved') toast(LANG==='ar'?'✅ حُفظت الإعدادات':'✅ Settings saved','success');
+  else toast(LANG==='ar'?'❌ فشل الحفظ':'❌ Save failed','error');
+}
+async function doBackup(){
+  toast(LANG==='ar'?'📦 جاري النسخ...':'📦 Backing up...','info');
+  const r=await api('/api/backup','POST');
+  if(r?.file) toast('✅ '+r.file,'success');
+  else toast(LANG==='ar'?'❌ فشل':'❌ Failed','error');
+}
+async function restartAgent(){
+  if(!confirm(LANG==='ar'?'إعادة تشغيل الوكيل؟':'Restart agent?')) return;
+  await api('/api/restart','POST');
+  toast(LANG==='ar'?'🔄 جاري إعادة التشغيل...':'🔄 Restarting...','info');
 }
 
-/* ── channels ── */
-async function loadChannels(){
-  const c = await api("/api/channels");
-  const tg = c.telegram || {};
-  const tgOn = tg.status === "active";
-  const others = {discord:"Discord",slack:"Slack",whatsapp:"WhatsApp",signal:"Signal"};
-  let html = `
-    <div class="row">
-      <div><div>🤖 تيليجرام</div>
-        <div class="muted">${tg.token_masked || "لا يوجد توكين"}</div></div>
-      <div style="display:flex;gap:6px;align-items:center">
-        <span class="pill ${tgOn?'on':'off'}">${tgOn?'🟢 نشط':'🔴 متوقف'}</span>
-        <button class="btn-sm ${tgOn?'on':''}" onclick="toggleTelegram(${!tgOn})">${tgOn?'إيقاف':'تشغيل'}</button>
-        <button class="btn-sm" onclick="testTelegram(this)">اختبار</button>
-      </div>
-    </div>
-    <div id="tg-test" class="muted" style="padding:6px 0"></div>`;
-  html += Object.entries(others).map(([k,name])=>
-    `<div class="row"><span>${name}</span><span class="pill soon">قريباً</span></div>`).join("");
-  document.getElementById("channels-list").innerHTML = html;
+// ── KEY TOGGLE ───────────────────────────────────────
+function tkv(id,btn){const el=document.getElementById(id);el.type=el.type==='password'?'text':'password';btn.textContent=el.type==='password'?'👁':'🙈';}
+
+// ── CRON ─────────────────────────────────────────────
+function addCron(){
+  const d=document.getElementById('cr-desc').value.trim();
+  const t=document.getElementById('cr-time').value.trim();
+  if(!d||!t){toast(LANG==='ar'?'⚠️ أدخل الوصف والوقت':'⚠️ Enter description and time','error');return;}
+  crons.push({type:document.getElementById('cr-type').value,desc:d,time:t,enabled:true});
+  renderCrons();document.getElementById('cr-desc').value='';document.getElementById('cr-time').value='';
+  toast(LANG==='ar'?'✅ تمت الإضافة':'✅ Added','success');
 }
-async function toggleTelegram(on){
-  await api("/api/config","POST",{interfaces:{telegram:{enabled:on}}});
-  CONFIG.interfaces = CONFIG.interfaces||{}; CONFIG.interfaces.telegram = CONFIG.interfaces.telegram||{};
-  CONFIG.interfaces.telegram.enabled = on;
-  loadChannels();
-}
-async function testTelegram(btn){
-  const out = document.getElementById("tg-test");
-  out.textContent = "⟳ جارٍ الاختبار...";
-  try{
-    const r = await api("/api/channels/telegram/test");
-    out.innerHTML = r.ok ? `<span style="color:var(--green)">🟢 متصل: @${r.username}</span>`
-                         : `<span style="color:var(--red)">🔴 فشل: ${r.error}</span>`;
-  }catch(e){ out.innerHTML = `<span style="color:var(--red)">🔴 ${e.message}</span>`; }
+function renderCrons(){
+  const el=document.getElementById('cron-list');
+  if(!crons.length){el.innerHTML=`<div class="empty"><div class="ei">⏰</div><span>${LANG==='ar'?'لا توجد مهام':'No tasks'}</span></div>`;return;}
+  el.innerHTML=crons.map((c,i)=>`<div class="cronr"><span class="badge bo">${c.type}</span><div style="flex:1"><div style="font-weight:500">${c.desc}</div><div style="font-size:11px;color:var(--muted)">${c.time}</div></div><label class="tgl"><input type="checkbox" ${c.enabled?'checked':''} onchange="crons[${i}].enabled=this.checked"><div class="tgl-t"></div></label><button class="ibtn" onclick="crons.splice(${i},1);renderCrons()">×</button></div>`).join('');
 }
 
-/* ── skills ── */
-async function loadSkills(){
-  const out = await api("/api/skills");
-  document.getElementById("skills-list").innerHTML = out.skills.map(s=>`
-    <div class="row">
-      <div><div>${s.name}</div><div class="muted">${s.description||"—"}</div></div>
-      <span class="pill ${s.enabled?'on':'off'}">${s.enabled?'مفعّل':'متوقف'}</span>
-    </div>`).join("") || '<p class="muted">لا توجد مهارات</p>';
+// ── GOALS ────────────────────────────────────────────
+function addGoal(){
+  const t=document.getElementById('goal-t').value.trim();
+  const s=document.getElementById('goal-s').value.trim().split('\n').filter(Boolean);
+  if(!t){toast(LANG==='ar'?'⚠️ أدخل عنوان الهدف':'⚠️ Enter goal title','error');return;}
+  goals.push({title:t,steps:s,progress:0});
+  renderGoals();document.getElementById('goal-t').value='';document.getElementById('goal-s').value='';
+  toast(LANG==='ar'?'🎯 تم إضافة الهدف':'🎯 Goal added','success');
+}
+function renderGoals(){
+  const el=document.getElementById('goals-list');
+  if(!goals.length){el.innerHTML=`<div class="empty"><div class="ei">🎯</div><span>${LANG==='ar'?'لا توجد أهداف':'No goals'}</span></div>`;return;}
+  el.innerHTML=goals.map((g,i)=>`<div class="goalr"><div class="goaln">${i+1}</div><div class="goalinfo"><div class="goalt">${g.title}</div><div class="goald">${g.steps.slice(0,2).join(' · ')+(g.steps.length>2?'...':'')}</div><div class="progress"><div class="pf" style="width:${g.progress}%"></div></div></div><button class="ibtn" onclick="goals.splice(${i},1);renderGoals()">×</button></div>`).join('');
 }
 
-function flash(id){
-  const e=document.getElementById(id); e.style.display="block";
-  setTimeout(()=>e.style.display="none",2200);
+// ── TOAST ────────────────────────────────────────────
+let tt;
+function toast(msg,type='info'){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.className='toast show '+type;
+  clearTimeout(tt);tt=setTimeout(()=>el.className='toast',3000);
 }
 </script>
 </body>

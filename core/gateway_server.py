@@ -187,9 +187,91 @@ def telegram_test() -> dict:
         return {"ok": False, "error": str(e)[:80]}
 
 
-def config_public() -> dict:
-    """config كامل للعرض في الـ dashboard مع إخفاء المفاتيح الحساسة."""
+# اسم المزوّد → متغيّر البيئة الخاص بمفتاحه
+PROVIDER_KEY_ENV = {
+    "deepseek": "DEEPSEEK_API_KEY", "zai": "ZAI_API_KEY",
+    "anthropic": "ANTHROPIC_API_KEY", "openai": "OPENAI_API_KEY",
+    "groq": "GROQ_API_KEY", "xai": "XAI_API_KEY",
+    "mistral": "MISTRAL_API_KEY", "gemini": "GEMINI_API_KEY",
+    "openrouter": "OPENROUTER_API_KEY",
+}
+
+
+def save_provider_keys(keys: dict):
+    """يحوّل {provider: secret} إلى متغيّرات بيئة ويحفظها في .env."""
+    env_vars = {}
+    for prov, secret in (keys or {}).items():
+        if secret and prov in PROVIDER_KEY_ENV:
+            env_vars[PROVIDER_KEY_ENV[prov]] = secret
+        elif secret and prov.endswith("_API_KEY"):  # توافق: قد يأتي اسم env مباشرة
+            env_vars[prov] = secret
+    if env_vars:
+        save_env_keys(env_vars)
+
+
+def memory_search(query: str) -> dict:
+    """يبحث في طبقات الذاكرة (الحقائق + الحلقات + السجل) عن نص."""
+    import sys
+    sys.path.insert(0, BASE_DIR)
+    from memory.sqlite_store import SQLiteStore
     cfg = load_config()
+    mem = SQLiteStore(dict(cfg.get("memory", {})))
+    q = (query or "").strip().lower()
+    results = []
+    if not q:
+        return {"results": []}
+    try:
+        # Core Knowledge
+        for k, v in mem.conn.execute("SELECT key, value FROM facts").fetchall():
+            if q in str(k).lower() or q in str(v).lower():
+                results.append({"text": f"🧠 {k}: {v}", "layer": "core"})
+        # Episodic
+        for r in mem.conn.execute("SELECT topic, key_facts, outcome FROM episodes").fetchall():
+            blob = f"{r['topic']} {r['key_facts']} {r['outcome']}"
+            if q in blob.lower():
+                results.append({"text": f"📚 {r['topic']}: {r['key_facts']}", "layer": "episodic"})
+        # Working / history
+        for r in mem.conn.execute(
+                "SELECT message, response FROM history ORDER BY id DESC LIMIT 200").fetchall():
+            if q in str(r['message']).lower() or q in str(r['response']).lower():
+                results.append({"text": f"💬 {r['message']} → {r['response'][:80]}", "layer": "working"})
+    except Exception as e:
+        return {"results": [], "error": str(e)[:100]}
+    return {"results": results[:50]}
+
+
+def create_backup() -> dict:
+    """ينشئ نسخة احتياطية كاملة ويُعيد اسم الملف."""
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from account_manager import AccountManager
+    out = AccountManager().create_backup()
+    return {"file": os.path.basename(out), "path": out}
+
+
+def restart_agent():
+    """يعيد تشغيل عملية البوابة (re-exec) بعد مهلة قصيرة."""
+    import sys, threading, time
+    def _go():
+        time.sleep(0.6)
+        try:
+            os.execv(sys.executable, [sys.executable] + sys.argv)
+        except Exception:
+            os._exit(0)
+    threading.Thread(target=_go, daemon=True).start()
+
+
+def config_public() -> dict:
+    """config كامل للعرض في الـ dashboard + معرّف الحساب."""
+    cfg = load_config()
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from account_manager import AccountManager
+        cfg = dict(cfg)
+        cfg["account"] = AccountManager().get_account_id()
+    except Exception:
+        pass
     return cfg
 
 
@@ -276,12 +358,17 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
                 out = run_chat(body.get("message", ""), body.get("model"))
                 self._send_json(out)
             elif path == "/api/config":
-                # تحديث المفاتيح يُكتب لـ .env، الباقي لـ config.yaml
-                keys = body.pop("_keys", {}) or {}
-                if keys:
-                    save_env_keys(keys)
-                cfg = save_config(body) if body else load_config()
+                # المفاتيح تُكتب لـ .env (لا تُحفظ نصاً في config.yaml)
+                save_env_keys(body.pop("_keys", {}) or {})        # توافق قديم
+                save_provider_keys(body.pop("keys", {}) or {})    # {provider: secret}
+                if body:
+                    save_config(body)
                 self._send_json({"status": "saved"})
+            elif path == "/api/backup":
+                self._send_json(create_backup())
+            elif path == "/api/restart":
+                restart_agent()
+                self._send_json({"status": "restarting"})
             else:
                 self._send_json({"error": "not_found"}, 404)
         except Exception as e:
@@ -315,6 +402,9 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
                 self._send_json(config_public())
             elif path == "/api/memory/stats":
                 self._send_json(memory_stats())
+            elif path == "/api/memory/search":
+                qs = urllib.parse.parse_qs(parsed.query)
+                self._send_json(memory_search(qs.get("q", [""])[0]))
             elif path == "/api/skills":
                 self._send_json({"skills": list_skills()})
             elif path == "/api/channels":
