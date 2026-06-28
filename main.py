@@ -173,7 +173,8 @@ def cmd_stop(args):
                 continue
             try:
                 cmdline = open(f"/proc/{pid}/cmdline", "rb").read().decode("utf-8", "ignore")
-                if "python" in cmdline and "gateway" in cmdline and "stop" not in cmdline:
+                is_service = ("gateway" in cmdline) or ("telegram" in cmdline)
+                if "python" in cmdline and is_service and "stop" not in cmdline:
                     os.kill(int(pid), signal.SIGTERM)
                     killed += 1
             except Exception:
@@ -189,12 +190,13 @@ def cmd_stop(args):
 def cmd_status(args):
     from gateway_auth import GatewayAuth
     from account_manager import AccountManager
-    import platform
     cfg = load_config()
     am  = AccountManager()
+    # ملاحظة: core/ على sys.path يحجب stdlib 'platform' — نستعمل sys.platform
+    plat = {"linux": "Linux", "darwin": "macOS", "win32": "Windows"}.get(sys.platform, sys.platform)
     print(f"\n🕷️  CoBWeaverClaw")
     print(f"   الحساب:    {am.get_account_id()}")
-    print(f"   المنصة:    {platform.system()}")
+    print(f"   المنصة:    {plat}")
     keys = [k for k in os.environ if k.endswith("_API_KEY")]
     print(f"   المفاتيح:  {len(keys)} مُعدّ")
     gw = cfg.get("gateway", {})
@@ -217,6 +219,8 @@ def cmd_help():
   python main.py gateway --url      عرض الرابط فقط
   python main.py gateway --network  فتحها للشبكة المحلية
   python main.py gateway --new-token توليد توكين جديد
+
+  python main.py telegram           تشغيل بوت تيليجرام
 
   python main.py account            عرض الحساب
   python main.py backup [path]      نسخة احتياطية
@@ -254,6 +258,9 @@ def main():
         subprocess.run([sys.executable, os.path.join(BASE_DIR, "setup_wizard.py")] + rest)
     elif cmd == "gateway":
         cmd_gateway(rest)
+    elif cmd == "telegram":
+        from interfaces.telegram import run_telegram
+        run_telegram(load_config())
     elif cmd == "account":
         cmd_account(rest)
     elif cmd == "backup":

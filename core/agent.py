@@ -23,8 +23,10 @@ class CoBWeaverClaw:
     def __init__(self, config: dict):
         self.config   = config
         self.platform = PlatformAdapter()
-        self.memory   = SQLiteStore(config.get("memory", {}))
-        self.brain    = ModelRouter(config.get("brain", {}))
+        mem_cfg = dict(config.get("memory", {}))
+        mem_cfg.setdefault("memory_size", config.get("agent", {}).get("memory_size", 20))
+        self.memory   = SQLiteStore(mem_cfg)
+        self.brain    = ModelRouter(config)   # config الكامل: agent + keys + brain
         self.router   = Router(self)
         self.devices  = DeviceRegistry(
             config.get("devices", {}).get("db_path")
@@ -80,7 +82,12 @@ class CoBWeaverClaw:
 
         context  = await self.memory.get_context(user_id, message)
         response = await self.router.handle(message, context, lang)
-        await self.memory.save(user_id, message, response)
+        await self.memory.save(user_id, message, response, lang)
+        # تلخيص تلقائي في الخلفية (Layer 2) دون مقاطعة المستخدم
+        try:
+            await self.memory.maybe_summarize(user_id)
+        except Exception:
+            pass
         return response
 
     async def heartbeat(self):

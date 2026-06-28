@@ -37,6 +37,14 @@ GATEWAY_PORT = 7878
 def clear():
     os.system("clear" if os.name != "nt" else "cls")
 
+# لغة المعالج (تُحدَّد في أول شاشة). تؤثّر على النصوص اللاحقة.
+LANG = "ar"
+ORANGE = "\033[38;5;208m"   # برتقالي ANSI لاسم المالك
+
+def T(ar, en):
+    """يُعيد النص حسب اللغة المختارة."""
+    return ar if LANG == "ar" else en
+
 def banner():
     clear()
     print(f"{O}{B}")
@@ -44,9 +52,12 @@ def banner():
     print("  ██╔════╝██╔══██╗██║    ██║    CoBWeaverClaw")
     print("  ██║     ██████╔╝██║ █╗ ██║    🕷️  Setup Wizard")
     print("  ██║     ██╔══██╗██║███╗██║")
-    print("  ╚██████╗██████╔╝╚███╔███╔╝    v0.1.0")
+    print("  ╚██████╗██████╔╝╚███╔███╔╝")
     print("   ╚═════╝╚═════╝  ╚══╝╚══╝")
     print(f"{R}")
+    # اسم المالك — برتقالي عريض، أسفل الشعار مباشرة وفوق سطر الإصدار
+    print(f"  {ORANGE}{B}Bashar Hassan{R}")
+    print(f"  {DIM}Setup v0.1.0{R}\n")
 
 def diamond(title):
     print(f"\n{G}◇{R}  {O}{B}{title}{R}")
@@ -208,6 +219,23 @@ def test_telegram(token):
 # الخطوات (كل خطوة تُرجع: "next" | BACK)
 # ════════════════════════════════════════════════════════════
 
+def step0_language(cfg):
+    """أول شاشة على الإطلاق — اختيار اللغة (بالإنجليزية فقط قبل أي اختيار)."""
+    global LANG
+    banner()
+    print(f"  {O}{B}┌─────────────────────────────────────────┐{R}")
+    print(f"  {O}{B}│  Choose your language / اختر لغتك       │{R}")
+    print(f"  {O}{B}│  1. العربية                             │{R}")
+    print(f"  {O}{B}│  2. English                             │{R}")
+    print(f"  {O}{B}└─────────────────────────────────────────┘{R}")
+    sel = select("Choose your language / اختر لغتك:",
+                 [("العربية", "Arabic"), ("English", "الإنجليزية")], allow_back=False)
+    LANG = "en" if sel == 1 else "ar"     # CANCEL/default → عربية
+    cfg.setdefault("agent", {})["language"] = LANG
+    cfg.setdefault("interface", {})["language"] = LANG
+    return "next"
+
+
 def step1_security(cfg):
     diamond("١/١٢ — Security disclaimer · تنبيه أمني")
     print(f"""
@@ -233,8 +261,9 @@ def step2_mode(cfg):
     return "next"
 
 def step3_config_handling(cfg):
-    # تظهر فقط إن وُجد إعداد سابق
-    existing = bool(cfg.get("brain", {}).get("primary") or os.path.exists(".env"))
+    # تظهر فقط إن وُجد إعداد سابق (في المجلد الآمن فقط)
+    existing = bool(cfg.get("brain", {}).get("primary")
+                    or os.path.exists(os.path.join(CONFIG_DIR, ".env")))
     if not existing:
         return "next"
     diamond("٣/١٢ — Config handling · معالجة الإعداد السابق")
@@ -247,10 +276,11 @@ def step3_config_handling(cfg):
     if sel == BACK:
         return BACK
     if sel == 2:
-        # إعادة ضبط
+        # إعادة ضبط — تحذف من المجلد الآمن (لا مجلد المشروع)
         for f in [".env", "config.yaml"]:
-            if os.path.exists(f):
-                os.remove(f)
+            p = os.path.join(CONFIG_DIR, f)
+            if os.path.exists(p):
+                os.remove(p)
         cfg.clear()
         ok("تمت إعادة الضبط")
     cfg["_config_handling"] = ["keep","review","reset"][sel]
@@ -626,8 +656,8 @@ STEPS = [
 ]
 
 def run_wizard():
-    banner()
     cfg = load_config()
+    step0_language(cfg)          # أول شاشة على الإطلاق — اختيار اللغة
     i = 0
     while i < len(STEPS):
         result = STEPS[i](cfg)

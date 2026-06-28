@@ -3,136 +3,356 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CoBWeaverClaw — بوابة التحكم</title>
+<title>CoBWeaverClaw — لوحة التحكم</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-  :root{--bg:#0F0F1A;--card:#1A1A2E;--accent:#16213E;--gold:#E2B04A;--border:#2A2A4A;--text:#E8E8F0;--sub:#8888AA;--green:#27AE60;--red:#E74C3C}
+  :root{
+    --bg:#0d1117; --card:#1a1f35; --accent:#FF8C00; --border:#2a2f45;
+    --text:#e8e8f0; --sub:#8b93a7; --green:#27c093; --red:#e74c3c; --userbg:#FF8C00;
+  }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:Inter,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-  #login{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;gap:20px}
+  body{font-family:Inter,'Segoe UI',system-ui,-apple-system,sans-serif;
+       background:var(--bg);color:var(--text);min-height:100vh}
+  /* login */
+  #login{display:flex;flex-direction:column;align-items:center;justify-content:center;
+         min-height:100vh;padding:24px;gap:18px}
   #login .spider{font-size:3rem}
-  #login h1{color:var(--gold);font-size:1.6rem;letter-spacing:1px}
-  #login p{color:var(--sub);font-size:.9rem;text-align:center}
-  .login-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:420px;text-align:center}
-  .login-box label{display:block;font-size:.85rem;color:var(--sub);margin-bottom:10px;text-align:right}
-  .login-box input{width:100%;padding:14px;border-radius:10px;border:1px solid var(--border);background:var(--accent);color:var(--gold);font-family:monospace;font-size:13px;outline:none;direction:ltr;text-align:left}
-  .login-box input:focus{border-color:var(--gold)}
-  .btn{padding:13px 24px;border-radius:10px;border:none;cursor:pointer;font-size:.95rem;font-weight:600;font-family:inherit;width:100%;margin-top:14px}
-  .btn-gold{background:var(--gold);color:#1A1A2E}
-  .btn-gold:active{opacity:.8}
-  .login-err{color:var(--red);font-size:.85rem;margin-top:12px;display:none}
-  .login-hint{color:var(--sub);font-size:.78rem;margin-top:16px;line-height:1.6}
-  .login-hint code{color:var(--gold);background:var(--accent);padding:2px 6px;border-radius:4px;direction:ltr;display:inline-block}
-  #app{display:none}
-  .topbar{display:flex;align-items:center;gap:12px;padding:16px 24px;background:var(--card);border-bottom:1px solid var(--border)}
-  .topbar .spider{font-size:1.5rem}
-  .topbar h1{font-size:1.1rem;color:var(--gold)}
-  .topbar .ver{font-size:.75rem;color:var(--sub);margin-right:auto}
-  .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite}
+  #login h1{color:var(--accent);font-size:1.6rem}
+  .login-box{background:var(--card);border:1px solid var(--border);border-radius:16px;
+             padding:26px;width:100%;max-width:420px;text-align:center}
+  .login-box input{width:100%;padding:13px;border-radius:10px;border:1px solid var(--border);
+                   background:var(--bg);color:var(--accent);font-family:monospace;font-size:13px;
+                   outline:none;direction:ltr;text-align:left}
+  .btn{padding:12px 22px;border-radius:10px;border:none;cursor:pointer;font-size:.95rem;
+       font-weight:600;font-family:inherit}
+  .btn-gold{background:var(--accent);color:#1a1a2e;width:100%;margin-top:12px}
+  .btn-gold:active{opacity:.85}
+  .login-err{color:var(--red);font-size:.85rem;margin-top:10px;display:none}
+  /* app shell */
+  #app{display:none;flex-direction:column;min-height:100vh}
+  .topbar{display:flex;align-items:center;gap:10px;padding:14px 20px;background:var(--card);
+          border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20}
+  .topbar .spider{font-size:1.4rem}
+  .topbar h1{font-size:1.05rem;color:var(--accent)}
+  .topbar .ver{font-size:.72rem;color:var(--sub);margin-right:auto}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--green);
+       box-shadow:0 0 6px var(--green);animation:pulse 2s infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-  .wrap{max-width:900px;margin:0 auto;padding:24px}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin-bottom:24px}
-  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px}
-  .card h3{font-size:.75rem;color:var(--sub);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
-  .card .val{font-size:1.4rem;font-weight:700;color:var(--gold)}
-  .section{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
-  .section h2{font-size:1rem;margin-bottom:16px}
-  .row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+  /* tabs */
+  .tabs{display:flex;gap:4px;padding:8px 12px;background:var(--card);overflow-x:auto;
+        border-bottom:1px solid var(--border);position:sticky;top:50px;z-index:19}
+  .tab{padding:9px 14px;border-radius:9px;border:none;background:transparent;color:var(--sub);
+       cursor:pointer;font-size:.9rem;font-family:inherit;white-space:nowrap}
+  .tab.active{background:var(--accent);color:#1a1a2e;font-weight:600}
+  .pane{display:none;flex:1;padding:18px;max-width:840px;margin:0 auto;width:100%}
+  .pane.active{display:block}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;
+        padding:18px;margin-bottom:14px}
+  .card h2{font-size:1rem;margin-bottom:14px;color:var(--accent)}
+  label{display:block;font-size:.82rem;color:var(--sub);margin:12px 0 5px}
+  input,select,textarea{width:100%;padding:11px;border-radius:9px;border:1px solid var(--border);
+        background:var(--bg);color:var(--text);font-family:inherit;font-size:.9rem;outline:none}
+  input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+  textarea{min-height:80px;resize:vertical}
+  .save{background:var(--accent);color:#1a1a2e;font-weight:600;margin-top:16px;width:auto;
+        padding:11px 28px}
+  .muted{color:var(--sub);font-size:.82rem}
+  .row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;
+       border-bottom:1px solid var(--border);gap:10px}
   .row:last-child{border:none}
-  .row .label{font-size:.9rem}
-  .row .meta{font-size:.8rem;color:var(--sub);font-family:monospace}
-  .logout{padding:8px 18px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--sub);cursor:pointer;font-family:inherit;font-size:.85rem}
+  .pill{font-size:.72rem;padding:3px 9px;border-radius:20px}
+  .pill.on{background:rgba(39,192,147,.18);color:var(--green)}
+  .pill.off{background:rgba(231,76,60,.18);color:var(--red)}
+  .pill.soon{background:rgba(139,147,167,.18);color:var(--sub)}
+  .keyrow{display:flex;gap:6px;align-items:center}
+  .keyrow input{flex:1}
+  .toggle{cursor:pointer;font-size:.8rem;color:var(--sub);background:none;border:1px solid var(--border);
+          border-radius:8px;padding:8px 10px}
+  .ok-msg{color:var(--green);font-size:.85rem;margin-top:10px;display:none}
+  /* chat */
+  #chat-pane{display:none;flex-direction:column;height:calc(100vh - 110px);max-width:840px;
+             margin:0 auto;width:100%;padding:0}
+  #chat-pane.active{display:flex}
+  #messages{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:10px}
+  .bubble{max-width:78%;padding:11px 14px;border-radius:14px;font-size:.92rem;line-height:1.55;
+          white-space:pre-wrap;word-break:break-word}
+  .bubble.user{align-self:flex-start;background:var(--userbg);color:#1a1a2e;border-bottom-right-radius:4px}
+  .bubble.bot{align-self:flex-end;background:var(--card);border:1px solid var(--border);
+              border-bottom-left-radius:4px}
+  .bubble .who{font-size:.68rem;opacity:.7;margin-bottom:3px}
+  .composer{display:flex;gap:8px;padding:12px;background:var(--card);border-top:1px solid var(--border);
+            align-items:center}
+  .composer select{width:auto;max-width:170px;font-size:.8rem}
+  .composer input{flex:1}
+  .composer .send{background:var(--accent);color:#1a1a2e;font-weight:700;padding:11px 18px;
+                  border-radius:9px;border:none;cursor:pointer}
+  .typing{align-self:flex-end;color:var(--sub);font-size:.85rem;padding:6px 12px}
 </style>
 </head>
 <body>
+<!-- ── login (يظهر فقط في وضع التوكين) ── -->
 <div id="login">
-  <div style="text-align:center">
-    <div class="spider">🕷️</div>
-    <h1>CoBWeaverClaw</h1>
-    <p>بوابة التحكم</p>
-  </div>
+  <div style="text-align:center"><div class="spider">🕷️</div>
+    <h1>CoBWeaverClaw</h1><p class="muted">لوحة التحكم</p></div>
   <div class="login-box">
-    <label>الصق توكين البوابة هنا:</label>
-    <input type="text" id="token-input" placeholder="697b6f7a98ec..." autocomplete="off" autocorrect="off" spellcheck="false">
+    <label style="text-align:right">الصق توكين البوابة:</label>
+    <input id="token-input" placeholder="697b6f7a98ec..." autocomplete="off" spellcheck="false">
     <button class="btn btn-gold" onclick="doLogin()">دخول</button>
     <p class="login-err" id="login-err">توكين غير صحيح</p>
-    <div class="login-hint">
-      احصل على التوكين من الطرفية:<br>
-      <code>python main.py gateway --url</code><br>
-      انسخ الجزء بعد <code>token=</code> فقط
+  </div>
+</div>
+
+<!-- ── app ── -->
+<div id="app">
+  <div class="topbar">
+    <span class="spider">🕷️</span><h1>CoBWeaverClaw</h1>
+    <span class="dot"></span><span class="ver" id="ver">—</span>
+    <button class="toggle" onclick="doLogout()">خروج</button>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="chat" onclick="showTab('chat')">💬 دردشة</button>
+    <button class="tab" data-tab="identity" onclick="showTab('identity')">🎭 شخصية الوكيل</button>
+    <button class="tab" data-tab="settings" onclick="showTab('settings')">⚙️ إعدادات</button>
+    <button class="tab" data-tab="channels" onclick="showTab('channels')">📡 قنوات</button>
+    <button class="tab" data-tab="skills" onclick="showTab('skills')">🛠️ مهارات</button>
+  </div>
+
+  <!-- chat -->
+  <div class="pane active" id="chat-pane">
+    <div id="messages"></div>
+    <div class="composer">
+      <select id="model-sel" title="اختر النموذج"></select>
+      <input id="chat-input" placeholder="اكتب رسالتك..." onkeydown="if(event.key==='Enter')sendMsg()">
+      <button class="send" onclick="sendMsg()">إرسال</button>
+    </div>
+  </div>
+
+  <!-- identity -->
+  <div class="pane" id="identity-pane">
+    <div class="card">
+      <h2>🎭 شخصية الوكيل</h2>
+      <p class="muted">حقول منظّمة يبني منها النظام هوية الوكيل تلقائياً (ليست خانة أوامر حرّة).</p>
+      <label>اسم الوكيل</label><input id="id-name">
+      <label>اللغة</label>
+      <select id="id-language"><option value="ar">العربية</option>
+        <option value="en">English</option><option value="both">كلاهما</option></select>
+      <label>الأسلوب</label>
+      <select id="id-style"><option value="professional">احترافي</option>
+        <option value="friendly">ودّي</option><option value="direct">مباشر</option>
+        <option value="formal">رسمي</option></select>
+      <label>التخصّص</label>
+      <select id="id-specialization"><option value="general">عام</option>
+        <option value="trading">تداول</option><option value="academic">أكاديمي</option>
+        <option value="technical">تقني</option><option value="business">أعمال</option></select>
+      <label>حجم الذاكرة العاملة (1–100)</label><input id="id-memory_size" type="number" min="1" max="100">
+      <label>مرساة المهمة (بيان الهوية الأساسي)</label>
+      <textarea id="id-mission_anchor"></textarea>
+      <button class="save" onclick="saveIdentity()">حفظ الهوية</button>
+      <p class="ok-msg" id="id-ok">✅ حُفظت الهوية</p>
+    </div>
+  </div>
+
+  <!-- settings -->
+  <div class="pane" id="settings-pane">
+    <div class="card">
+      <h2>⚙️ إعدادات</h2>
+      <div class="row"><span>المزوّد الأساسي</span><span class="muted" id="set-primary">—</span></div>
+      <div class="row"><span>منفذ البوابة</span><span class="muted" id="set-port">—</span></div>
+      <label>لغة الواجهة</label>
+      <select id="set-lang"><option value="ar">العربية</option><option value="en">English</option></select>
+    </div>
+    <div class="card">
+      <h2>🔑 مفاتيح المزوّدين</h2>
+      <p class="muted">تُحفظ في <code>~/.cobweaverclaw/.env</code> (مقنّعة).</p>
+      <div id="keys-list"></div>
+      <button class="save" onclick="saveSettings()">حفظ الإعدادات</button>
+      <p class="ok-msg" id="set-ok">✅ حُفظت الإعدادات</p>
+    </div>
+  </div>
+
+  <!-- channels -->
+  <div class="pane" id="channels-pane">
+    <div class="card"><h2>📡 قنوات الاتصال</h2><div id="channels-list"></div></div>
+  </div>
+
+  <!-- skills -->
+  <div class="pane" id="skills-pane">
+    <div class="card"><h2>🛠️ المهارات</h2><div id="skills-list"></div>
+      <button class="save" onclick="alert('قريباً: إضافة مهارة جديدة')">+ إضافة مهارة</button>
     </div>
   </div>
 </div>
-<div id="app">
-  <div class="topbar">
-    <span class="spider">🕷️</span>
-    <h1>CoBWeaverClaw</h1>
-    <span class="dot"></span>
-    <span class="ver" id="ver">—</span>
-    <button class="logout" onclick="doLogout()">خروج</button>
-  </div>
-  <div class="wrap" id="content"></div>
-</div>
+
 <script>
 let TOKEN = "";
+let CONFIG = {};
+const PROVIDERS = ["anthropic","openai","groq","deepseek","openrouter","mistral","xai","zai","gemini","ollama"];
+const PROVIDER_ENV = {anthropic:"ANTHROPIC_API_KEY",openai:"OPENAI_API_KEY",groq:"GROQ_API_KEY",
+  deepseek:"DEEPSEEK_API_KEY",openrouter:"OPENROUTER_API_KEY",mistral:"MISTRAL_API_KEY",
+  xai:"XAI_API_KEY",zai:"ZAI_API_KEY",gemini:"GEMINI_API_KEY",ollama:""};
+
 (function(){
-  // أولاً: جرّب الدخول بلا توكين (وضع localhost المباشر)
-  tryLogin(true);
-  // أو اقرأ التوكين من الرابط إن وُجد
+  tryLogin(true);                               // وضع localhost بلا توكين
   const m = location.hash.match(/token=([a-f0-9]+)/i);
-  if (m) { TOKEN = m[1]; history.replaceState(null, "", location.pathname); tryLogin(); }
+  if (m){ TOKEN = m[1]; history.replaceState(null,"",location.pathname); tryLogin(); }
 })();
+
 function doLogin(){
-  const v = document.getElementById("token-input").value.trim();
-  TOKEN = v.replace(/[\s\n\r]+/g, "").replace(/^.*token=/i, "");
+  TOKEN = document.getElementById("token-input").value.trim().replace(/^.*token=/i,"").replace(/\s+/g,"");
   tryLogin();
 }
 function doLogout(){
-  TOKEN = "";
-  document.getElementById("app").style.display = "none";
-  document.getElementById("login").style.display = "flex";
-  document.getElementById("token-input").value = "";
+  TOKEN=""; document.getElementById("app").style.display="none";
+  document.getElementById("login").style.display="flex";
 }
-async function api(path){
-  const sep = TOKEN ? ("?token=" + TOKEN) : "";
-  const r = await fetch(path + sep);
-  if (r.status === 401) throw new Error("unauthorized");
+function q(){ return TOKEN ? ("?token="+TOKEN) : ""; }
+async function api(path, method="GET", body=null){
+  const r = await fetch(path+q(), {method,
+    headers: body? {"Content-Type":"application/json"} : {},
+    body: body? JSON.stringify(body) : null});
+  if (r.status===401) throw new Error("unauthorized");
   return r.json();
 }
 async function tryLogin(silent){
-  try {
-    const [status, account] = await Promise.all([api("/api/status"), api("/api/account")]);
-    document.getElementById("login").style.display = "none";
-    document.getElementById("app").style.display = "block";
-    document.getElementById("ver").textContent = "v" + status.version;
-    render(status, account);
-  } catch(e){
-    // إن كانت محاولة صامتة (بلا توكين) وفشلت، لا تُظهر خطأ — انتظر إدخال المستخدم
+  try{
+    const status = await api("/api/status");
+    CONFIG = await api("/api/config");
+    document.getElementById("login").style.display="none";
+    document.getElementById("app").style.display="flex";
+    document.getElementById("ver").textContent = "v"+status.version;
+    loadIdentity(); loadModels(); loadSettings();
+  }catch(e){
     if (silent) return;
-    const err = document.getElementById("login-err");
-    if (err) err.style.display = "block";
+    document.getElementById("login-err").style.display="block";
   }
 }
-function render(status, account){
-  document.getElementById("content").innerHTML = `
-    <div class="grid">
-      <div class="card"><h3>الحالة</h3><div class="val" style="color:var(--green);font-size:1.1rem">يعمل</div></div>
-      <div class="card"><h3>المنصة</h3><div class="val" style="font-size:1.1rem">${status.platform}</div></div>
-      <div class="card"><h3>الإصدار</h3><div class="val" style="font-size:1.1rem">${status.version}</div></div>
-    </div>
-    <div class="section">
-      <h2>الحساب</h2>
-      <div class="row"><span class="label">المعرّف</span><span class="meta">${account.account_id}</span></div>
-      <div class="row"><span class="label">أُنشئ في</span><span class="meta">${(account.created_at||'').slice(0,19)}</span></div>
-      <div class="row"><span class="label">الجهاز</span><span class="meta">${account.device_name||'—'}</span></div>
-    </div>
-    <div class="section">
-      <h2>إجراءات (من الطرفية)</h2>
-      <div class="row"><div><div class="label">نسخة احتياطية</div><div class="meta">python main.py backup</div></div></div>
-      <div class="row"><div><div class="label">إعادة التشغيل</div><div class="meta">python main.py restart</div></div></div>
-      <div class="row"><div><div class="label">توكين جديد</div><div class="meta">python main.py gateway --new-token</div></div></div>
-    </div>
-  `;
+
+function showTab(name){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.tab===name));
+  document.querySelectorAll(".pane").forEach(p=>p.classList.remove("active"));
+  document.getElementById(name+"-pane").classList.add("active");
+  if (name==="channels") loadChannels();
+  if (name==="skills")   loadSkills();
+}
+
+/* ── chat ── */
+function modelOptions(){
+  const opts = [["","تلقائي (Auto)"]];
+  const brain = CONFIG.brain || {};
+  const seen = new Set();
+  Object.values(brain).forEach(v=>{
+    if (typeof v==="string" && v.includes("/") && !seen.has(v)){ seen.add(v); opts.push([v, v]); }
+  });
+  return opts;
+}
+function loadModels(){
+  const sel = document.getElementById("model-sel");
+  sel.innerHTML = modelOptions().map(([v,l])=>`<option value="${v}">${l}</option>`).join("");
+}
+function addBubble(text, who, model){
+  const m = document.getElementById("messages");
+  const b = document.createElement("div");
+  b.className = "bubble "+(who==="user"?"user":"bot");
+  b.innerHTML = `<div class="who">${who==="user"?"أنت":(model||"الوكيل")}</div>`;
+  b.appendChild(document.createTextNode(text));
+  m.appendChild(b); m.scrollTop = m.scrollHeight;
+}
+async function sendMsg(){
+  const inp = document.getElementById("chat-input");
+  const msg = inp.value.trim(); if(!msg) return;
+  inp.value="";
+  addBubble(msg,"user");
+  const m = document.getElementById("messages");
+  const typing = document.createElement("div");
+  typing.className="typing"; typing.textContent="🕷️ يكتب...";
+  m.appendChild(typing); m.scrollTop=m.scrollHeight;
+  try{
+    const out = await api("/api/chat","POST",{message:msg, model:document.getElementById("model-sel").value});
+    typing.remove();
+    addBubble(out.reply||"(لا رد)","bot", out.model_used);
+  }catch(e){ typing.remove(); addBubble("❌ خطأ: "+e.message,"bot"); }
+}
+
+/* ── identity ── */
+function loadIdentity(){
+  const a = CONFIG.agent||{};
+  document.getElementById("id-name").value = a.name||"كلاو";
+  document.getElementById("id-language").value = a.language||"ar";
+  document.getElementById("id-style").value = a.style||"professional";
+  document.getElementById("id-specialization").value = a.specialization||"general";
+  document.getElementById("id-memory_size").value = a.memory_size||20;
+  document.getElementById("id-mission_anchor").value = a.mission_anchor||"";
+}
+async function saveIdentity(){
+  const agent = {
+    name: document.getElementById("id-name").value,
+    language: document.getElementById("id-language").value,
+    style: document.getElementById("id-style").value,
+    specialization: document.getElementById("id-specialization").value,
+    memory_size: parseInt(document.getElementById("id-memory_size").value)||20,
+    mission_anchor: document.getElementById("id-mission_anchor").value,
+  };
+  await api("/api/config","POST",{agent});
+  CONFIG.agent = Object.assign(CONFIG.agent||{}, agent);
+  flash("id-ok");
+}
+
+/* ── settings ── */
+function loadSettings(){
+  const brain = CONFIG.brain||{};
+  document.getElementById("set-primary").textContent = brain.primary||"—";
+  document.getElementById("set-port").textContent =
+    (CONFIG.gateway&&CONFIG.gateway.port)||7878;
+  document.getElementById("set-lang").value = (CONFIG.agent&&CONFIG.agent.language)||"ar";
+  const box = document.getElementById("keys-list");
+  box.innerHTML = PROVIDERS.filter(p=>PROVIDER_ENV[p]).map(p=>`
+    <label>${p}</label>
+    <div class="keyrow">
+      <input id="key-${p}" type="password" placeholder="${PROVIDER_ENV[p]}">
+      <button class="toggle" onclick="toggleKey('${p}')">👁</button>
+    </div>`).join("");
+}
+function toggleKey(p){
+  const el=document.getElementById("key-"+p);
+  el.type = el.type==="password"?"text":"password";
+}
+async function saveSettings(){
+  const keys={};
+  PROVIDERS.filter(p=>PROVIDER_ENV[p]).forEach(p=>{
+    const v=document.getElementById("key-"+p).value.trim();
+    if(v) keys[PROVIDER_ENV[p]]=v;
+  });
+  const agent={language:document.getElementById("set-lang").value};
+  await api("/api/config","POST",{agent, _keys:keys});
+  flash("set-ok");
+}
+
+/* ── channels ── */
+async function loadChannels(){
+  const c = await api("/api/channels");
+  const names={telegram:"Telegram",discord:"Discord",slack:"Slack",whatsapp:"WhatsApp",signal:"Signal"};
+  document.getElementById("channels-list").innerHTML = Object.entries(c).map(([k,v])=>{
+    let pill;
+    if(v.status==="active") pill='<span class="pill on">مفعّل</span>';
+    else if(v.status==="inactive") pill='<span class="pill off">متوقف</span>';
+    else pill='<span class="pill soon">قريباً</span>';
+    const extra = v.token_masked? `<span class="muted">${v.token_masked}</span>`:"";
+    return `<div class="row"><span>${names[k]||k}</span><span>${extra} ${pill}</span></div>`;
+  }).join("");
+}
+
+/* ── skills ── */
+async function loadSkills(){
+  const out = await api("/api/skills");
+  document.getElementById("skills-list").innerHTML = out.skills.map(s=>`
+    <div class="row">
+      <div><div>${s.name}</div><div class="muted">${s.description||"—"}</div></div>
+      <span class="pill ${s.enabled?'on':'off'}">${s.enabled?'مفعّل':'متوقف'}</span>
+    </div>`).join("") || '<p class="muted">لا توجد مهارات</p>';
+}
+
+function flash(id){
+  const e=document.getElementById(id); e.style.display="block";
+  setTimeout(()=>e.style.display="none",2200);
 }
 </script>
 </body>

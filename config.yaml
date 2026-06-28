@@ -2,16 +2,27 @@
 # ================================
 
 agent:
-  name: CoBWeaverClaw
+  name: "كلاو"               # اسم الوكيل كما يظهر في النظام
   version: "0.1.0"
-  language: auto            # auto-detect from user message
-  specialization: general   # general | trading | medicine | engineering | law | education
+  language: "ar"             # ar | en | both
+  style: "professional"      # professional | friendly | direct | formal
+  specialization: "general"  # general | trading | academic | technical | business
+  memory_size: 20            # عدد رسائل الذاكرة العاملة (Layer 1)
+  mission_anchor: "أنت كلاو، وكيل ذكاء اصطناعي شخصي لـ Bashar Hassan."
+
+# ── Role-based key routing ───────────────────────────────────
+# يربط كل نوع مهمة بمزوّد محدّد. model_router يقرأ نوع المهمة ويختار المفتاح.
+# أنواع المهام: chat | analysis | summary | search | code
+keys:
+  primary_chat: "deepseek"     # المحادثة العادية
+  fast_tasks: "zai"            # المهام السريعة/الخفيفة (تلخيص/بحث)
+  analysis: "anthropic"        # التحليل العميق والبرمجة
 
 # ── Brain / Models ──────────────────────────────────────────
 brain:
-  primary: claude-sonnet-4-6     # deep analysis
-  fast: groq/llama-3.3-70b       # quick responses (150ms)
-  local: ollama/mistral           # offline fallback
+  primary: anthropic/claude-sonnet-4-6        # deep analysis
+  fast: groq/llama-3.3-70b-versatile          # quick responses (150ms)
+  local: ollama/mistral                       # offline fallback
   fallback_chain: [primary, fast, local]
   auto_select: true               # auto-choose model per task type
 
