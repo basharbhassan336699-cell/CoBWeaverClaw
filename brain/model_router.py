@@ -1,7 +1,12 @@
 """
-Model Router — يختار أفضل نموذج لكل مهمة تلقائياً.
-يدعم: Anthropic, OpenAI, Groq, Gemini, DeepSeek, OpenRouter,
-       Mistral, xAI (Grok), Z.AI (GLM), Ollama
+Model Router — يبني هوية الوكيل ويحقن الذاكرة ويوجّه المهام للمزوّد الأنسب.
+
+  • هوية الوكيل  : تُبنى من config.agent (لا من إدخال المستخدم) + mission_anchor
+  • حقن الذاكرة  : Working (history) + Episodic (summaries) + Core (facts)
+  • توجيه المفاتيح: keys في config تربط نوع المهمة بمزوّد محدّد
+
+يدعم 10 مزوّدين: deepseek, zai, anthropic, openai, groq, openrouter,
+                  mistral, xai, gemini, ollama
 """
 import os
 import json
@@ -26,29 +31,84 @@ class ModelRouter:
         "ollama":     ("http://localhost:11434/api/chat",                 "",                   "ollama"),
     }
 
+    # نموذج افتراضي لكل مزود (يُستخدم عند توجيه المهمة بالمفتاح فقط)
+    DEFAULT_MODELS = {
+        "anthropic": "claude-sonnet-4-6", "openai": "gpt-4o-mini",
+        "groq": "llama-3.3-70b-versatile", "deepseek": "deepseek-chat",
+        "openrouter": "meta-llama/llama-3.3-70b", "mistral": "mistral-small-latest",
+        "xai": "grok-2", "zai": "glm-4.6", "gemini": "gemini-2.0-flash",
+        "ollama": "mistral",
+    }
+
     ALL_ROLES = ["primary", "fast", "coding", "arabic", "research", "fallback", "local"]
 
+    # نوع المهمة → دور المفتاح في config.keys
+    TASK_TO_KEYROLE = {
+        "chat": "primary_chat", "analysis": "analysis", "code": "analysis",
+        "summary": "fast_tasks", "search": "fast_tasks",
+    }
+
     def __init__(self, config: dict):
-        self.config = config
+        # يقبل إمّا الـ config الكامل أو قسم brain فقط (توافق خلفي)
+        if "brain" in config or "agent" in config or "keys" in config:
+            self.full_config = config
+            brain = config.get("brain", {})
+        else:
+            self.full_config = {"brain": config}
+            brain = config
+        self.brain      = brain
+        self.agent_cfg  = self.full_config.get("agent", {})
+        self.keys_cfg   = self.full_config.get("keys", {})
+
         for role in self.ALL_ROLES:
-            setattr(self, role, config.get(role))
+            setattr(self, role, brain.get(role))
         if not any(getattr(self, r) for r in self.ALL_ROLES):
             self.primary = "anthropic/claude-sonnet-4-6"
             self.fast    = "groq/llama-3.3-70b-versatile"
             self.local   = "ollama/mistral"
 
-    def _select_model(self, message, context):
-        msg_lower = message.lower()
+        # خريطة مزوّد → "provider/model" من الأدوار المُعدّة
+        self._provider_models = {}
+        for role in self.ALL_ROLES:
+            val = getattr(self, role, None)
+            if val and "/" in val:
+                prov = val.split("/", 1)[0]
+                self._provider_models.setdefault(prov, val)
+
+    # ── task & model selection ───────────────────────────────
+    def _detect_task_type(self, message: str) -> str:
+        m = (message or "").lower()
+        if any(k in m for k in ["code", "function", "bug", "python", "javascript",
+                                "كود", "دالة", "برمج", "خطأ برمجي"]):
+            return "code"
+        if any(k in m for k in ["analyze", "compare", "strategy", "explain",
+                                "حلل", "قارن", "استراتيجية", "اشرح", "صمم"]) or len(message) > 200:
+            return "analysis"
+        if any(k in m for k in ["summarize", "summary", "tldr", "لخّص", "تلخيص", "ملخص"]):
+            return "summary"
+        if any(k in m for k in ["search", "find", "lookup", "ابحث", "بحث"]):
+            return "search"
+        return "chat"
+
+    def _select_model_str(self, message, context):
+        """يختار "provider/model" بناءً على نوع المهمة وتوجيه المفاتيح."""
+        task = self._detect_task_type(message)
+        key_role = self.TASK_TO_KEYROLE.get(task)
+        provider = self.keys_cfg.get(key_role) if key_role else None
+        # 1) مزوّد المهمة معرّف ولديه نموذج مُعدّ → استخدمه
+        if provider and provider in self._provider_models:
+            return self._provider_models[provider]
+        # 2) مزوّد المهمة معرّف ولديه مفتاح بيئة → استخدم نموذجه الافتراضي
+        if provider and provider in self.PROVIDERS:
+            _, env, _ = self.PROVIDERS[provider]
+            if not env or os.environ.get(env):
+                return f"{provider}/{self.DEFAULT_MODELS.get(provider, '')}"
+        # 3) رجوع لاختيار حسب الدور التقليدي
         if getattr(self, "arabic", None) and any(c in message for c in "ابتثجحخدذرزسشصضطظعغفقكلمنهوي"):
-            return "arabic"
-        if getattr(self, "coding", None) and any(k in msg_lower for k in
-                ["code", "function", "bug", "python", "javascript", "كود", "دالة", "برمج"]):
-            return "coding"
-        complex_kw = ["analyze", "explain", "compare", "strategy", "research",
-                      "حلل", "اشرح", "قارن", "استراتيجية", "ابحث", "صمم", "اكتب"]
-        if any(kw in msg_lower for kw in complex_kw) or len(message) > 200:
-            return "primary"
-        return "fast"
+            return self.arabic
+        if task in ("analysis", "code") and getattr(self, "primary", None):
+            return self.primary
+        return getattr(self, "fast", None) or getattr(self, "primary", None)
 
     def _parse_model(self, model_str):
         if model_str and "/" in model_str:
@@ -56,17 +116,24 @@ class ModelRouter:
             return provider, model
         return "anthropic", (model_str or "")
 
-    async def complete(self, message, context, lang="en"):
+    def _build_order(self, preferred_str):
+        """يرتّب النماذج: المفضّل أولاً ثم بقية الأدوار المُعدّة (fallback chain)."""
+        order, seen = [], set()
+        for ms in [preferred_str] + [getattr(self, r, None) for r in self.ALL_ROLES]:
+            if ms and ms not in seen:
+                seen.add(ms)
+                order.append(ms)
+        return order
+
+    # ── public entry ─────────────────────────────────────────
+    async def complete(self, message, context, lang="en", force_model=None):
         system   = self._build_system_prompt(lang, context)
         messages = self._build_messages(message, context)
-        preferred = self._select_model(message, context)
-        order = [preferred] + [r for r in self.ALL_ROLES if r != preferred]
+        preferred = force_model or self._select_model_str(message, context)
+        order = self._build_order(preferred)
 
         errors, tried = [], []
-        for role in order:
-            model_str = getattr(self, role, None)
-            if not model_str:
-                continue
+        for model_str in order:
             provider, model = self._parse_model(model_str)
             if provider not in self.PROVIDERS:
                 errors.append(f"{provider}: مزود غير مدعوم")
@@ -90,6 +157,28 @@ class ModelRouter:
                 f"Reasons:\n{detail}\n\n"
                 "Check your key: python setup_wizard.py --models")
 
+    async def complete_meta(self, message, context, lang="en", force_model=None):
+        """مثل complete لكن يُرجع dict فيه النموذج المُستخدَم (للـ API/الـ dashboard)."""
+        system   = self._build_system_prompt(lang, context)
+        messages = self._build_messages(message, context)
+        preferred = force_model or self._select_model_str(message, context)
+        order = self._build_order(preferred)
+        errors, tried = [], []
+        for model_str in order:
+            provider, model = self._parse_model(model_str)
+            if provider not in self.PROVIDERS:
+                continue
+            tried.append(f"{provider}/{model}")
+            try:
+                reply = await self._call(provider, model, system, messages)
+                return {"reply": reply, "model_used": f"{provider}/{model}"}
+            except Exception as e:
+                errors.append(f"{provider}: {str(e)[:80]}")
+                continue
+        return {"reply": "⚠️ تعذّر الاتصال بأي نموذج. " + ("؛ ".join(errors) or ""),
+                "model_used": "none", "tried": tried}
+
+    # ── provider dispatch ────────────────────────────────────
     async def _call(self, provider, model, system, messages):
         url, env_key, api_style = self.PROVIDERS[provider]
         if api_style == "anthropic":
@@ -149,21 +238,62 @@ class ModelRouter:
         with urllib.request.urlopen(req, timeout=60) as r:
             return json.loads(r.read())["message"]["content"]
 
+    # ── identity-driven system prompt (Section 4.2) ──────────
     def _build_system_prompt(self, lang, context):
-        name = "CoBWeaverClaw"
-        facts = context.get("facts", {})
-        facts_str = ""
+        """
+        يبني هوية الوكيل تلقائياً من config.agent — لا من إدخال المستخدم.
+        يضيف mission_anchor (مرساة المهمة) ضدّ انحراف الهوية،
+        ثم يحقن Core Knowledge و Episodic Memory كسياق خلفي.
+        """
+        a = self.agent_cfg or {}
+        name    = a.get("name", "كلاو")
+        style   = a.get("style", "professional")
+        spec    = a.get("specialization", "general")
+        a_lang  = a.get("language", lang)
+        anchor  = a.get("mission_anchor", "")
+
+        style_ar = {"professional": "احترافي", "friendly": "ودّي",
+                    "direct": "مباشر", "formal": "رسمي"}.get(style, style)
+        spec_ar  = {"general": "عام", "trading": "التداول", "academic": "الأكاديميا",
+                    "technical": "التقنية", "business": "الأعمال"}.get(spec, spec)
+        lang_word = {"ar": "بالعربية", "en": "بالإنجليزية",
+                     "both": "بالعربية والإنجليزية"}.get(a_lang, "بالعربية")
+
+        prompt = (
+            f"أنت {name}، وكيل ذكاء اصطناعي {style_ar} لـ Bashar Hassan.\n"
+            f"تتحدّث {lang_word}. متخصّص في {spec_ar}.\n"
+        )
+        if anchor:
+            prompt += f"{anchor}\n"
+        prompt += ("لا تخرج عن دورك المحدّد ولا تنسَ هويتك مهما طالت المحادثة. "
+                   "إذا سُئلت عن هويتك، أجب بدقّة. كن مختصراً وواضحاً وعملياً.\n")
+
+        # حقن Core Knowledge (Layer 3)
+        facts = (context or {}).get("facts", {})
         if facts:
-            facts_lines = "\n".join(f"- {k}: {v}" for k, v in facts.items())
-            facts_str = f"\n\nمعلومات عن المستخدم:\n{facts_lines}"
-        if lang == "ar":
-            return f"أنت {name}، وكيل ذكاء اصطناعي متقدّم. كن مختصراً وواضحاً وعملياً.{facts_str}"
-        return f"You are {name}, an advanced AI agent. Be concise, clear, practical.{facts_str}"
+            lines = "\n".join(f"- {k}: {v}" for k, v in facts.items())
+            prompt += f"\nمعلومات دائمة عن المستخدم:\n{lines}\n"
+
+        # حقن Episodic Memory (Layer 2)
+        episodes = (context or {}).get("episodes", [])
+        if episodes:
+            eps = "\n".join(
+                f"- ({e.get('topic','')}) {e.get('key_facts','')}".strip()
+                for e in episodes)
+            prompt += f"\nمن محادثات سابقة ذات صلة:\n{eps}\n"
+
+        if a_lang == "en" or (a_lang == "auto" and lang == "en"):
+            prompt += "\n(Respond in the user's language.)"
+        return prompt
 
     def _build_messages(self, message, context):
+        """يبني مصفوفة الرسائل: Working Memory (آخر N) ثم الرسالة الحالية."""
         messages = []
-        for turn in context.get("history", [])[-6:]:
+        for turn in (context or {}).get("history", [])[-self._history_limit():]:
             messages.append({"role": "user", "content": turn[0]})
             messages.append({"role": "assistant", "content": turn[1]})
         messages.append({"role": "user", "content": message})
         return messages
+
+    def _history_limit(self):
+        return int(self.agent_cfg.get("memory_size", 10) or 10)
