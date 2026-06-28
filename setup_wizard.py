@@ -369,6 +369,14 @@ def t(key, **kw):
 def clear():
     os.system("clear" if os.name != "nt" else "cls")
 
+# لغة المعالج (تُحدَّد في أول شاشة). تؤثّر على النصوص اللاحقة.
+LANG = "ar"
+ORANGE = "\033[38;5;208m"   # برتقالي ANSI لاسم المالك
+
+def T(ar, en):
+    """يُعيد النص حسب اللغة المختارة."""
+    return ar if LANG == "ar" else en
+
 def banner():
     clear()
     print(f"{O}{B}")
