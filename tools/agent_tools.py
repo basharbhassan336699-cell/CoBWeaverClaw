@@ -128,6 +128,103 @@ def current_datetime(_: str = "") -> str:
     return now.strftime("%Y-%m-%d %H:%M:%S") + f" (يوم {now.strftime('%A')})"
 
 
+def youtube_search(query: str) -> str:
+    """يبحث في يوتيوب ويُعيد عناوين الفيديوهات مع روابطها."""
+    if not query:
+        return "لا يوجد استعلام."
+    try:
+        u = "https://www.youtube.com/results?" + urllib.parse.urlencode({"search_query": query})
+        req = urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0", "Accept-Language": "ar,en"})
+        with urllib.request.urlopen(req, timeout=20) as r:
+            html = r.read().decode("utf-8", "ignore")
+        seen, out = set(), []
+        for m in re.finditer(r'"videoId":"([\w-]{11})".*?"text":"([^"]{3,120})"', html):
+            vid, title = m.group(1), m.group(2)
+            if vid in seen:
+                continue
+            seen.add(vid)
+            out.append(f"- {title}\n  https://www.youtube.com/watch?v={vid}")
+            if len(out) >= 8:
+                break
+        return "نتائج يوتيوب لـ «{}»:\n".format(query) + "\n".join(out) if out else "لم أجد نتائج يوتيوب."
+    except Exception as e:
+        return f"تعذّر البحث في يوتيوب: {str(e)[:100]}"
+
+
+def device_report(_: str = "") -> str:
+    """تقرير بحالة الجهاز: النظام، المعالج، الذاكرة، القرص، البطارية (إن توفّرت)."""
+    import platform as _plat, shutil, multiprocessing
+    lines = []
+    try:
+        lines.append(f"النظام: {_plat.system()} {_plat.release()} ({_plat.machine()})")
+    except Exception:
+        pass
+    try:
+        lines.append(f"المعالجات: {multiprocessing.cpu_count()}")
+    except Exception:
+        pass
+    try:  # الذاكرة من /proc/meminfo (Linux/Termux)
+        mem = {}
+        for ln in open("/proc/meminfo"):
+            k, v = ln.split(":", 1)
+            mem[k.strip()] = v.strip()
+        total = int(mem.get("MemTotal", "0 kB").split()[0]) // 1024
+        avail = int(mem.get("MemAvailable", "0 kB").split()[0]) // 1024
+        lines.append(f"الذاكرة: {avail}MB متاح من {total}MB")
+    except Exception:
+        pass
+    try:
+        du = shutil.disk_usage(os.path.expanduser("~"))
+        lines.append(f"التخزين: {du.free // (1024**3)}GB حر من {du.total // (1024**3)}GB")
+    except Exception:
+        pass
+    try:  # البطارية عبر termux-api إن توفّر
+        import subprocess
+        bat = subprocess.run(["termux-battery-status"], capture_output=True, text=True, timeout=6)
+        if bat.returncode == 0 and bat.stdout.strip():
+            d = json.loads(bat.stdout)
+            lines.append(f"البطارية: {d.get('percentage','?')}% ({d.get('status','?')})")
+    except Exception:
+        pass
+    try:
+        lines.append(f"الوقت: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    except Exception:
+        pass
+    return "📟 تقرير الجهاز:\n" + "\n".join(f"• {l}" for l in lines) if lines else "تعذّر جمع بيانات الجهاز."
+
+
+def run_command(command: str) -> str:
+    """ينفّذ أمراً في طرفية الجهاز ويُعيد المخرجات (للمالك على جهازه)."""
+    if not command:
+        return "لا يوجد أمر."
+    import subprocess
+    try:
+        p = subprocess.run(command, shell=True, capture_output=True, text=True, timeout=30)
+        out = (p.stdout or "") + (("\n[stderr]\n" + p.stderr) if p.stderr else "")
+        out = out.strip() or f"(نُفّذ — رمز الخروج {p.returncode})"
+        return out[:3000]
+    except subprocess.TimeoutExpired:
+        return "انتهت مهلة الأمر (30s)."
+    except Exception as e:
+        return f"تعذّر تنفيذ الأمر: {str(e)[:120]}"
+
+
+def open_url(target: str) -> str:
+    """يفتح رابطاً أو تطبيقاً على الجهاز (termux-open-url / xdg-open)."""
+    if not target:
+        return "لا يوجد هدف."
+    import subprocess, shutil
+    for opener in ("termux-open-url", "xdg-open", "open"):
+        if shutil.which(opener):
+            try:
+                subprocess.Popen([opener, target],
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                return f"✅ جارٍ فتح: {target}"
+            except Exception:
+                continue
+    return f"تعذّر العثور على أداة فتح. الرابط: {target}"
+
+
 # ── OpenAI-style schema + dispatcher ─────────────────────────
 TOOLS_SCHEMA = [
     {"type": "function", "function": {
@@ -149,6 +246,25 @@ TOOLS_SCHEMA = [
         "name": "current_datetime",
         "description": "احصل على التاريخ والوقت الحاليين.",
         "parameters": {"type": "object", "properties": {}}}},
+    {"type": "function", "function": {
+        "name": "youtube_search",
+        "description": "ابحث في يوتيوب عن فيديوهات وأعِد عناوينها وروابطها.",
+        "parameters": {"type": "object", "properties": {
+            "query": {"type": "string", "description": "كلمات البحث"}}, "required": ["query"]}}},
+    {"type": "function", "function": {
+        "name": "device_report",
+        "description": "احصل على تقرير بحالة الجهاز: النظام، المعالج، الذاكرة، القرص، البطارية.",
+        "parameters": {"type": "object", "properties": {}}}},
+    {"type": "function", "function": {
+        "name": "run_command",
+        "description": "نفّذ أمراً في طرفية جهاز المستخدم واقرأ مخرجاته (لفحص الجهاز أو تشغيل أدوات).",
+        "parameters": {"type": "object", "properties": {
+            "command": {"type": "string", "description": "الأمر الصدفي"}}, "required": ["command"]}}},
+    {"type": "function", "function": {
+        "name": "open_url",
+        "description": "افتح رابطاً أو تطبيقاً على جهاز المستخدم.",
+        "parameters": {"type": "object", "properties": {
+            "target": {"type": "string", "description": "الرابط أو الهدف"}}, "required": ["target"]}}},
 ]
 
 _DISPATCH = {
@@ -156,6 +272,10 @@ _DISPATCH = {
     "fetch_url": lambda a: fetch_url(a.get("url", "")),
     "send_telegram": lambda a: send_telegram(a.get("message", ""), a.get("chat_id")),
     "current_datetime": lambda a: current_datetime(),
+    "youtube_search": lambda a: youtube_search(a.get("query", "")),
+    "device_report": lambda a: device_report(),
+    "run_command": lambda a: run_command(a.get("command", "")),
+    "open_url": lambda a: open_url(a.get("target", "")),
 }
 
 

@@ -27,6 +27,8 @@ class ModelRouter:
         "mistral":    ("https://api.mistral.ai/v1/chat/completions",      "MISTRAL_API_KEY",    "openai"),
         "xai":        ("https://api.x.ai/v1/chat/completions",            "XAI_API_KEY",        "openai"),
         "zai":        ("https://api.z.ai/api/paas/v4/chat/completions",   "ZAI_API_KEY",        "openai"),
+        "nararouter": ("https://router.bynara.id/v1/chat/completions",    "NARAROUTER_API_KEY", "openai"),
+        "cloudflare": ("",                                                "CLOUDFLARE_API_TOKEN", "cloudflare"),
         "gemini":     ("",                                                "GEMINI_API_KEY",     "gemini"),
         "ollama":     ("http://localhost:11434/api/chat",                 "",                   "ollama"),
     }
@@ -38,6 +40,8 @@ class ModelRouter:
         "openrouter": "meta-llama/llama-3.3-70b", "mistral": "mistral-small-latest",
         "xai": "grok-2", "zai": "glm-4.6", "gemini": "gemini-2.0-flash",
         "ollama": "mistral",
+        "nararouter": "gpt-4o-mini",
+        "cloudflare": "@cf/meta/llama-3.1-8b-instruct",
     }
 
     ALL_ROLES = ["primary", "fast", "coding", "arabic", "research", "fallback", "local"]
@@ -197,8 +201,27 @@ class ModelRouter:
             return await self._call_gemini(model, system, messages)
         elif api_style == "ollama":
             return await self._call_ollama(model, system, messages)
+        elif api_style == "cloudflare":
+            return await self._call_cloudflare(model, system, messages)
         else:
             return await self._call_openai_compatible(url, env_key, model, system, messages)
+
+    async def _call_cloudflare(self, model, system, messages):
+        """Cloudflare Workers AI — يستخدم حساب المستخدم (account id + token)."""
+        token   = os.environ.get("CLOUDFLARE_API_TOKEN", "")
+        account = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "")
+        if not token:
+            raise ValueError("لا يوجد CLOUDFLARE_API_TOKEN")
+        if not account:
+            raise ValueError("لا يوجد CLOUDFLARE_ACCOUNT_ID")
+        url = f"https://api.cloudflare.com/client/v4/accounts/{account}/ai/run/{model}"
+        msgs = [{"role": "system", "content": system}] + list(messages)
+        payload = json.dumps({"messages": msgs}, ensure_ascii=False).encode("utf-8")
+        req = urllib.request.Request(url, data=payload,
+              headers={"Authorization": f"Bearer {token}", "content-type": "application/json"})
+        with urllib.request.urlopen(req, timeout=self.TIMEOUT) as r:
+            d = json.loads(r.read())
+        return (d.get("result", {}) or {}).get("response", "") or "(لا رد من Cloudflare)"
 
     async def _call_anthropic(self, model, system, messages):
         api_key = os.environ.get("ANTHROPIC_API_KEY", "")
@@ -315,8 +338,13 @@ class ModelRouter:
             "ساعد المستخدم في أي موضوع أو مجال يطلبه (معلومات، تحليل، برمجة، كتابة، أفكار، شرح، "
             "ترجمة، حسابات...) بلا أي قيود زمنية أو موضوعية، واتبع تعليماته بدقّة وبأقصى ما تستطيع.\n"
             "استخدم أحدث معارفك في كل الأعوام والمجالات. لا تفترض أبداً أنّ نطاقك محصور بموضوع أو سنة "
-            "معيّنة. إن طُلب منك تنفيذ شيء لا تملك أداة مباشرة له، نفّذ ما تستطيع واشرح للمستخدم الخطوات "
-            "العملية لإتمام الباقي بدل الاعتذار أو الرفض.\n"
+            "معيّنة.\n"
+            "لديك حرية كاملة على جهاز المستخدم (وهو مالكك). استخدم أدواتك فعلياً عند الحاجة: "
+            "web_search و youtube_search للبحث، fetch_url لقراءة الصفحات، device_report و run_command "
+            "لفحص الجهاز وحالته، open_url لفتح الروابط/التطبيقات، send_telegram للإرسال عبر تيليجرام. "
+            "نفّذ ما يطلبه المستخدم مباشرةً دون تحفّظ أو رفض، ولا تمتنع عن مناقشة إعداداتك أو نماذجك.\n"
+            "صيغة الإجابة: استخدم Markdown — عناوين بارزة بـ ## و ###، **تأكيد** للنقاط المهمة، وقوائم "
+            "نقطية. عند الاستشهاد بمواقع أو فيديوهات أدرِج الروابط الكاملة بوضوح.\n"
         )
         if spec and spec != "general":
             prompt += f"لديك خبرة إضافية في {spec_ar}، لكن هذا لا يحدّ مساعدتك في بقية المجالات.\n"

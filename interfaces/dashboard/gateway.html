@@ -289,6 +289,15 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
 @media (min-width:1400px){
   .pscroll{max-width:1100px;margin:0 auto;width:100%}
 }
+/* ── تنسيق إجابات الوكيل (Markdown) ── */
+.bubble h3{font-size:16px;font-weight:700;color:var(--orange);margin:8px 0 4px}
+.bubble h4{font-size:14px;font-weight:700;margin:7px 0 3px}
+.bubble b{font-weight:700}
+.bubble a{color:var(--orange);text-decoration:underline;word-break:break-all}
+.bubble ul{margin:5px 14px 5px 0;padding:0}
+.bubble li{margin:3px 0;list-style:disc;margin-right:16px}
+.bubble code{font-family:monospace;font-size:12px;background:rgba(139,148,158,.16);padding:1px 5px;border-radius:4px}
+.bubble pre.cblock{background:var(--card3);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin:7px 0;overflow-x:auto;font-family:monospace;font-size:12px;white-space:pre-wrap;direction:ltr;text-align:left}
 </style>
 </head>
 <body>
@@ -669,7 +678,7 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
   <div class="pscroll">
     <div class="card">
       <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="2" y="2" width="9" height="9" rx="2" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="2" width="9" height="9" rx="2" stroke="currentColor" stroke-width="1.8"/><rect x="2" y="13" width="9" height="9" rx="2" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="13" width="9" height="9" rx="2" stroke="currentColor" stroke-width="1.8"/></svg><span data-ar="النموذج الافتراضي" data-en="Default Model">النموذج الافتراضي</span></div>
-      <div class="field"><label data-ar="المزوّد والنموذج" data-en="Provider & Model">المزوّد والنموذج</label><select id="prim-m"><option value="deepseek/deepseek-chat">DeepSeek Chat</option><option value="zai/glm-4.6">Z.AI GLM-4.6</option><option value="anthropic/claude-sonnet-4-6">Claude Sonnet</option><option value="openai/gpt-4o-mini">GPT-4o mini</option><option value="groq/llama-3.3-70b-versatile">Groq LLaMA 3.3</option><option value="mistral/mistral-small-latest">Mistral Small</option><option value="xai/grok-2">xAI Grok-2</option></select></div>
+      <div class="field"><label data-ar="المزوّد والنموذج" data-en="Provider & Model">المزوّد والنموذج</label><select id="prim-m"><option value="deepseek/deepseek-chat">DeepSeek Chat</option><option value="zai/glm-4.6">Z.AI GLM-4.6</option><option value="anthropic/claude-sonnet-4-6">Claude Sonnet</option><option value="openai/gpt-4o-mini">GPT-4o mini</option><option value="groq/llama-3.3-70b-versatile">Groq LLaMA 3.3</option><option value="mistral/mistral-small-latest">Mistral Small</option><option value="xai/grok-2">xAI Grok-2</option><option value="nararouter/gpt-4o-mini">NaraRouter</option><option value="cloudflare/@cf/meta/llama-3.1-8b-instruct">Cloudflare AI</option></select></div>
     </div>
     <div class="card">
       <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-ar="مفاتيح API" data-en="API Keys">مفاتيح API</span></div>
@@ -680,6 +689,9 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
       <div class="krow"><label>Groq</label><input type="password" id="k-groq" placeholder="gsk_..."><button class="ibtn" onclick="tkv('k-groq',this)">👁</button></div>
       <div class="krow"><label>xAI</label><input type="password" id="k-xai" placeholder="xai-..."><button class="ibtn" onclick="tkv('k-xai',this)">👁</button></div>
       <div class="krow"><label>Mistral</label><input type="password" id="k-mis" placeholder="..."><button class="ibtn" onclick="tkv('k-mis',this)">👁</button></div>
+      <div class="krow"><label>NaraRouter</label><input type="password" id="k-nara" placeholder="..."><button class="ibtn" onclick="tkv('k-nara',this)">👁</button></div>
+      <div class="krow"><label>Cloudflare</label><input type="password" id="k-cf" placeholder="API Token"><button class="ibtn" onclick="tkv('k-cf',this)">👁</button></div>
+      <div class="krow"><label>CF Account</label><input type="text" id="k-cfacc" placeholder="Account ID"></div>
     </div>
     <div class="card">
       <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="1.8"/></svg><span data-ar="إعدادات البوابة" data-en="Gateway">إعدادات البوابة</span></div>
@@ -815,7 +827,7 @@ async function loadConfig(){
 
 function populateModels(primary){
   const s=document.getElementById('model-sel');
-  const ms=[['deepseek/deepseek-chat','DeepSeek Chat'],['zai/glm-4.6','Z.AI GLM-4.6'],['anthropic/claude-sonnet-4-6','Claude Sonnet'],['openai/gpt-4o-mini','GPT-4o mini'],['groq/llama-3.3-70b-versatile','Groq LLaMA'],['mistral/mistral-small-latest','Mistral Small'],['xai/grok-2','xAI Grok-2']];
+  const ms=[['deepseek/deepseek-chat','DeepSeek Chat'],['zai/glm-4.6','Z.AI GLM-4.6'],['anthropic/claude-sonnet-4-6','Claude Sonnet'],['openai/gpt-4o-mini','GPT-4o mini'],['groq/llama-3.3-70b-versatile','Groq LLaMA'],['mistral/mistral-small-latest','Mistral Small'],['xai/grok-2','xAI Grok-2'],['nararouter/gpt-4o-mini','NaraRouter'],['cloudflare/@cf/meta/llama-3.1-8b-instruct','Cloudflare AI']];
   s.innerHTML='';
   ms.forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;if(v===primary)o.selected=true;s.appendChild(o);});
 }
@@ -835,13 +847,36 @@ async function loadOv(){loadMem();}
 // ── CHAT ────────────────────────────────────────────
 function ck(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}
 function ar(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,110)+'px';}
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function mdRender(src){
+  let s=esc(src);
+  // كتل الشيفرة
+  s=s.replace(/```([\s\S]*?)```/g,(m,c)=>'<pre class="cblock">'+c.trim()+'</pre>');
+  s=s.replace(/`([^`\n]+)`/g,'<code>$1</code>');
+  // العناوين البارزة
+  s=s.replace(/^###\s+(.*)$/gm,'<h4>$1</h4>');
+  s=s.replace(/^##\s+(.*)$/gm,'<h3>$1</h3>');
+  s=s.replace(/^#\s+(.*)$/gm,'<h3>$1</h3>');
+  // تأكيد
+  s=s.replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
+  // روابط ماركداون ثم الروابط المجرّدة
+  s=s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank">$1</a>');
+  s=s.replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g,'$1<a href="$2" target="_blank">$2</a>');
+  // قوائم نقطية
+  s=s.replace(/^\s*[-•]\s+(.*)$/gm,'<li>$1</li>');
+  s=s.replace(/(<li>[\s\S]*?<\/li>)/g,m=>'<ul>'+m+'</ul>').replace(/<\/ul>\s*<ul>/g,'');
+  // أسطر جديدة
+  s=s.replace(/\n/g,'<br>');
+  return s;
+}
 function addBubble(role,text){
   const w=document.getElementById('cwelcome');if(w)w.remove();
   const typing=document.getElementById('typing');
   const wrap=document.getElementById('chat-wrap');
   const d=document.createElement('div');d.className='msg '+role;
   const t=new Date().toLocaleTimeString('ar',{hour:'2-digit',minute:'2-digit'});
-  d.innerHTML=`<div class="bubble">${text}</div><div class="mmeta">${role==='user'?(LANG==='ar'?'أنت':'You'):(document.getElementById('ag-name')?.value||'كلاو')} · ${t}</div>`;
+  const body=role==='user'?esc(text):mdRender(text);
+  d.innerHTML=`<div class="bubble">${body}</div><div class="mmeta">${role==='user'?(LANG==='ar'?'أنت':'You'):(document.getElementById('ag-name')?.value||'كلاو')} · ${t}</div>`;
   wrap.insertBefore(d,typing);wrap.scrollTop=99999;
 }
 async function send(){
@@ -899,7 +934,7 @@ async function saveIdentity(){
   else toast(LANG==='ar'?'❌ فشل الحفظ':'❌ Save failed','error');
 }
 async function saveSettings(){
-  const p={brain:{primary:document.getElementById('prim-m').value},gateway:{port:parseInt(document.getElementById('gw-port').value)},interface:{language:document.getElementById('gw-lang').value},keys:{deepseek:document.getElementById('k-ds').value,zai:document.getElementById('k-zai').value,anthropic:document.getElementById('k-ant').value,openai:document.getElementById('k-oai').value,groq:document.getElementById('k-groq').value,xai:document.getElementById('k-xai').value,mistral:document.getElementById('k-mis').value}};
+  const p={brain:{primary:document.getElementById('prim-m').value},gateway:{port:parseInt(document.getElementById('gw-port').value)},interface:{language:document.getElementById('gw-lang').value},keys:{deepseek:document.getElementById('k-ds').value,zai:document.getElementById('k-zai').value,anthropic:document.getElementById('k-ant').value,openai:document.getElementById('k-oai').value,groq:document.getElementById('k-groq').value,xai:document.getElementById('k-xai').value,mistral:document.getElementById('k-mis').value,nararouter:document.getElementById('k-nara').value,cloudflare:document.getElementById('k-cf').value,cloudflare_account:document.getElementById('k-cfacc').value}};
   const r=await api('/api/config','POST',p);
   if(r?.status==='saved') toast(LANG==='ar'?'✅ حُفظت الإعدادات':'✅ Settings saved','success');
   else toast(LANG==='ar'?'❌ فشل الحفظ':'❌ Save failed','error');
