@@ -42,6 +42,9 @@ class ModelRouter:
 
     ALL_ROLES = ["primary", "fast", "coding", "arabic", "research", "fallback", "local"]
 
+    TIMEOUT = 90          # مهلة استدعاء النموذج (ثوانٍ) — أطول للنماذج البطيئة مثل GLM
+    enable_tools = True   # تفعيل أدوات التنفيذ الخارجي (function-calling)
+
     # نوع المهمة → دور المفتاح في config.keys
     TASK_TO_KEYROLE = {
         "chat": "primary_chat", "analysis": "analysis", "code": "analysis",
@@ -117,9 +120,16 @@ class ModelRouter:
         return "anthropic", (model_str or "")
 
     def _build_order(self, preferred_str):
-        """يرتّب النماذج: المفضّل أولاً ثم بقية الأدوار المُعدّة (fallback chain)."""
+        """
+        يرتّب النماذج للتجربة: المفضّل أولاً، ثم الأدوار المُعدّة، ثم أي مزوّد
+        لديه مفتاح بيئة فعلي (fallback شامل — يضمن استجابة إن وُجد أي مفتاح يعمل).
+        """
+        candidates = [preferred_str] + [getattr(self, r, None) for r in self.ALL_ROLES]
+        for prov, (url, env, style) in self.PROVIDERS.items():
+            if (not env) or os.environ.get(env):   # مفتاح موجود أو لا يحتاج (ollama)
+                candidates.append(f"{prov}/{self.DEFAULT_MODELS.get(prov, '')}")
         order, seen = [], set()
-        for ms in [preferred_str] + [getattr(self, r, None) for r in self.ALL_ROLES]:
+        for ms in candidates:
             if ms and ms not in seen:
                 seen.add(ms)
                 order.append(ms)
@@ -199,19 +209,59 @@ class ModelRouter:
         req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=payload,
               headers={"x-api-key": api_key, "anthropic-version": "2023-06-01",
                        "content-type": "application/json"})
-        with urllib.request.urlopen(req, timeout=30) as r:
+        with urllib.request.urlopen(req, timeout=self.TIMEOUT) as r:
             return json.loads(r.read())["content"][0]["text"]
 
+    def _tools_schema(self):
+        """يحمّل تعريفات الأدوات (function-calling) إن كانت مُفعّلة."""
+        if not getattr(self, "enable_tools", True):
+            return None
+        try:
+            import sys
+            base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            if base not in sys.path:
+                sys.path.insert(0, base)
+            from tools.agent_tools import TOOLS_SCHEMA
+            return TOOLS_SCHEMA
+        except Exception:
+            return None
+
     async def _call_openai_compatible(self, url, env_key, model, system, messages):
+        """استدعاء بنمط OpenAI مع حلقة أدوات (تنفيذ خارجي فعلي)."""
         api_key = os.environ.get(env_key, "")
         if not api_key:
             raise ValueError(f"لا يوجد {env_key}")
-        msgs = [{"role": "system", "content": system}] + messages
-        payload = json.dumps({"model": model, "messages": msgs, "max_tokens": 1024}).encode()
-        req = urllib.request.Request(url, data=payload,
-              headers={"Authorization": f"Bearer {api_key}", "content-type": "application/json"})
-        with urllib.request.urlopen(req, timeout=30) as r:
-            return json.loads(r.read())["choices"][0]["message"]["content"]
+        msgs = [{"role": "system", "content": system}] + list(messages)
+        tools_schema = self._tools_schema()
+        last = {}
+        for _ in range(5):  # حدّ أقصى 5 جولات أدوات
+            body = {"model": model, "messages": msgs, "max_tokens": 2048}
+            if tools_schema:
+                body["tools"] = tools_schema
+                body["tool_choice"] = "auto"
+            payload = json.dumps(body, ensure_ascii=False).encode("utf-8")
+            req = urllib.request.Request(url, data=payload,
+                  headers={"Authorization": f"Bearer {api_key}", "content-type": "application/json"})
+            with urllib.request.urlopen(req, timeout=self.TIMEOUT) as r:
+                data = json.loads(r.read())
+            last = data["choices"][0]["message"]
+            tool_calls = last.get("tool_calls")
+            if not tool_calls:
+                return last.get("content") or ""
+            # نفّذ الأدوات وأعِد النتائج للنموذج
+            msgs.append({"role": "assistant", "content": last.get("content"),
+                         "tool_calls": tool_calls})
+            from tools.agent_tools import execute as _exec
+            for tc in tool_calls:
+                fn = tc.get("function", {})
+                try:
+                    args = json.loads(fn.get("arguments") or "{}")
+                except Exception:
+                    args = {}
+                result = _exec(fn.get("name", ""), args)
+                msgs.append({"role": "tool", "tool_call_id": tc.get("id", ""),
+                             "content": str(result)[:4000]})
+        return last.get("content") or "تم تنفيذ الأدوات."
 
     async def _call_gemini(self, model, system, messages):
         api_key = os.environ.get("GEMINI_API_KEY", "")
@@ -225,7 +275,7 @@ class ModelRouter:
                               "systemInstruction": {"parts": [{"text": system}]}}).encode()
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         req = urllib.request.Request(url, data=payload, headers={"content-type": "application/json"})
-        with urllib.request.urlopen(req, timeout=30) as r:
+        with urllib.request.urlopen(req, timeout=self.TIMEOUT) as r:
             data = json.loads(r.read())
             return data["candidates"][0]["content"]["parts"][0]["text"]
 
@@ -235,7 +285,7 @@ class ModelRouter:
         payload = json.dumps({"model": model, "messages": msgs, "stream": False}).encode()
         req = urllib.request.Request(f"{host}/api/chat", data=payload,
               headers={"content-type": "application/json"})
-        with urllib.request.urlopen(req, timeout=60) as r:
+        with urllib.request.urlopen(req, timeout=max(self.TIMEOUT, 120)) as r:
             return json.loads(r.read())["message"]["content"]
 
     # ── identity-driven system prompt (Section 4.2) ──────────
