@@ -200,6 +200,9 @@ PROVIDER_KEY_ENV = {
     "groq": "GROQ_API_KEY", "xai": "XAI_API_KEY",
     "mistral": "MISTRAL_API_KEY", "gemini": "GEMINI_API_KEY",
     "openrouter": "OPENROUTER_API_KEY",
+    "nararouter": "NARAROUTER_API_KEY",
+    "cloudflare": "CLOUDFLARE_API_TOKEN",
+    "cloudflare_account": "CLOUDFLARE_ACCOUNT_ID",
 }
 
 

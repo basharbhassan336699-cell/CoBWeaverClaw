@@ -482,6 +482,10 @@ PROVIDERS = [
         ["grok-2","grok-2-mini"]),
     ("Z.AI (GLM)",    "zai",        "glm-4.6",                  "ZAI_API_KEY",        "z.ai", False,
         ["glm-4.6","glm-4.5","glm-4.5-air","glm-4-flash"]),
+    ("NaraRouter",    "nararouter", "gpt-4o-mini",              "NARAROUTER_API_KEY", "router.bynara.id", False,
+        ["gpt-4o-mini","gpt-4o","claude-3.5-sonnet","deepseek-chat","llama-3.3-70b"]),
+    ("Cloudflare",    "cloudflare", "@cf/meta/llama-3.1-8b-instruct", "CLOUDFLARE_API_TOKEN", "dash.cloudflare.com/login", True,
+        ["@cf/meta/llama-3.1-8b-instruct","@cf/meta/llama-3.3-70b-instruct-fp8-fast","@cf/qwen/qwen1.5-14b-chat-awq"]),
     ("Ollama",        "ollama",     "mistral",                  "",                   "ollama.ai", True,
         ["mistral","llama3.3","qwen2.5","gemma3","phi4"]),
 ]
