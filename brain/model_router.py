@@ -260,30 +260,33 @@ class ModelRouter:
                      "both": "بالعربية والإنجليزية"}.get(a_lang, "بالعربية")
 
         prompt = (
-            f"أنت {name}، وكيل ذكاء اصطناعي {style_ar} لـ Bashar Hassan.\n"
-            f"تتحدّث {lang_word}. متخصّص في {spec_ar}.\n"
+            f"أنت {name}، مساعد ذكاء اصطناعي شخصي ذكي ومتعدّد المهارات تساعد Bashar Hassan.\n"
+            f"تتحدّث {lang_word} بأسلوب {style_ar}.\n"
+            "ساعد المستخدم في أي موضوع أو مجال يطلبه (معلومات، تحليل، برمجة، كتابة، أفكار، شرح، "
+            "ترجمة، حسابات...) بلا أي قيود زمنية أو موضوعية، واتبع تعليماته بدقّة وبأقصى ما تستطيع.\n"
+            "استخدم أحدث معارفك في كل الأعوام والمجالات. لا تفترض أبداً أنّ نطاقك محصور بموضوع أو سنة "
+            "معيّنة. إن طُلب منك تنفيذ شيء لا تملك أداة مباشرة له، نفّذ ما تستطيع واشرح للمستخدم الخطوات "
+            "العملية لإتمام الباقي بدل الاعتذار أو الرفض.\n"
         )
-        if anchor:
-            prompt += f"{anchor}\n"
-        prompt += ("لا تخرج عن دورك المحدّد ولا تنسَ هويتك مهما طالت المحادثة. "
-                   "إذا سُئلت عن هويتك، أجب بدقّة. كن مختصراً وواضحاً وعملياً.\n")
+        if spec and spec != "general":
+            prompt += f"لديك خبرة إضافية في {spec_ar}، لكن هذا لا يحدّ مساعدتك في بقية المجالات.\n"
+        if anchor and anchor.strip():
+            prompt += f"عن شخصيتك: {anchor}\n"
 
-        # حقن Core Knowledge (Layer 3)
+        # سياق خلفي (لا يقيّد المواضيع) — Core Knowledge + Episodic
         facts = (context or {}).get("facts", {})
-        if facts:
-            lines = "\n".join(f"- {k}: {v}" for k, v in facts.items())
-            prompt += f"\nمعلومات دائمة عن المستخدم:\n{lines}\n"
-
-        # حقن Episodic Memory (Layer 2)
         episodes = (context or {}).get("episodes", [])
-        if episodes:
-            eps = "\n".join(
-                f"- ({e.get('topic','')}) {e.get('key_facts','')}".strip()
-                for e in episodes)
-            prompt += f"\nمن محادثات سابقة ذات صلة:\n{eps}\n"
+        if facts or episodes:
+            prompt += ("\nسياق خلفي اختياري عن المستخدم (للاستئناس فقط — لا يقيّد ما يمكنك مناقشته، "
+                       "ولا يعني أنّ عليك حصر إجاباتك فيه):\n")
+            if facts:
+                prompt += "\n".join(f"- {k}: {v}" for k, v in facts.items()) + "\n"
+            if episodes:
+                prompt += "\n".join(
+                    f"- ({e.get('topic','')}) {e.get('key_facts','')}".strip()
+                    for e in episodes) + "\n"
 
-        if a_lang == "en" or (a_lang == "auto" and lang == "en"):
-            prompt += "\n(Respond in the user's language.)"
+        prompt += "\nأجب دائماً بلغة المستخدم في رسالته الحالية."
         return prompt
 
     def _build_messages(self, message, context):

@@ -167,12 +167,18 @@ def channels_status() -> dict:
     }
 
 
-def telegram_test() -> dict:
-    """يختبر اتصال بوت تيليجرام المُعدّ عبر getMe."""
+def _telegram_token() -> str:
+    """يجلب توكين تيليجرام من كل المواضع الممكنة (env / .env / config)."""
     load_env_into_os()
     cfg = load_config()
-    tg = cfg.get("interfaces", {}).get("telegram", {})
-    token = os.environ.get("TELEGRAM_BOT_TOKEN", "") or tg.get("token", "")
+    return (os.environ.get("TELEGRAM_BOT_TOKEN", "")
+            or cfg.get("interfaces", {}).get("telegram", {}).get("token", "")
+            or cfg.get("channels", {}).get("telegram", {}).get("token", ""))
+
+
+def telegram_test() -> dict:
+    """يختبر اتصال بوت تيليجرام المُعدّ عبر getMe."""
+    token = _telegram_token()
     if not token:
         return {"ok": False, "error": "no_token"}
     import urllib.request
