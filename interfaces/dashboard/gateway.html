@@ -265,6 +265,30 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
 /* ── SPIDER SVG ── */
 .spider-icon{width:52px;height:52px;margin-bottom:4px}
 .spider-sm{width:28px;height:28px}
+
+/* ── RESPONSIVE: phones / tablets / laptops ── */
+.sb-backdrop{display:none}
+@media (max-width:860px){
+  /* القائمة الجانبية تصبح طبقة عائمة فوق المحتوى بدل دفعه */
+  .sidebar{position:fixed;top:50px;left:0;height:calc(100dvh - 50px);z-index:160;
+           box-shadow:6px 0 22px rgba(0,0,0,.5)}
+  .main{width:100%}
+  .sb-backdrop{position:fixed;inset:50px 0 0 0;background:rgba(0,0,0,.45);z-index:155}
+  body.sb-open .sb-backdrop{display:block}
+  .pscroll{padding:12px}
+  .g3{grid-template-columns:1fr 1fr}
+  .cbar select{min-width:92px;max-width:118px}
+}
+@media (max-width:440px){
+  .topbar{padding:0 8px}.brand{font-size:13px}
+  .theme-switcher{display:none}
+  .g2,.g3{grid-template-columns:1fr}
+  .krow label{width:64px}
+}
+/* شاشات كبيرة: حدّ أقصى للعرض ليبقى مريحاً على اللابتوب/الشاشات الكبيرة */
+@media (min-width:1400px){
+  .pscroll{max-width:1100px;margin:0 auto;width:100%}
+}
 </style>
 </head>
 <body>
@@ -328,6 +352,7 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
   </div>
 </div>
 
+<div class="sb-backdrop" onclick="toggleSidebar()"></div>
 <div class="layout">
 
 <!-- SIDEBAR (LEFT) -->
@@ -703,14 +728,18 @@ function setTheme(t){
 let crons=[], goals=[];
 
 // ── SIDEBAR TOGGLE ──────────────────────────────────
-function toggleSidebar(){
-  sbOpen=!sbOpen;
+function setSidebar(open){
+  sbOpen=open;
   const sb=document.getElementById('sidebar');
   const btn=document.getElementById('sb-toggle');
-  if(sbOpen){sb.classList.remove('collapsed');}
-  else{sb.classList.add('collapsed');}
-  btn.classList.toggle('open', !sbOpen);
+  sb.classList.toggle('collapsed', !open);
+  btn.classList.toggle('open', !open);
+  document.body.classList.toggle('sb-open', open);
 }
+function toggleSidebar(){ setSidebar(!sbOpen); }
+// على الشاشات الصغيرة: ابدأ بالقائمة مطويّة + اقفلها عند اختيار صفحة
+function isMobile(){ return window.innerWidth<=860; }
+if(isMobile()){ document.addEventListener('DOMContentLoaded',()=>setSidebar(false)); }
 
 // ── LANG ────────────────────────────────────────────
 function setLang(l){
@@ -733,6 +762,7 @@ function nav(page,btn){
   if(btn) btn.classList.add('active');
   if(page==='memory') loadMem();
   if(page==='overview') loadOv();
+  if(isMobile()) setSidebar(false);   // اقفل القائمة العائمة بعد الاختيار
 }
 
 // ── INIT ────────────────────────────────────────────

@@ -38,6 +38,24 @@ class SQLiteStore:
         self.conn.row_factory = sqlite3.Row
         self.memory_size = int(config.get("memory_size", 20))
         self._init_schema()
+        self._self_heal()      # تنظيف تلقائي للذاكرة عند كل تشغيل
+
+    def _self_heal(self):
+        """
+        صيانة تلقائية: يحذف "اهتمامات" ضوضائية رُفعت سابقاً للمعرفة الأساسية
+        (أرقام مثل 2001، أو كلمات قصيرة جداً) حتى لا تقيّد الوكيل. يعمل بصمت.
+        """
+        try:
+            rows = self.conn.execute(
+                "SELECT id, key FROM facts WHERE key LIKE 'interest:%'").fetchall()
+            for r in rows:
+                topic = r["key"].split("interest:", 1)[-1]
+                if topic.isdigit() or len(topic) < 4:
+                    self.conn.execute("DELETE FROM facts WHERE id=?", (r["id"],))
+            self.conn.execute("DELETE FROM interests WHERE LENGTH(topic) < 4 OR topic GLOB '[0-9]*'")
+            self.conn.commit()
+        except Exception:
+            pass
 
     def _init_schema(self):
         self.conn.executescript("""
@@ -212,16 +230,19 @@ class SQLiteStore:
         يعدّ تكرار المواضيع. إذا ظهر موضوع 3+ مرات يُرفَع تلقائياً
         إلى Core Knowledge كاهتمام للمستخدم (تعلّم الأنماط مع الوقت).
         """
+        # تجاهل الأرقام والكلمات القصيرة جداً (تمنع ضوضاء مثل 2001 / رقم)
         for kw in self._keywords(message, limit=5):
+            if kw.isdigit() or len(kw) < 4:
+                continue
             self.conn.execute(
                 "INSERT INTO interests (user_id, topic, hits) VALUES (?,?,1) "
                 "ON CONFLICT(user_id, topic) DO UPDATE SET hits = hits + 1",
                 (user_id, kw)
             )
         self.conn.commit()
-        # رفع الاهتمامات المتكرّرة (3+) إلى Core Knowledge
+        # رفع الاهتمامات المتكرّرة (5+) إلى Core Knowledge (عتبة أعلى = أقل ضوضاء)
         hot = self.conn.execute(
-            "SELECT topic, hits FROM interests WHERE user_id=? AND hits >= 3",
+            "SELECT topic, hits FROM interests WHERE user_id=? AND hits >= 5",
             (user_id,)
         ).fetchall()
         for r in hot:
