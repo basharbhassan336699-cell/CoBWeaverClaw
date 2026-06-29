@@ -57,7 +57,7 @@ h1,h2,h3 { font-style: normal; }
 .brand { font-family: 'Inter', system-ui, sans-serif; font-style: normal; }
 
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Inter',system-ui,sans-serif; /* Arabic & UI */background:var(--bg);color:var(--text);height:100vh;overflow:hidden;font-size:13px}
+body{font-family:'Inter',system-ui,sans-serif; /* Arabic & UI */background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;font-size:13px}
 
 /* ── TOPBAR ── */
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:0 14px;height:50px;background:var(--card2);border-bottom:1px solid var(--border);position:relative;z-index:200}
@@ -85,7 +85,7 @@ body{font-family:'Inter',system-ui,sans-serif; /* Arabic & UI */background:var(-
 .ver{font-size:11px;color:var(--muted)}
 
 /* ── LAYOUT ── */
-.layout{display:flex;height:calc(100vh - 50px);overflow:hidden}
+.layout{display:flex;height:calc(100dvh - 50px);overflow:hidden}
 
 /* ── SIDEBAR ── */
 .sidebar{width:var(--sidebar-w);background:var(--card2);border-left:1px solid var(--border);overflow-y:auto;flex-shrink:0;transition:width .25s ease, opacity .25s ease;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
@@ -170,7 +170,7 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
 .ibtn:hover{border-color:var(--orange);color:var(--orange)}
 
 /* ── CHAT ── */
-#page-chat{height:calc(100vh - 50px)}
+#page-chat{height:calc(100dvh - 50px)}
 .chat-wrap{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
 .msg{display:flex;flex-direction:column;max-width:78%}
 .msg.user{align-self:flex-start;align-items:flex-start}
