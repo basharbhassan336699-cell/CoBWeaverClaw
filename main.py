@@ -96,6 +96,14 @@ def cmd_gateway(args):
     html_path = os.path.join(BASE_DIR, "interfaces", "dashboard", "gateway.html")
     dashboard_html = open(html_path).read() if os.path.exists(html_path) else "<html><body><h1>CoBWeaverClaw Gateway</h1></body></html>"
 
+    # تشغيل بوت تيليجرام تلقائياً مع البوابة (بوابة اتصال) إن كان مُعدّاً
+    if cfg.get("gateway", {}).get("telegram_autostart", True):
+        try:
+            from interfaces.telegram import start_in_background
+            start_in_background(cfg)
+        except Exception:
+            pass
+
     run_gateway(host=host, port=port, dashboard_html=dashboard_html, require_token=require_token)
 
 
