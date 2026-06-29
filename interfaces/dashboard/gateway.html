@@ -279,6 +279,10 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
   .g3{grid-template-columns:1fr 1fr}
   .cbar select{min-width:92px;max-width:118px}
 }
+@media (max-width:520px){
+  /* على الهاتف: زر المحادثة الجديدة متاح من صفحة المحادثات بدل ازدحام الشريط */
+  #newchat-btn{display:none}
+}
 @media (max-width:440px){
   .topbar{padding:0 8px}.brand{font-size:13px}
   .theme-switcher{display:none}
@@ -462,6 +466,9 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
     </div>
   </div>
   <div class="cbar">
+    <button class="sbtn" id="newchat-btn" onclick="newChat()" title="محادثة جديدة" style="background:var(--card);border:1px solid var(--border);color:var(--orange)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </button>
     <select id="model-sel"></select>
     <textarea class="cinput" id="chat-in" rows="1" placeholder="اكتب رسالتك..." onkeydown="ck(event)" oninput="ar(this)"></textarea>
     <button class="sbtn" id="send-btn" onclick="send()">
@@ -550,13 +557,11 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
 <div id="page-sessions" class="page">
   <div class="pscroll">
     <div class="card">
-      <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 10h16M4 14h10M4 18h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span data-ar="الجلسات النشطة" data-en="Active Sessions">الجلسات النشطة</span></div>
-      <div class="sessr">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="#22c55e"><circle cx="12" cy="12" r="10"/></svg>
-        <div style="flex:1"><div style="font-weight:500;font-size:12px">Main Session</div><div style="font-size:11px;color:var(--muted)" data-ar="الجلسة الرئيسية — نشطة الآن" data-en="Main session — active now">الجلسة الرئيسية — نشطة الآن</div></div>
-        <span class="badge bg" data-ar="نشطة" data-en="Active">نشطة</span>
+      <div class="ctitle" style="justify-content:space-between">
+        <span data-ar="المحادثات" data-en="Conversations">المحادثات</span>
+        <button class="btn btn-p" style="padding:5px 12px;font-size:11px" onclick="newChat()"><span data-ar="＋ محادثة جديدة" data-en="＋ New chat">＋ محادثة جديدة</span></button>
       </div>
-      <div id="sess-list"><div class="empty"><div class="ei">📋</div><span data-ar="لا توجد جلسات إضافية" data-en="No additional sessions">لا توجد جلسات إضافية</span></div></div>
+      <div id="sess-list"><div class="empty"><div class="ei">💬</div><span data-ar="لا توجد محادثات بعد" data-en="No conversations yet">لا توجد محادثات بعد</span></div></div>
     </div>
     <div class="card">
       <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-ar="إحصائيات الجلسة" data-en="Session Stats">إحصائيات الجلسة</span></div>
@@ -666,6 +671,19 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
       </div>
       <label class="tgl"><input type="checkbox" id="tg-tog" checked onchange="tgChange(this)"><div class="tgl-t"></div></label>
     </div>
+    <!-- محادثة تيليجرام (بوابة اتصال) -->
+    <div class="card">
+      <div class="ctitle" style="justify-content:space-between">
+        <span id="tg-title">💬 <span data-ar="محادثة تيليجرام" data-en="Telegram Chat">محادثة تيليجرام</span></span>
+        <button class="btn btn-g" style="padding:4px 10px;font-size:11px" onclick="loadTelegram()"><span data-ar="تحديث" data-en="Refresh">تحديث</span></button>
+      </div>
+      <div id="tg-convo" class="chat-wrap" style="height:300px;background:var(--card3);border:1px solid var(--border);border-radius:var(--rs);padding:10px"></div>
+      <div style="display:flex;gap:7px;margin-top:8px">
+        <input id="tg-msg" type="text" placeholder="اكتب رسالة لإرسالها إلى تيليجرام..." onkeydown="if(event.key==='Enter')tgSendMsg()">
+        <button class="btn btn-p" onclick="tgSendMsg()"><span data-ar="إرسال" data-en="Send">إرسال</span></button>
+      </div>
+      <div class="note" data-ar="💡 البوت يعمل تلقائياً مع البوابة — راسله من تطبيق تيليجرام وسيرد وينفّذ، وتظهر المحادثة هنا." data-en="💡 The bot runs with the gateway — message it from Telegram and it replies/executes; the conversation appears here.">💡 البوت يعمل تلقائياً مع البوابة — راسله من تطبيق تيليجرام وسيرد وينفّذ، وتظهر المحادثة هنا.</div>
+    </div>
     <div class="chc"><svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M21 2H3v16h5v4l4-4h5l4-4V2zm-10 9V7m4 4V7" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="chinfo"><div class="chn">Discord</div><span class="badge bm" data-ar="قريباً" data-en="Coming Soon">قريباً</span></div></div>
     <div class="chc"><svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="chinfo"><div class="chn">Slack</div><span class="badge bm" data-ar="قريباً" data-en="Coming Soon">قريباً</span></div></div>
     <div class="chc"><svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 01-2.18 2A19.79 19.79 0 013.09 4.18 2 2 0 015.09 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L9.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="chinfo"><div class="chn">WhatsApp</div><span class="badge bm" data-ar="قريباً" data-en="Coming Soon">قريباً</span></div></div>
@@ -720,6 +738,7 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
 
 <script>
 let LANG='ar', sbOpen=true, tgTok='●●●●●●●●●●', tgVis=false;
+let SESSION='dashboard';   // معرّف المحادثة الحالية في اللوحة
 let THEME='dark';
 
 function setTheme(t){
@@ -774,7 +793,68 @@ function nav(page,btn){
   if(btn) btn.classList.add('active');
   if(page==='memory') loadMem();
   if(page==='overview') loadOv();
+  if(page==='sessions') loadConversations();
+  if(page==='channels') loadTelegram();
   if(isMobile()) setSidebar(false);   // اقفل القائمة العائمة بعد الاختيار
+}
+
+// ── CONVERSATIONS (محادثات اللوحة) ──────────────────
+function clearChat(){
+  const wrap=document.getElementById('chat-wrap');
+  wrap.querySelectorAll('.msg:not(#typing)').forEach(e=>e.remove());
+}
+async function newChat(){
+  const r=await api('/api/conversations','POST');
+  SESSION=(r&&r.id)||('conv:'+Date.now());
+  clearChat();
+  if(!document.getElementById('cwelcome')){
+    const wrap=document.getElementById('chat-wrap');
+    const w=document.createElement('div');w.className='cwelcome';w.id='cwelcome';
+    w.innerHTML='<h3>'+(LANG==='ar'?'محادثة جديدة':'New chat')+'</h3>';
+    wrap.insertBefore(w,document.getElementById('typing'));
+  }
+  nav('chat',document.querySelectorAll('.nav-item')[0]);
+  toast(LANG==='ar'?'✅ محادثة جديدة':'✅ New chat','success');
+}
+async function loadConversations(){
+  const r=await api('/api/conversations');
+  const el=document.getElementById('sess-list');
+  if(!r||!r.conversations||!r.conversations.length){
+    el.innerHTML='<div class="empty"><div class="ei">💬</div><span>'+(LANG==='ar'?'لا توجد محادثات بعد':'No conversations yet')+'</span></div>';return;
+  }
+  el.innerHTML=r.conversations.map(c=>`<div class="sessr" style="cursor:pointer" onclick="openConversation('${c.id}')">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="${c.id===SESSION?'#FF8C00':'#8b949e'}"><circle cx="12" cy="12" r="10"/></svg>
+    <div style="flex:1"><div style="font-weight:500;font-size:12px">${esc(c.title)}</div>
+    <div style="font-size:11px;color:var(--muted)">${c.count} ${LANG==='ar'?'رسالة':'msgs'}</div></div></div>`).join('');
+}
+async function openConversation(id){
+  const r=await api('/api/conversation?id='+encodeURIComponent(id));
+  SESSION=id; clearChat();
+  const w=document.getElementById('cwelcome');if(w)w.remove();
+  (r&&r.messages||[]).forEach(m=>{addBubble('user',m.message);addBubble('agent',m.response);});
+  nav('chat',document.querySelectorAll('.nav-item')[0]);
+}
+
+// ── TELEGRAM CHAT (بوابة اتصال) ─────────────────────
+async function loadTelegram(){
+  const info=await api('/api/telegram/info');
+  const title=document.getElementById('tg-title');
+  if(info&&info.ok&&title) title.innerHTML='💬 '+(info.name||'Telegram')+' <span style="color:var(--muted);font-size:11px">@'+info.username+'</span>';
+  const box=document.getElementById('tg-convo');if(!box)return;
+  const r=await api('/api/telegram/messages');
+  const msgs=(r&&r.messages)||[];
+  if(!msgs.length){box.innerHTML='<div class="empty"><div class="ei">📨</div><span>'+(LANG==='ar'?'لا رسائل بعد — راسل البوت من تيليجرام':'No messages yet — message the bot on Telegram')+'</span></div>';return;}
+  box.innerHTML=msgs.map(m=>`
+    <div class="msg user"><div class="bubble">${esc(m.message)}</div></div>
+    <div class="msg agent"><div class="bubble">${mdRender(m.response||'')}</div></div>`).join('');
+  box.scrollTop=99999;
+}
+async function tgSendMsg(){
+  const inp=document.getElementById('tg-msg');const msg=inp.value.trim();if(!msg)return;
+  inp.value='';
+  const r=await api('/api/telegram/send','POST',{message:msg});
+  toast(r&&r.ok?(LANG==='ar'?'✅ أُرسلت':'✅ Sent'):(LANG==='ar'?'❌ '+(r&&r.detail||'فشل'):'❌ Failed'),r&&r.ok?'success':'error');
+  setTimeout(loadTelegram,600);
 }
 
 // ── INIT ────────────────────────────────────────────
@@ -887,7 +967,7 @@ async function send(){
   addBubble('user',msg);inp.value='';inp.style.height='auto';btn.disabled=true;
   const typing=document.getElementById('typing');typing.classList.add('show');
   document.getElementById('chat-wrap').scrollTop=99999;
-  const r=await api('/api/chat','POST',{message:msg,model});
+  const r=await api('/api/chat','POST',{message:msg,model,session:SESSION});
   typing.classList.remove('show');btn.disabled=false;
   if(r?.reply) addBubble('agent',r.reply);
   else addBubble('agent',LANG==='ar'?'⚠️ تعذّر الاتصال. تحقق من مفاتيح API في الإعدادات.':'⚠️ Connection failed. Check API keys in Settings.');

@@ -84,7 +84,7 @@ def save_env_keys(env_vars: dict):
 
 
 # ── chat: build memory context + call model ──────────────────
-def run_chat(message: str, model: str = None) -> dict:
+def run_chat(message: str, model: str = None, session: str = "dashboard") -> dict:
     """ينفّذ محادثة: يحمّل المفاتيح + الذاكرة، يستدعي النموذج، يحفظ التبادل."""
     load_env_into_os()
     cfg = load_config()
@@ -93,6 +93,7 @@ def run_chat(message: str, model: str = None) -> dict:
     from memory.sqlite_store import SQLiteStore
     from brain.model_router import ModelRouter
 
+    sid = session or "dashboard"
     mem_cfg = dict(cfg.get("memory", {}))
     mem_cfg.setdefault("memory_size", cfg.get("agent", {}).get("memory_size", 20))
     mem    = SQLiteStore(mem_cfg)
@@ -100,16 +101,75 @@ def run_chat(message: str, model: str = None) -> dict:
     lang   = "ar" if any(c in message for c in "ابتثجحخدذرزسشصضطظعغفقكلمنهوي") else "en"
 
     async def _go():
-        ctx = await mem.get_context("dashboard", message)
+        ctx = await mem.get_context(sid, message)
         out = await router.complete_meta(message, ctx, lang, force_model=model or None)
-        await mem.save("dashboard", message, out.get("reply", ""), lang)
+        await mem.save(sid, message, out.get("reply", ""), lang)
         try:
-            await mem.maybe_summarize("dashboard")
+            await mem.maybe_summarize(sid)
         except Exception:
             pass
         return out
 
     return asyncio.run(_go())
+
+
+def _mem():
+    import sys
+    sys.path.insert(0, BASE_DIR)
+    from memory.sqlite_store import SQLiteStore
+    return SQLiteStore(dict(load_config().get("memory", {})))
+
+
+def conversations_list() -> dict:
+    return {"conversations": _mem().list_conversations()}
+
+
+def conversation_get(conv_id: str) -> dict:
+    return {"id": conv_id, "messages": _mem().conversation_messages(conv_id or "dashboard")}
+
+
+def conversation_new() -> dict:
+    import time
+    return {"id": f"conv:{int(time.time())}"}
+
+
+# ── telegram as a chat gateway ───────────────────────────────
+def telegram_info() -> dict:
+    """اسم البوت وحالته (للوحة)."""
+    token = _telegram_token()
+    if not token:
+        return {"ok": False, "error": "no_token"}
+    import urllib.request
+    try:
+        with urllib.request.urlopen(f"https://api.telegram.org/bot{token}/getMe", timeout=8) as r:
+            d = json.loads(r.read())
+        if d.get("ok"):
+            res = d["result"]
+            return {"ok": True, "username": res.get("username", ""),
+                    "name": res.get("first_name", "Bot")}
+        return {"ok": False, "error": "invalid_token"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:80]}
+
+
+def telegram_messages() -> dict:
+    """محادثة تيليجرام المخزّنة (تظهر في قسم محادثة تيليجرام باللوحة)."""
+    return {"messages": _mem().conversation_messages("telegram", limit=100)}
+
+
+def telegram_send(message: str) -> dict:
+    """يرسل رسالة من اللوحة إلى تيليجرام، ويحفظها في سجل المحادثة."""
+    import sys
+    sys.path.insert(0, BASE_DIR)
+    from tools.agent_tools import send_telegram
+    res = send_telegram(message)
+    ok = res.startswith("✅")
+    if ok:
+        try:
+            asyncio.run(_mem().save("telegram", f"(من اللوحة) {message}", "📤 أُرسلت إلى تيليجرام", "ar"))
+        except Exception:
+            pass
+    return {"ok": ok, "detail": res}
 
 
 def memory_stats() -> dict:
@@ -364,8 +424,13 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
         path = parsed.path
         try:
             if path == "/api/chat":
-                out = run_chat(body.get("message", ""), body.get("model"))
+                out = run_chat(body.get("message", ""), body.get("model"),
+                               body.get("session", "dashboard"))
                 self._send_json(out)
+            elif path == "/api/conversations":
+                self._send_json(conversation_new())
+            elif path == "/api/telegram/send":
+                self._send_json(telegram_send(body.get("message", "")))
             elif path == "/api/config":
                 # المفاتيح تُكتب لـ .env (لا تُحفظ نصاً في config.yaml)
                 save_env_keys(body.pop("_keys", {}) or {})        # توافق قديم
@@ -420,6 +485,15 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
                 self._send_json(channels_status())
             elif path == "/api/channels/telegram/test":
                 self._send_json(telegram_test())
+            elif path == "/api/conversations":
+                self._send_json(conversations_list())
+            elif path == "/api/conversation":
+                qs = urllib.parse.parse_qs(parsed.query)
+                self._send_json(conversation_get(qs.get("id", ["dashboard"])[0]))
+            elif path == "/api/telegram/info":
+                self._send_json(telegram_info())
+            elif path == "/api/telegram/messages":
+                self._send_json(telegram_messages())
             else:
                 self._send_json({"error": "not_found"}, 404)
         except Exception as e:

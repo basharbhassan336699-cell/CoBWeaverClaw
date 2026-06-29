@@ -255,6 +255,28 @@ class SQLiteStore:
             self.conn.commit()
 
     # ── stats & maintenance ──────────────────────────────────
+    # ── conversations (sessions) ─────────────────────────────
+    def list_conversations(self, prefix: str = "conv:") -> list:
+        """يسرد محادثات اللوحة السابقة (id + عنوان من أول رسالة + العدد)."""
+        rows = self.conn.execute(
+            "SELECT user_id, MAX(created) AS last, COUNT(*) AS n, "
+            " (SELECT message FROM history h2 WHERE h2.user_id = history.user_id "
+            "  ORDER BY id ASC LIMIT 1) AS title "
+            "FROM history WHERE user_id = ? OR user_id LIKE ? "
+            "GROUP BY user_id ORDER BY last DESC",
+            ("dashboard", prefix + "%")).fetchall()
+        return [{"id": r["user_id"],
+                 "title": (r["title"] or "محادثة").strip()[:48],
+                 "count": r["n"], "last": r["last"]} for r in rows]
+
+    def conversation_messages(self, conv_id: str, limit: int = 200) -> list:
+        """يُعيد كل رسائل محادثة معيّنة بالترتيب الزمني."""
+        rows = self.conn.execute(
+            "SELECT message, response, created FROM history WHERE user_id = ? "
+            "ORDER BY id ASC LIMIT ?", (conv_id, limit)).fetchall()
+        return [{"message": r["message"], "response": r["response"],
+                 "time": r["created"]} for r in rows]
+
     def stats(self, user_id: str = None) -> dict:
         """إحصائيات الطبقات الثلاث."""
         if user_id:

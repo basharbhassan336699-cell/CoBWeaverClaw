@@ -59,7 +59,8 @@ class TelegramBot:
             return
         text    = (msg.get("text") or "").strip()
         chat_id = msg["chat"]["id"]
-        user_id = str(msg["from"]["id"])
+        # معرّف ثابت حتى تظهر محادثة تيليجرام في لوحة التحكم
+        user_id = "telegram"
         if not text:
             return
 
@@ -151,3 +152,36 @@ def run_telegram(config: dict):
         asyncio.run(bot.start())
     except KeyboardInterrupt:
         print("\n   تم إيقاف بوت تيليجرام.")
+
+
+_BG_STARTED = False
+
+def start_in_background(config: dict) -> bool:
+    """
+    يشغّل بوت تيليجرام في خيط خلفي مع البوابة (بوابة اتصال دائمة).
+    يُعيد True إن بدأ فعلاً. آمن للاستدعاء مرّة واحدة.
+    """
+    global _BG_STARTED
+    if _BG_STARTED:
+        return True
+    token = _load_token() or config.get("interfaces", {}).get("telegram", {}).get("token", "")
+    if not token:
+        return False
+    import threading
+
+    def _run():
+        try:
+            import sys
+            base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            sys.path.insert(0, base)
+            from core.agent import CoBWeaverClaw
+            agent = CoBWeaverClaw(config)
+            bot = TelegramBot(agent, token)
+            asyncio.run(bot.start())
+        except Exception:
+            pass
+
+    threading.Thread(target=_run, daemon=True).start()
+    _BG_STARTED = True
+    print("🤖 بوت تيليجرام يعمل في الخلفية (بوابة اتصال).")
+    return True
