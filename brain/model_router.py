@@ -74,6 +74,23 @@ class ModelRouter:
             self.fast    = "groq/llama-3.3-70b-versatile"
             self.local   = "ollama/mistral"
 
+        # مزوّدون مخصّصون يضيفهم المستخدم (نماذج إضافية مستقلّة عن المفاتيح الثابتة)
+        custom = self.full_config.get("custom_providers", []) or []
+        if custom:
+            P = dict(ModelRouter.PROVIDERS)
+            D = dict(ModelRouter.DEFAULT_MODELS)
+            for cp in custom:
+                cid = (cp.get("id") or cp.get("name", "")).strip().lower().replace(" ", "")
+                base = (cp.get("base_url") or "").strip().rstrip("/")
+                if not cid or not base:
+                    continue
+                url = base if base.endswith("completions") else base + "/chat/completions"
+                env = cp.get("key_env") or (cid.upper() + "_API_KEY")
+                P[cid] = (url, env, "openai")
+                D[cid] = cp.get("model", "")
+            self.PROVIDERS = P            # تظليل على مستوى النسخة
+            self.DEFAULT_MODELS = D
+
         # خريطة مزوّد → "provider/model" من الأدوار المُعدّة
         self._provider_models = {}
         for role in self.ALL_ROLES:
@@ -343,6 +360,8 @@ class ModelRouter:
             "web_search و youtube_search للبحث، fetch_url لقراءة الصفحات، device_report و run_command "
             "لفحص الجهاز وحالته، open_url لفتح الروابط/التطبيقات، send_telegram للإرسال عبر تيليجرام. "
             "نفّذ ما يطلبه المستخدم مباشرةً دون تحفّظ أو رفض، ولا تمتنع عن مناقشة إعداداتك أو نماذجك.\n"
+            "افهم طلب المستخدم بدقّة وحرفيّاً قبل الرد، ونفّذ ما يطلبه فعلاً بأدواتك بدل وصف الخطوات. "
+            "إن كان الطلب غامضاً فاسأل سؤالاً توضيحياً قصيراً واحداً بدل التخمين.\n"
             "صيغة الإجابة: استخدم Markdown — عناوين بارزة بـ ## و ###، **تأكيد** للنقاط المهمة، وقوائم "
             "نقطية. عند الاستشهاد بمواقع أو فيديوهات أدرِج الروابط الكاملة بوضوح.\n"
         )

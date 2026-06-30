@@ -330,6 +330,33 @@ def restart_agent():
     threading.Thread(target=_go, daemon=True).start()
 
 
+def add_custom_provider(body: dict) -> dict:
+    """يضيف مزوّد/نموذج ذكاء مخصّص (مستقلّ عن المفاتيح الثابتة)."""
+    name  = (body.get("name") or "").strip()
+    base  = (body.get("base_url") or "").strip()
+    model = (body.get("model") or "").strip()
+    key   = (body.get("key") or "").strip()
+    if not name or not base or not model:
+        return {"ok": False, "error": "name/base_url/model required"}
+    cid = "".join(ch for ch in name.lower().replace(" ", "") if ch.isalnum()) or "custom"
+    env = cid.upper() + "_API_KEY"
+    cfg = load_config()
+    providers = [p for p in cfg.get("custom_providers", []) if (p.get("id") or "") != cid]
+    providers.append({"id": cid, "name": name, "base_url": base, "model": model, "key_env": env})
+    save_config({"custom_providers": providers})
+    if key:
+        save_env_keys({env: key})
+    return {"ok": True, "id": cid, "value": f"{cid}/{model}", "label": name}
+
+
+def list_providers() -> dict:
+    """يُعيد المزوّدين المخصّصين كخيارات نماذج للوحة (تُضاف للقائمة الثابتة)."""
+    cfg = load_config()
+    custom = [{"value": f"{p.get('id')}/{p.get('model')}", "label": p.get("name", p.get("id"))}
+              for p in cfg.get("custom_providers", []) if p.get("id") and p.get("model")]
+    return {"custom": custom}
+
+
 def config_public() -> dict:
     """config كامل للعرض في الـ dashboard + معرّف الحساب."""
     cfg = load_config()
@@ -431,6 +458,8 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
                 self._send_json(conversation_new())
             elif path == "/api/telegram/send":
                 self._send_json(telegram_send(body.get("message", "")))
+            elif path == "/api/providers/add":
+                self._send_json(add_custom_provider(body))
             elif path == "/api/config":
                 # المفاتيح تُكتب لـ .env (لا تُحفظ نصاً في config.yaml)
                 save_env_keys(body.pop("_keys", {}) or {})        # توافق قديم
@@ -494,6 +523,8 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
                 self._send_json(telegram_info())
             elif path == "/api/telegram/messages":
                 self._send_json(telegram_messages())
+            elif path == "/api/providers":
+                self._send_json(list_providers())
             else:
                 self._send_json({"error": "not_found"}, 404)
         except Exception as e:
