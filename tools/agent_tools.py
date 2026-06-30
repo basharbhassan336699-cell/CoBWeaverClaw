@@ -225,6 +225,45 @@ def open_url(target: str) -> str:
     return f"تعذّر العثور على أداة فتح. الرابط: {target}"
 
 
+# روابط عميقة تفتح التطبيق مباشرة عند نتيجة بحث/شاشة
+_APP_DEEPLINK = {
+    "youtube":   "https://www.youtube.com/results?search_query={q}",
+    "maps":      "https://www.google.com/maps/search/{q}",
+    "google":    "https://www.google.com/search?q={q}",
+    "twitter":   "https://twitter.com/search?q={q}",
+    "x":         "https://twitter.com/search?q={q}",
+    "play":      "https://play.google.com/store/search?q={q}",
+    "browser":   "https://www.google.com/search?q={q}",
+}
+
+
+def open_app(app: str, query: str = "") -> str:
+    """
+    يفتح تطبيقاً على الجهاز، ويفتحه مباشرةً عند نتيجة بحث إن أمكن
+    (مثل يوتيوب/الخرائط/المتجر). app: اسم التطبيق، query: نص البحث داخله.
+    """
+    app = (app or "").strip().lower()
+    q = urllib.parse.quote(query or "")
+    if app in _APP_DEEPLINK:
+        url = _APP_DEEPLINK[app].format(q=q) if query else _APP_DEEPLINK[app].split("?")[0]
+        res = open_url(url)
+        if query and "✅" in res:
+            return f"✅ فتحت {app} على نتائج البحث عن «{query}». ({url})"
+        return res
+    # تطبيق آخر: حاول فتحه عبر intent (Termux)
+    import subprocess, shutil
+    if shutil.which("am"):
+        try:
+            subprocess.Popen(["am", "start", "-a", "android.intent.action.MAIN",
+                              "-c", "android.intent.category.LAUNCHER", app],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return f"✅ محاولة فتح التطبيق: {app}"
+        except Exception:
+            pass
+    return (f"لا أعرف رابطاً مباشراً لتطبيق «{app}». الأشهر مدعومة: "
+            "youtube, maps, google, twitter, play.")
+
+
 # ── OpenAI-style schema + dispatcher ─────────────────────────
 TOOLS_SCHEMA = [
     {"type": "function", "function": {
@@ -262,9 +301,16 @@ TOOLS_SCHEMA = [
             "command": {"type": "string", "description": "الأمر الصدفي"}}, "required": ["command"]}}},
     {"type": "function", "function": {
         "name": "open_url",
-        "description": "افتح رابطاً أو تطبيقاً على جهاز المستخدم.",
+        "description": "افتح رابطاً على جهاز المستخدم.",
         "parameters": {"type": "object", "properties": {
-            "target": {"type": "string", "description": "الرابط أو الهدف"}}, "required": ["target"]}}},
+            "target": {"type": "string", "description": "الرابط"}}, "required": ["target"]}}},
+    {"type": "function", "function": {
+        "name": "open_app",
+        "description": "افتح تطبيقاً على الجهاز وابحث داخله مباشرةً (youtube/maps/google/twitter/play أو اسم تطبيق).",
+        "parameters": {"type": "object", "properties": {
+            "app": {"type": "string", "description": "اسم التطبيق، مثل youtube"},
+            "query": {"type": "string", "description": "نص البحث داخل التطبيق (اختياري)"}},
+            "required": ["app"]}}},
 ]
 
 _DISPATCH = {
@@ -276,6 +322,7 @@ _DISPATCH = {
     "device_report": lambda a: device_report(),
     "run_command": lambda a: run_command(a.get("command", "")),
     "open_url": lambda a: open_url(a.get("target", "")),
+    "open_app": lambda a: open_app(a.get("app", ""), a.get("query", "")),
 }
 
 

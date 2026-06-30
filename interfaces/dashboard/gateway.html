@@ -302,6 +302,13 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
 .bubble li{margin:3px 0;list-style:disc;margin-right:16px}
 .bubble code{font-family:monospace;font-size:12px;background:rgba(139,148,158,.16);padding:1px 5px;border-radius:4px}
 .bubble pre.cblock{background:var(--card3);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin:7px 0;overflow-x:auto;font-family:monospace;font-size:12px;white-space:pre-wrap;direction:ltr;text-align:left}
+/* ── قائمة المحادثات المنسدلة تحت "محادثة" ── */
+.chat-submenu{padding:2px 0 4px}
+.sub-item{display:flex;align-items:center;gap:7px;padding:6px 14px 6px 22px;cursor:pointer;color:var(--muted);font-size:11.5px;border-right:2px solid transparent;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub-item:hover{background:rgba(255,140,0,.06);color:var(--text)}
+.sub-item.tg{color:var(--orange)}
+.sub-item .sdot{width:6px;height:6px;border-radius:50%;background:var(--border);flex-shrink:0}
+.sub-item.active .sdot{background:var(--orange)}
 </style>
 </head>
 <body>
@@ -371,12 +378,16 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
 <!-- SIDEBAR (LEFT) -->
 <nav class="sidebar" id="sidebar">
   <div class="sidebar-section">
-    <div class="sidebar-lbl" data-ar="الدردشة" data-en="Chat">الدردشة</div>
+    <div class="sidebar-lbl" style="justify-content:space-between">
+      <span data-ar="الدردشة" data-en="Chat">الدردشة</span>
+      <span style="cursor:pointer;color:var(--orange);font-size:14px" onclick="newChat()" title="محادثة جديدة">＋</span>
+    </div>
     <button class="nav-item active" onclick="nav('chat',this)">
       <!-- Chat icon SVG -->
       <span class="ni"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
       <span data-ar="محادثة" data-en="Chat">محادثة</span>
     </button>
+    <div id="chat-submenu" class="chat-submenu"></div>
   </div>
   <div class="sdiv"></div>
   <div class="sidebar-section">
@@ -712,6 +723,15 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
       <div class="krow"><label>CF Account</label><input type="text" id="k-cfacc" placeholder="Account ID"></div>
     </div>
     <div class="card">
+      <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span data-ar="إضافة نموذج ذكاء مخصّص" data-en="Add Custom AI Model">إضافة نموذج ذكاء مخصّص</span></div>
+      <p style="font-size:11px;color:var(--muted);margin-bottom:8px" data-ar="أضِف أي مزوّد متوافق مع OpenAI تملك حساباً/مفتاحاً فيه، ليعمل عبر الوكيل مثل بقية النماذج." data-en="Add any OpenAI-compatible provider you have an account/key for, to work through the agent like the others.">أضِف أي مزوّد متوافق مع OpenAI تملك حساباً/مفتاحاً فيه، ليعمل عبر الوكيل مثل بقية النماذج.</p>
+      <div class="field"><label data-ar="اسم النموذج/المزوّد" data-en="Name">اسم النموذج/المزوّد</label><input id="cp-name" type="text" placeholder="مثال: My GPT"></div>
+      <div class="field"><label data-ar="رابط الـ API (Base URL)" data-en="API Base URL">رابط الـ API (Base URL)</label><input id="cp-url" type="text" placeholder="https://api.example.com/v1"></div>
+      <div class="field"><label data-ar="اسم الموديل" data-en="Model name">اسم الموديل</label><input id="cp-model" type="text" placeholder="gpt-4o-mini"></div>
+      <div class="field"><label data-ar="المفتاح / التوكين" data-en="API Key / Token">المفتاح / التوكين</label><input id="cp-key" type="password" placeholder="sk-..."></div>
+      <button class="btn btn-p btn-f" onclick="addProvider()"><span data-ar="＋ إضافة النموذج" data-en="＋ Add model">＋ إضافة النموذج</span></button>
+    </div>
+    <div class="card">
       <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="1.8"/></svg><span data-ar="إعدادات البوابة" data-en="Gateway">إعدادات البوابة</span></div>
       <div class="field"><label data-ar="رقم المنفذ" data-en="Port">رقم المنفذ</label><input id="gw-port" type="number" value="7878"></div>
       <div class="field"><label data-ar="لغة الواجهة" data-en="Interface Language">لغة الواجهة</label><select id="gw-lang"><option value="ar">العربية</option><option value="en">English</option></select></div>
@@ -816,16 +836,29 @@ async function newChat(){
   nav('chat',document.querySelectorAll('.nav-item')[0]);
   toast(LANG==='ar'?'✅ محادثة جديدة':'✅ New chat','success');
 }
+let CONVS=[], BOTNAME='تيليجرام';
 async function loadConversations(){
   const r=await api('/api/conversations');
+  CONVS=(r&&r.conversations)||[];
   const el=document.getElementById('sess-list');
-  if(!r||!r.conversations||!r.conversations.length){
-    el.innerHTML='<div class="empty"><div class="ei">💬</div><span>'+(LANG==='ar'?'لا توجد محادثات بعد':'No conversations yet')+'</span></div>';return;
+  if(el){
+    el.innerHTML=CONVS.length?CONVS.map(c=>`<div class="sessr" style="cursor:pointer" onclick="openConversation('${c.id}')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="${c.id===SESSION?'#FF8C00':'#8b949e'}"><circle cx="12" cy="12" r="10"/></svg>
+      <div style="flex:1"><div style="font-weight:500;font-size:12px">${esc(c.title)}</div>
+      <div style="font-size:11px;color:var(--muted)">${c.count} ${LANG==='ar'?'رسالة':'msgs'}</div></div></div>`).join('')
+      :'<div class="empty"><div class="ei">💬</div><span>'+(LANG==='ar'?'لا توجد محادثات بعد':'No conversations yet')+'</span></div>';
   }
-  el.innerHTML=r.conversations.map(c=>`<div class="sessr" style="cursor:pointer" onclick="openConversation('${c.id}')">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="${c.id===SESSION?'#FF8C00':'#8b949e'}"><circle cx="12" cy="12" r="10"/></svg>
-    <div style="flex:1"><div style="font-weight:500;font-size:12px">${esc(c.title)}</div>
-    <div style="font-size:11px;color:var(--muted)">${c.count} ${LANG==='ar'?'رسالة':'msgs'}</div></div></div>`).join('');
+  renderChatSubmenu();
+}
+function renderChatSubmenu(){
+  const sm=document.getElementById('chat-submenu'); if(!sm) return;
+  let html=CONVS.slice(0,8).map(c=>`<div class="sub-item ${c.id===SESSION?'active':''}" onclick="openConversation('${c.id}')"><span class="sdot"></span><span style="flex:1;overflow:hidden;text-overflow:ellipsis">${esc(c.title)}</span></div>`).join('');
+  html+=`<div class="sub-item tg" onclick="openTelegramView()"><span>💬</span><span>${esc(BOTNAME)} · ${LANG==='ar'?'تيليجرام':'Telegram'}</span></div>`;
+  sm.innerHTML=html;
+}
+function openTelegramView(){
+  nav('channels',document.querySelector('.nav-item[onclick*="channels"]'));
+  setTimeout(()=>{const b=document.getElementById('tg-convo');if(b)b.scrollIntoView({behavior:'smooth'});},150);
 }
 async function openConversation(id){
   const r=await api('/api/conversation?id='+encodeURIComponent(id));
@@ -839,7 +872,11 @@ async function openConversation(id){
 async function loadTelegram(){
   const info=await api('/api/telegram/info');
   const title=document.getElementById('tg-title');
-  if(info&&info.ok&&title) title.innerHTML='💬 '+(info.name||'Telegram')+' <span style="color:var(--muted);font-size:11px">@'+info.username+'</span>';
+  if(info&&info.ok){
+    BOTNAME=info.name||info.username||'تيليجرام';
+    if(title) title.innerHTML='💬 '+BOTNAME+' <span style="color:var(--muted);font-size:11px">@'+info.username+'</span>';
+    renderChatSubmenu();
+  }
   const box=document.getElementById('tg-convo');if(!box)return;
   const r=await api('/api/telegram/messages');
   const msgs=(r&&r.messages)||[];
@@ -862,6 +899,8 @@ window.onload=async()=>{
   await loadStatus();
   await loadConfig();
   await loadMem();
+  await loadConversations();    // يملأ القائمة المنسدلة تحت "محادثة"
+  api('/api/telegram/info').then(i=>{if(i&&i.ok){BOTNAME=i.name||i.username||'تيليجرام';renderChatSubmenu();}});
   document.getElementById('ss-start').textContent=new Date().toLocaleTimeString('ar');
 };
 
@@ -883,6 +922,7 @@ async function loadStatus(){
 }
 
 async function loadConfig(){
+  await loadProviders();
   const d=await api('/api/config');
   if(!d) return;
   if(d.agent){
@@ -905,11 +945,33 @@ async function loadConfig(){
   if(d.channels?.telegram?.token) tgTok=d.channels.telegram.token;
 }
 
+let CUSTOM_MODELS=[];   // نماذج مخصّصة يضيفها المستخدم
 function populateModels(primary){
   const s=document.getElementById('model-sel');
-  const ms=[['deepseek/deepseek-chat','DeepSeek Chat'],['zai/glm-4.6','Z.AI GLM-4.6'],['anthropic/claude-sonnet-4-6','Claude Sonnet'],['openai/gpt-4o-mini','GPT-4o mini'],['groq/llama-3.3-70b-versatile','Groq LLaMA'],['mistral/mistral-small-latest','Mistral Small'],['xai/grok-2','xAI Grok-2'],['nararouter/gpt-4o-mini','NaraRouter'],['cloudflare/@cf/meta/llama-3.1-8b-instruct','Cloudflare AI']];
+  const ms=[['deepseek/deepseek-chat','DeepSeek Chat'],['zai/glm-4.6','Z.AI GLM-4.6'],['anthropic/claude-sonnet-4-6','Claude Sonnet'],['openai/gpt-4o-mini','GPT-4o mini'],['groq/llama-3.3-70b-versatile','Groq LLaMA'],['mistral/mistral-small-latest','Mistral Small'],['xai/grok-2','xAI Grok-2'],['nararouter/gpt-4o-mini','NaraRouter'],['cloudflare/@cf/meta/llama-3.1-8b-instruct','Cloudflare AI']].concat(CUSTOM_MODELS);
   s.innerHTML='';
   ms.forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;if(v===primary)o.selected=true;s.appendChild(o);});
+  // أضِف المخصّصة إلى قائمة النموذج الافتراضي أيضاً
+  const pm=document.getElementById('prim-m');
+  CUSTOM_MODELS.forEach(([v,l])=>{if(![...pm.options].some(o=>o.value===v)){const o=document.createElement('option');o.value=v;o.textContent=l+' (مخصّص)';pm.appendChild(o);}});
+}
+async function loadProviders(){
+  const r=await api('/api/providers');
+  CUSTOM_MODELS=(r&&r.custom||[]).map(c=>[c.value,c.label]);
+}
+async function addProvider(){
+  const name=document.getElementById('cp-name').value.trim();
+  const base=document.getElementById('cp-url').value.trim();
+  const model=document.getElementById('cp-model').value.trim();
+  const key=document.getElementById('cp-key').value.trim();
+  if(!name||!base||!model){toast(LANG==='ar'?'⚠️ أكمل الاسم والرابط والموديل':'⚠️ Fill name, URL, model','error');return;}
+  const r=await api('/api/providers/add','POST',{name,base_url:base,model,key});
+  if(r&&r.ok){
+    CUSTOM_MODELS.push([r.value,r.label]);
+    populateModels(document.getElementById('prim-m').value);
+    ['cp-name','cp-url','cp-model','cp-key'].forEach(i=>document.getElementById(i).value='');
+    toast(LANG==='ar'?'✅ أُضيف النموذج — اختره من قائمة النماذج':'✅ Model added — pick it in the model list','success');
+  } else toast(LANG==='ar'?'❌ '+((r&&r.error)||'فشل'):'❌ Failed','error');
 }
 
 async function loadMem(){

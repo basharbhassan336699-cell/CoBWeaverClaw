@@ -9,6 +9,7 @@ Telegram Interface — بوت Telegram كامل يعمل عبر long-polling.
 التشغيل:  python main.py telegram
 """
 import os
+import re
 import json
 import asyncio
 import urllib.request
@@ -69,12 +70,33 @@ class TelegramBot:
             await self._command(text, chat_id, user_id)
             return
 
-        await self._send(chat_id, "🕷️ ...")
+        # مؤشر "جاري الكتابة..." الأصلي في تيليجرام (يتكرّر حتى يجهز الرد)
+        typing = asyncio.ensure_future(self._typing_loop(chat_id))
         try:
             response = await self.agent.process(text, user_id)
-            await self._send(chat_id, response)
         except Exception as e:
-            await self._send(chat_id, f"❌ خطأ: {str(e)}")
+            response = f"❌ خطأ: {str(e)}"
+        finally:
+            typing.cancel()
+        await self._send(chat_id, response)
+
+    async def _typing_loop(self, chat_id: int):
+        """يُظهر مؤشر الكتابة الأصلي في تيليجرام طوال فترة التفكير."""
+        try:
+            while True:
+                await self._action(chat_id, "typing")
+                await asyncio.sleep(4)
+        except asyncio.CancelledError:
+            return
+
+    async def _action(self, chat_id: int, action: str):
+        payload = json.dumps({"chat_id": chat_id, "action": action}).encode()
+        req = urllib.request.Request(f"{self.base}/sendChatAction", data=payload,
+              headers={"Content-Type": "application/json"})
+        try:
+            urllib.request.urlopen(req, timeout=10)
+        except Exception:
+            pass
 
     async def _command(self, text: str, chat_id: int, user_id: str):
         cmd = text.split()[0].lower().lstrip("/").split("@")[0]
@@ -110,14 +132,34 @@ class TelegramBot:
         else:
             await self._send(chat_id, "أمر غير معروف. جرّب /help")
 
+    @staticmethod
+    def _md_to_html(text: str) -> str:
+        """يحوّل Markdown إلى HTML المدعوم في تيليجرام (تنسيق أصلي)."""
+        import html as _h
+        s = _h.escape(text or "", quote=False)
+        s = re.sub(r"```(?:\w+)?\n?(.*?)```", lambda m: "<pre>" + m.group(1).strip() + "</pre>", s, flags=re.S)
+        s = re.sub(r"`([^`\n]+)`", r"<code>\1</code>", s)
+        s = re.sub(r"^#{1,6}\s*(.+)$", r"<b>\1</b>", s, flags=re.M)
+        s = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", s)
+        s = re.sub(r"\[([^\]]+)\]\((https?://[^)\s]+)\)", r'<a href="\2">\1</a>', s)
+        return s
+
     async def _send(self, chat_id: int, text: str):
-        payload = json.dumps({"chat_id": chat_id, "text": text}).encode()
+        # حاول الإرسال بتنسيق HTML (Markdown مُحوّل)، وإلا أرسل نصاً عادياً
+        body = {"chat_id": chat_id, "text": self._md_to_html(text),
+                "parse_mode": "HTML", "disable_web_page_preview": False}
+        if not self._post_message(body):
+            self._post_message({"chat_id": chat_id, "text": text})
+
+    def _post_message(self, body: dict) -> bool:
+        payload = json.dumps(body, ensure_ascii=False).encode("utf-8")
         req = urllib.request.Request(f"{self.base}/sendMessage", data=payload,
               headers={"Content-Type": "application/json"})
         try:
-            urllib.request.urlopen(req, timeout=15)
+            with urllib.request.urlopen(req, timeout=15) as r:
+                return json.loads(r.read()).get("ok", False)
         except Exception:
-            pass
+            return False
 
 
 def _load_token() -> str:
