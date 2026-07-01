@@ -68,6 +68,7 @@ class ModelRouter:
         self.brain      = brain
         self.agent_cfg  = self.full_config.get("agent", {})
         self.keys_cfg   = self.full_config.get("keys", {})
+        self._last_tools = []   # الأدوات المُنفّذة في آخر رد (لعرض النشاط)
 
         for role in self.ALL_ROLES:
             setattr(self, role, brain.get(role))
@@ -193,10 +194,17 @@ class ModelRouter:
 
     async def complete_meta(self, message, context, lang="en", force_model=None):
         """مثل complete لكن يُرجع dict فيه النموذج المُستخدَم (للـ API/الـ dashboard)."""
+        self._last_tools = []
         system   = self._build_system_prompt(lang, context)
         messages = self._build_messages(message, context)
         preferred = force_model or self._select_model_str(message, context)
         order = self._build_order(preferred)
+        # جواب صادق مؤكّد عن النموذج (لا يعتمد على سلوك النموذج نفسه)
+        if self._is_model_question(message):
+            p0, m0 = self._parse_model(order[0]) if order else ("", "")
+            return {"reply": f"أعمل حالياً على النموذج **{p0}/{m0}** (مزوّد {p0}). "
+                             "يمكنك تغييره من قائمة النماذج في الأعلى.",
+                    "model_used": f"{p0}/{m0}", "tools": []}
         errors, tried = [], []
         for model_str in order:
             provider, model = self._parse_model(model_str)
@@ -206,12 +214,22 @@ class ModelRouter:
             try:
                 sys_i = system + f"\n\n[نموذجك الحالي فعلياً: {provider}/{model}]"
                 reply = await self._call(provider, model, sys_i, messages)
-                return {"reply": reply, "model_used": f"{provider}/{model}"}
+                return {"reply": reply, "model_used": f"{provider}/{model}",
+                        "tools": list(dict.fromkeys(self._last_tools))}
             except Exception as e:
                 errors.append(f"{provider}: {str(e)[:80]}")
                 continue
         return {"reply": "⚠️ تعذّر الاتصال بأي نموذج. " + ("؛ ".join(errors) or ""),
-                "model_used": "none", "tried": tried}
+                "model_used": "none", "tried": tried, "tools": []}
+
+    @staticmethod
+    def _is_model_question(message: str) -> bool:
+        """يكتشف أسئلة 'أي نموذج تستخدم؟' لضمان جواب صادق."""
+        m = (message or "").lower()
+        has_model = any(k in m for k in ["نموذج", "موديل", "model", "llm", "مودل"])
+        self_ref  = any(k in m for k in ["تستخدم", "تعمل", "أنت", "انت", "عليه", "الحالي",
+                                         "your", "you use", "are you", "which", "what", "اسم"])
+        return has_model and self_ref
 
     # ── provider dispatch ────────────────────────────────────
     async def _call(self, provider, model, system, messages):
@@ -302,6 +320,10 @@ class ModelRouter:
                     args = json.loads(fn.get("arguments") or "{}")
                 except Exception:
                     args = {}
+                try:
+                    self._last_tools.append(fn.get("name", ""))
+                except Exception:
+                    pass
                 result = _exec(fn.get("name", ""), args)
                 msgs.append({"role": "tool", "tool_call_id": tc.get("id", ""),
                              "content": str(result)[:4000]})
@@ -369,6 +391,9 @@ class ModelRouter:
             "‼️ لا تختلق معلومات أبداً. لأي معلومة حالية أو غير مؤكّدة استخدم web_search فعلاً ثم أجب من نتائجه "
             "وأدرِج الروابط. إن فشل البحث فعلاً فأخبر المستخدم بصراحة أنّ البحث لم ينجح، ولا تقدّم تخميناً كأنه حقيقة. "
             "لا تدّعِ أنك نموذج غير الذي تعمل عليه فعلاً؛ اذكر اسم نموذجك الحقيقي إن سُئلت.\n"
+            "‼️ اسم النموذج والمزوّد الذي تعمل عليه معلومة عامة وليست سرّاً أمنياً. إن سُئلت "
+            "'أي نموذج تستخدم؟' أجب فوراً وبوضوح بالمزوّد/النموذج المذكور أدناه. الممنوع كشفه فقط هو "
+            "قيمة المفتاح السرّي نفسها، أمّا اسم النموذج فاذكره دائماً بلا تحفّظ.\n"
             "صيغة الإجابة: استخدم Markdown — عناوين بارزة بـ ## و ###، **تأكيد** للنقاط المهمة، وقوائم "
             "نقطية. عند الاستشهاد بمواقع أو فيديوهات أدرِج الروابط الكاملة بوضوح.\n"
         )
