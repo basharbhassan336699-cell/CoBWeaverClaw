@@ -295,6 +295,7 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
 }
 /* ── تنسيق إجابات الوكيل (Markdown) ── */
 .bubble .mtag{font-size:10px;color:var(--muted);opacity:.55;margin-bottom:5px;font-family:monospace;letter-spacing:.3px}
+.bubble .tact{font-size:10px;color:var(--green);opacity:.7;margin-top:6px;border-top:1px solid var(--border);padding-top:5px}
 .bubble h3{font-size:16px;font-weight:700;color:var(--orange);margin:8px 0 4px}
 .bubble h4{font-size:14px;font-weight:700;margin:7px 0 3px}
 .bubble b{font-weight:700}
@@ -1082,7 +1083,7 @@ function fmtModel(m){ // "provider/model" -> اسم مختصر
   if(!m||m==='none') return '';
   const parts=m.split('/'); return parts[0]+' · '+parts[parts.length-1];
 }
-function addBubble(role,text,model){
+function addBubble(role,text,model,tools){
   const w=document.getElementById('cwelcome');if(w)w.remove();
   const typing=document.getElementById('typing');
   const wrap=document.getElementById('chat-wrap');
@@ -1090,7 +1091,8 @@ function addBubble(role,text,model){
   const t=new Date().toLocaleTimeString('ar',{hour:'2-digit',minute:'2-digit'});
   const body=role==='user'?esc(text):mdRender(text);
   const tag=(role==='agent'&&model)?`<div class="mtag">${esc(fmtModel(model))}</div>`:'';
-  d.innerHTML=`<div class="bubble">${tag}${body}</div><div class="mmeta">${role==='user'?(LANG==='ar'?'أنت':'You'):(document.getElementById('ag-name')?.value||'كلاو')} · ${t}</div>`;
+  const act=(role==='agent'&&tools&&tools.length)?`<div class="tact">🛠️ ${(LANG==='ar'?'الأدوات':'Tools')}: ${tools.map(esc).join(' · ')}</div>`:'';
+  d.innerHTML=`<div class="bubble">${tag}${body}${act}</div><div class="mmeta">${role==='user'?(LANG==='ar'?'أنت':'You'):(document.getElementById('ag-name')?.value||'كلاو')} · ${t}</div>`;
   wrap.insertBefore(d,typing);wrap.scrollTop=99999;
 }
 async function send(){
@@ -1103,7 +1105,7 @@ async function send(){
   document.getElementById('chat-wrap').scrollTop=99999;
   const r=await api('/api/chat','POST',{message:msg,model,session:SESSION});
   typing.classList.remove('show');btn.disabled=false;
-  if(r?.reply) addBubble('agent',r.reply,r.model_used);
+  if(r?.reply) addBubble('agent',r.reply,r.model_used,r.tools);
   else addBubble('agent',LANG==='ar'?'⚠️ تعذّر الاتصال. تحقق من مفاتيح API في الإعدادات.':'⚠️ Connection failed. Check API keys in Settings.');
   inp.focus();
 }
