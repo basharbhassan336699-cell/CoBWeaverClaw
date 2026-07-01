@@ -51,34 +51,88 @@ def _strip_html(html: str) -> str:
 
 
 # ── tool implementations ─────────────────────────────────────
+_UA = ("Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 "
+       "(KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36")
+
+
+def _ddg_html(query: str) -> list:
+    """نتائج بحث فعلية من DuckDuckGo HTML (عناوين + روابط + مقتطف)."""
+    for host in ("https://html.duckduckgo.com/html/", "https://lite.duckduckgo.com/lite/"):
+        try:
+            data = urllib.parse.urlencode({"q": query}).encode()
+            req = urllib.request.Request(host, data=data,
+                  headers={"User-Agent": _UA, "Accept-Language": "ar,en;q=0.8"})
+            with urllib.request.urlopen(req, timeout=15) as r:
+                html = r.read().decode("utf-8", "ignore")
+        except Exception:
+            continue
+        results = []
+        for m in re.finditer(r'result__a[^>]*href="([^"]+)"[^>]*>(.*?)</a>', html, re.S):
+            url = m.group(1)
+            um = re.search(r'uddg=([^&]+)', url)
+            if um:
+                url = urllib.parse.unquote(um.group(1))
+            title = _strip_html(m.group(2))
+            if title and url.startswith("http"):
+                results.append((title, url))
+            if len(results) >= 6:
+                break
+        if not results:  # نسخة lite: روابط عادية
+            for m in re.finditer(r'<a[^>]+href="(https?://[^"]+)"[^>]*>(.*?)</a>', html, re.S):
+                t = _strip_html(m.group(2))
+                if t and "duckduckgo" not in m.group(1):
+                    results.append((t, m.group(1)))
+                if len(results) >= 6:
+                    break
+        if results:
+            return results
+    return []
+
+
+def _wikipedia(query: str) -> str:
+    """ملخّص من ويكيبيديا (عربي ثم إنجليزي)."""
+    for lang in ("ar", "en"):
+        try:
+            u = (f"https://{lang}.wikipedia.org/w/api.php?" + urllib.parse.urlencode(
+                {"action": "query", "list": "search", "srsearch": query,
+                 "format": "json", "srlimit": "1"}))
+            with urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": _UA}), timeout=12) as r:
+                d = json.loads(r.read())
+            hits = d.get("query", {}).get("search", [])
+            if not hits:
+                continue
+            title = hits[0]["title"]
+            su = (f"https://{lang}.wikipedia.org/w/api.php?" + urllib.parse.urlencode(
+                {"action": "query", "prop": "extracts", "exintro": "1", "explaintext": "1",
+                 "titles": title, "format": "json"}))
+            with urllib.request.urlopen(urllib.request.Request(su, headers={"User-Agent": _UA}), timeout=12) as r:
+                d = json.loads(r.read())
+            pages = d.get("query", {}).get("pages", {})
+            for p in pages.values():
+                ex = (p.get("extract") or "").strip()
+                if ex:
+                    return f"{title} (ويكيبيديا):\n{ex[:1200]}\nhttps://{lang}.wikipedia.org/wiki/{urllib.parse.quote(title)}"
+        except Exception:
+            continue
+    return ""
+
+
 def web_search(query: str) -> str:
-    """بحث ويب عبر DuckDuckGo (إجابة فورية + نتائج مختصرة)."""
+    """بحث ويب فعلي: نتائج DuckDuckGo + ملخّص ويكيبيديا (بلا مفتاح)."""
     if not query:
         return "لا يوجد استعلام بحث."
-    out = []
-    try:
-        u = "https://api.duckduckgo.com/?" + urllib.parse.urlencode(
-            {"q": query, "format": "json", "no_html": "1", "no_redirect": "1"})
-        with urllib.request.urlopen(u, timeout=15) as r:
-            d = json.loads(r.read().decode("utf-8", "ignore"))
-        if d.get("AbstractText"):
-            out.append(d["AbstractText"])
-        for t in (d.get("RelatedTopics") or [])[:5]:
-            if isinstance(t, dict) and t.get("Text"):
-                out.append("• " + t["Text"])
-    except Exception:
-        pass
-    if not out:
-        # احتياط: نسخة lite النصّية
-        try:
-            u = "https://lite.duckduckgo.com/lite/?" + urllib.parse.urlencode({"q": query})
-            req = urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0"})
-            with urllib.request.urlopen(req, timeout=15) as r:
-                txt = _strip_html(r.read().decode("utf-8", "ignore"))
-            return txt[:1500] if txt else "لم أجد نتائج."
-        except Exception as e:
-            return f"تعذّر البحث: {str(e)[:80]}"
-    return "\n".join(out)[:2000]
+    parts = []
+    results = _ddg_html(query)
+    if results:
+        parts.append("نتائج البحث:\n" + "\n".join(
+            f"{i+1}. {t}\n   {u}" for i, (t, u) in enumerate(results[:6])))
+    wiki = _wikipedia(query)
+    if wiki:
+        parts.append(wiki)
+    if not parts:
+        return ("تعذّر جلب نتائج البحث فعلياً (قد تكون الشبكة محجوبة). "
+                "لا تختلق معلومات — أخبر المستخدم بصراحة أنّ البحث لم ينجح.")
+    return "\n\n".join(parts)[:2600]
 
 
 def fetch_url(url: str) -> str:
@@ -264,6 +318,70 @@ def open_app(app: str, query: str = "") -> str:
             "youtube, maps, google, twitter, play.")
 
 
+# ── memory & settings access (يقرأ/يعدّل ملفاته إن طُلب) ──────
+def _memdb():
+    import sqlite3
+    p = os.path.expanduser("~/.cobweaverclaw/memory.db")
+    con = sqlite3.connect(p)
+    con.row_factory = sqlite3.Row
+    con.execute("CREATE TABLE IF NOT EXISTS facts (id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                "user_id TEXT, key TEXT, value TEXT, created TEXT DEFAULT (datetime('now')),"
+                "UNIQUE(user_id,key))")
+    return con
+
+
+def get_memory(_: str = "") -> str:
+    """يقرأ ما هو مخزّن في ذاكرة الوكيل (الحقائق/التفضيلات)."""
+    try:
+        rows = _memdb().execute("SELECT key, value FROM facts ORDER BY id DESC LIMIT 60").fetchall()
+        return "🧠 الذاكرة:\n" + "\n".join(f"- {r['key']}: {r['value']}" for r in rows) if rows else "الذاكرة فارغة."
+    except Exception as e:
+        return f"تعذّر قراءة الذاكرة: {str(e)[:100]}"
+
+
+def set_memory_fact(key: str, value: str) -> str:
+    """يضيف/يضبط معلومة في ذاكرة الوكيل الدائمة."""
+    if not key:
+        return "لا يوجد مفتاح."
+    try:
+        con = _memdb()
+        con.execute("INSERT OR REPLACE INTO facts (user_id, key, value) VALUES ('core',?,?)", (key, value))
+        con.commit()
+        return f"✅ حُفظت في الذاكرة: {key} = {value}"
+    except Exception as e:
+        return f"تعذّر الحفظ: {str(e)[:100]}"
+
+
+def delete_memory_fact(key: str) -> str:
+    """يحذف معلومة من ذاكرة الوكيل."""
+    try:
+        con = _memdb()
+        n = con.execute("DELETE FROM facts WHERE key=?", (key,)).rowcount
+        con.commit()
+        return f"✅ حُذف: {key}" if n else f"لم أجد: {key}"
+    except Exception as e:
+        return f"تعذّر الحذف: {str(e)[:100]}"
+
+
+def update_setting(key: str, value: str) -> str:
+    """يضبط إعداداً في config (مثل الاسم/الأسلوب/اللغة/التخصّص/حجم الذاكرة)."""
+    try:
+        import yaml
+        p = os.path.join(CONFIG_DIR, "config.yaml")
+        cfg = yaml.safe_load(open(p, encoding="utf-8")) if os.path.exists(p) else {}
+        cfg = cfg or {}
+        if key in ("memory_size",):
+            try: value = int(value)
+            except Exception: pass
+        cfg.setdefault("agent", {})[key] = value
+        os.makedirs(CONFIG_DIR, exist_ok=True)
+        with open(p, "w", encoding="utf-8") as f:
+            yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+        return f"✅ ضُبط الإعداد {key} = {value}"
+    except Exception as e:
+        return f"تعذّر ضبط الإعداد: {str(e)[:100]}"
+
+
 # ── OpenAI-style schema + dispatcher ─────────────────────────
 TOOLS_SCHEMA = [
     {"type": "function", "function": {
@@ -311,6 +429,25 @@ TOOLS_SCHEMA = [
             "app": {"type": "string", "description": "اسم التطبيق، مثل youtube"},
             "query": {"type": "string", "description": "نص البحث داخل التطبيق (اختياري)"}},
             "required": ["app"]}}},
+    {"type": "function", "function": {
+        "name": "get_memory",
+        "description": "اقرأ ما هو مخزّن في ذاكرة الوكيل (الحقائق والتفضيلات والإعدادات المحفوظة).",
+        "parameters": {"type": "object", "properties": {}}}},
+    {"type": "function", "function": {
+        "name": "set_memory_fact",
+        "description": "أضِف أو اضبط معلومة في ذاكرة الوكيل الدائمة.",
+        "parameters": {"type": "object", "properties": {
+            "key": {"type": "string"}, "value": {"type": "string"}}, "required": ["key", "value"]}}},
+    {"type": "function", "function": {
+        "name": "delete_memory_fact",
+        "description": "احذف معلومة من ذاكرة الوكيل بالمفتاح.",
+        "parameters": {"type": "object", "properties": {
+            "key": {"type": "string"}}, "required": ["key"]}}},
+    {"type": "function", "function": {
+        "name": "update_setting",
+        "description": "اضبط إعداداً للوكيل: name/style/language/specialization/memory_size/mission_anchor.",
+        "parameters": {"type": "object", "properties": {
+            "key": {"type": "string"}, "value": {"type": "string"}}, "required": ["key", "value"]}}},
 ]
 
 _DISPATCH = {
@@ -323,6 +460,10 @@ _DISPATCH = {
     "run_command": lambda a: run_command(a.get("command", "")),
     "open_url": lambda a: open_url(a.get("target", "")),
     "open_app": lambda a: open_app(a.get("app", ""), a.get("query", "")),
+    "get_memory": lambda a: get_memory(),
+    "set_memory_fact": lambda a: set_memory_fact(a.get("key", ""), a.get("value", "")),
+    "delete_memory_fact": lambda a: delete_memory_fact(a.get("key", "")),
+    "update_setting": lambda a: update_setting(a.get("key", ""), a.get("value", "")),
 }
 
 
