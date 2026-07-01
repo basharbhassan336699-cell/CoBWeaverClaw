@@ -330,6 +330,80 @@ def restart_agent():
     threading.Thread(target=_go, daemon=True).start()
 
 
+# ── AI Models catalog (قسم نماذج الذكاء — تسجيل الدخول بالحساب/التوكين) ──
+MODELS_CATALOG = [
+    {"id": "anthropic", "name": "Claude (Anthropic)", "env": "ANTHROPIC_API_KEY",
+     "login": "https://console.anthropic.com/settings/keys", "color": "#D97757", "letter": "C",
+     "models": ["claude-sonnet-4-6", "claude-opus-4-6", "claude-haiku-4-5"]},
+    {"id": "openai", "name": "ChatGPT (OpenAI)", "env": "OPENAI_API_KEY",
+     "login": "https://platform.openai.com/api-keys", "color": "#10A37F", "letter": "O",
+     "models": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "o1-mini"]},
+    {"id": "deepseek", "name": "DeepSeek", "env": "DEEPSEEK_API_KEY",
+     "login": "https://platform.deepseek.com/api_keys", "color": "#4D6BFE", "letter": "D",
+     "models": ["deepseek-chat", "deepseek-reasoner"]},
+    {"id": "moonshot", "name": "Kimi (Moonshot)", "env": "MOONSHOT_API_KEY",
+     "login": "https://platform.moonshot.ai/console/api-keys", "color": "#111111", "letter": "K",
+     "models": ["moonshot-v1-8k", "moonshot-v1-32k", "moonshot-v1-128k"]},
+    {"id": "zai", "name": "GLM (Z.AI)", "env": "ZAI_API_KEY",
+     "login": "https://z.ai/manage-apikey/apikey-list", "color": "#2E7CF6", "letter": "G",
+     "models": ["glm-4.6", "glm-4.5", "glm-4.5-air", "glm-4-flash"]},
+    {"id": "gemini", "name": "Gemini (Google)", "env": "GEMINI_API_KEY",
+     "login": "https://aistudio.google.com/app/apikey", "color": "#4285F4", "letter": "G",
+     "models": ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"]},
+    {"id": "groq", "name": "Groq", "env": "GROQ_API_KEY",
+     "login": "https://console.groq.com/keys", "color": "#F55036", "letter": "q",
+     "models": ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"]},
+    {"id": "mistral", "name": "Mistral AI", "env": "MISTRAL_API_KEY",
+     "login": "https://console.mistral.ai/api-keys", "color": "#FF7000", "letter": "M",
+     "models": ["mistral-large-latest", "mistral-small-latest", "open-mistral-7b"]},
+    {"id": "xai", "name": "Grok (xAI)", "env": "XAI_API_KEY",
+     "login": "https://console.x.ai", "color": "#1A1A1A", "letter": "X",
+     "models": ["grok-2", "grok-2-mini"]},
+    {"id": "openrouter", "name": "OpenRouter", "env": "OPENROUTER_API_KEY",
+     "login": "https://openrouter.ai/keys", "color": "#6467F2", "letter": "R",
+     "models": ["meta-llama/llama-3.3-70b", "qwen/qwen-2.5-72b", "mistralai/mistral-7b"]},
+    {"id": "nararouter", "name": "NaraRouter", "env": "NARAROUTER_API_KEY",
+     "login": "https://router.bynara.id", "color": "#8B5CF6", "letter": "N",
+     "models": ["gpt-4o-mini", "gpt-4o", "claude-3.5-sonnet", "deepseek-chat"]},
+    {"id": "cloudflare", "name": "Cloudflare AI", "env": "CLOUDFLARE_API_TOKEN",
+     "login": "https://dash.cloudflare.com/login", "color": "#F38020", "letter": "C",
+     "models": ["@cf/meta/llama-3.1-8b-instruct", "@cf/meta/llama-3.3-70b-instruct-fp8-fast"]},
+]
+
+
+def models_catalog() -> dict:
+    """قائمة مزوّدي نماذج الذكاء + حالة الاتصال (متصل إن وُجد التوكين)."""
+    load_env_into_os()
+    cfg = load_config()
+    primary = cfg.get("brain", {}).get("primary", "")
+    out = []
+    for p in MODELS_CATALOG:
+        out.append({**p,
+                    "connected": bool(os.environ.get(p["env"])),
+                    "active_model": primary.split("/", 1)[1] if primary.startswith(p["id"] + "/") else ""})
+    return {"providers": out}
+
+
+def connect_model(body: dict) -> dict:
+    """يربط حساب مزوّد بالتوكين، ويختار نموذجه (تسجيل دخول عبر الحساب)."""
+    prov  = (body.get("provider") or "").strip()
+    token = (body.get("token") or "").strip()
+    model = (body.get("model") or "").strip()
+    account = (body.get("account") or "").strip()   # لـ Cloudflare
+    cat = {p["id"]: p for p in MODELS_CATALOG}
+    if prov not in cat:
+        return {"ok": False, "error": "unknown provider"}
+    if token:
+        save_env_keys({cat[prov]["env"]: token})
+    if prov == "cloudflare" and account:
+        save_env_keys({"CLOUDFLARE_ACCOUNT_ID": account})
+    if model:
+        save_config({"brain": {"primary": f"{prov}/{model}"}})
+    load_env_into_os()
+    return {"ok": True, "connected": bool(os.environ.get(cat[prov]["env"])),
+            "primary": f"{prov}/{model}" if model else ""}
+
+
 def add_custom_provider(body: dict) -> dict:
     """يضيف مزوّد/نموذج ذكاء مخصّص (مستقلّ عن المفاتيح الثابتة)."""
     name  = (body.get("name") or "").strip()
@@ -460,6 +534,8 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
                 self._send_json(telegram_send(body.get("message", "")))
             elif path == "/api/providers/add":
                 self._send_json(add_custom_provider(body))
+            elif path == "/api/models/connect":
+                self._send_json(connect_model(body))
             elif path == "/api/config":
                 # المفاتيح تُكتب لـ .env (لا تُحفظ نصاً في config.yaml)
                 save_env_keys(body.pop("_keys", {}) or {})        # توافق قديم
@@ -525,6 +601,8 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
                 self._send_json(telegram_messages())
             elif path == "/api/providers":
                 self._send_json(list_providers())
+            elif path == "/api/models/catalog":
+                self._send_json(models_catalog())
             else:
                 self._send_json({"error": "not_found"}, 404)
         except Exception as e:

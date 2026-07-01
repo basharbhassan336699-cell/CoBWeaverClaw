@@ -482,6 +482,8 @@ PROVIDERS = [
         ["grok-2","grok-2-mini"]),
     ("Z.AI (GLM)",    "zai",        "glm-4.6",                  "ZAI_API_KEY",        "z.ai", False,
         ["glm-4.6","glm-4.5","glm-4.5-air","glm-4-flash"]),
+    ("Kimi (Moonshot)","moonshot",  "moonshot-v1-8k",           "MOONSHOT_API_KEY",   "platform.moonshot.ai/console/api-keys", False,
+        ["moonshot-v1-8k","moonshot-v1-32k","moonshot-v1-128k"]),
     ("NaraRouter",    "nararouter", "gpt-4o-mini",              "NARAROUTER_API_KEY", "router.bynara.id", False,
         ["gpt-4o-mini","gpt-4o","claude-3.5-sonnet","deepseek-chat","llama-3.3-70b"]),
     ("Cloudflare",    "cloudflare", "@cf/meta/llama-3.1-8b-instruct", "CLOUDFLARE_API_TOKEN", "dash.cloudflare.com/login", True,
