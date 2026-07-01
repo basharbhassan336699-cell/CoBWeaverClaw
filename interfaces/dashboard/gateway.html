@@ -296,6 +296,17 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
 /* ── تنسيق إجابات الوكيل (Markdown) ── */
 .bubble .mtag{font-size:10px;color:var(--muted);opacity:.55;margin-bottom:5px;font-family:monospace;letter-spacing:.3px}
 .bubble .tact{font-size:10px;color:var(--green);opacity:.7;margin-top:6px;border-top:1px solid var(--border);padding-top:5px}
+/* جداول Markdown */
+.bubble table.mdtbl{border-collapse:collapse;margin:8px 0;width:100%;font-size:12px;display:block;overflow-x:auto}
+.bubble table.mdtbl th,.bubble table.mdtbl td{border:1px solid var(--border);padding:6px 9px;text-align:right}
+.bubble table.mdtbl th{background:rgba(255,140,0,.12);color:var(--orange);font-weight:700;white-space:nowrap}
+.bubble table.mdtbl tr:nth-child(even) td{background:rgba(139,148,158,.06)}
+/* زر النسخ + شريط المعلومات */
+.mmeta{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.copybtn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;opacity:.6;padding:2px 5px;border-radius:5px;transition:all .15s}
+.copybtn:hover{opacity:1;color:var(--orange);background:rgba(255,140,0,.08)}
+/* مؤشّر السياق */
+.ctxbar{font-size:10px;color:var(--muted);opacity:.75;padding:2px 12px 0;text-align:center}
 .bubble h3{font-size:16px;font-weight:700;color:var(--orange);margin:8px 0 4px}
 .bubble h4{font-size:14px;font-weight:700;margin:7px 0 3px}
 .bubble b{font-weight:700}
@@ -484,6 +495,7 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
       <div class="bubble"><div class="td"></div><div class="td"></div><div class="td"></div></div>
     </div>
   </div>
+  <div class="ctxbar" id="ctxbar"></div>
   <div class="cbar">
     <button class="sbtn" id="newchat-btn" onclick="newChat()" title="محادثة جديدة" style="background:var(--card);border:1px solid var(--border);color:var(--orange)">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
@@ -842,6 +854,7 @@ function nav(page,btn){
 function clearChat(){
   const wrap=document.getElementById('chat-wrap');
   wrap.querySelectorAll('.msg:not(#typing)').forEach(e=>e.remove());
+  updateCtx();
 }
 async function newChat(){
   const r=await api('/api/conversations','POST');
@@ -1058,25 +1071,40 @@ async function loadOv(){loadMem();}
 function ck(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}
 function ar(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,110)+'px';}
 function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function mdInline(t){
+  t=t.replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
+  t=t.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank">$1</a>');
+  t=t.replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g,'$1<a href="$2" target="_blank">$2</a>');
+  return t;
+}
+function mdTables(s){
+  const L=s.split('\n'); const out=[]; let i=0;
+  const cells=r=>r.trim().replace(/^\|/,'').replace(/\|$/,'').split('|').map(c=>mdInline(c.trim()));
+  while(i<L.length){
+    const sep=L[i+1]||'';
+    if(L[i].includes('|') && /-/.test(sep) && /^[\s|:\-]+$/.test(sep) && sep.includes('|')){
+      const head=cells(L[i]); let j=i+2, rows=[];
+      while(j<L.length && L[j].includes('|') && L[j].trim()){rows.push(cells(L[j]));j++;}
+      let h='<table class="mdtbl"><thead><tr>'+head.map(c=>'<th>'+c+'</th>').join('')+'</tr></thead><tbody>';
+      h+=rows.map(r=>'<tr>'+r.map(c=>'<td>'+c+'</td>').join('')+'</tr>').join('');
+      out.push(h+'</tbody></table>'); i=j;
+    } else { out.push(L[i]); i++; }
+  }
+  return out.join('\n');
+}
 function mdRender(src){
   let s=esc(src);
-  // كتل الشيفرة
   s=s.replace(/```([\s\S]*?)```/g,(m,c)=>'<pre class="cblock">'+c.trim()+'</pre>');
   s=s.replace(/`([^`\n]+)`/g,'<code>$1</code>');
-  // العناوين البارزة
+  s=mdTables(s);                                   // الجداول أولاً
   s=s.replace(/^###\s+(.*)$/gm,'<h4>$1</h4>');
   s=s.replace(/^##\s+(.*)$/gm,'<h3>$1</h3>');
   s=s.replace(/^#\s+(.*)$/gm,'<h3>$1</h3>');
-  // تأكيد
-  s=s.replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
-  // روابط ماركداون ثم الروابط المجرّدة
-  s=s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank">$1</a>');
-  s=s.replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g,'$1<a href="$2" target="_blank">$2</a>');
-  // قوائم نقطية
+  s=mdInline(s);                                   // تأكيد + روابط
   s=s.replace(/^\s*[-•]\s+(.*)$/gm,'<li>$1</li>');
   s=s.replace(/(<li>[\s\S]*?<\/li>)/g,m=>'<ul>'+m+'</ul>').replace(/<\/ul>\s*<ul>/g,'');
-  // أسطر جديدة
-  s=s.replace(/\n/g,'<br>');
+  // أسطر جديدة — دون كسر داخل الجداول
+  s=s.replace(/\n/g,'<br>').replace(/(<\/(?:table|thead|tbody|tr|th|td)>)<br>/g,'$1');
   return s;
 }
 function fmtModel(m){ // "provider/model" -> اسم مختصر
@@ -1092,8 +1120,26 @@ function addBubble(role,text,model,tools){
   const body=role==='user'?esc(text):mdRender(text);
   const tag=(role==='agent'&&model)?`<div class="mtag">${esc(fmtModel(model))}</div>`:'';
   const act=(role==='agent'&&tools&&tools.length)?`<div class="tact">🛠️ ${(LANG==='ar'?'الأدوات':'Tools')}: ${tools.map(esc).join(' · ')}</div>`:'';
-  d.innerHTML=`<div class="bubble">${tag}${body}${act}</div><div class="mmeta">${role==='user'?(LANG==='ar'?'أنت':'You'):(document.getElementById('ag-name')?.value||'كلاو')} · ${t}</div>`;
+  const who=role==='user'?(LANG==='ar'?'أنت':'You'):(document.getElementById('ag-name')?.value||'كلاو');
+  d.innerHTML=`<div class="bubble">${tag}${body}${act}</div><div class="mmeta"><span>${who} · ${t}</span><button class="copybtn" title="${LANG==='ar'?'نسخ':'Copy'}">⧉</button></div>`;
+  d.querySelector('.copybtn').onclick=()=>{
+    const done=()=>toast(LANG==='ar'?'✅ نُسخت':'✅ Copied','success');
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done));}
+    else fallbackCopy(text,done);
+  };
   wrap.insertBefore(d,typing);wrap.scrollTop=99999;
+  updateCtx();
+}
+function updateCtx(){
+  const el=document.getElementById('ctxbar'); if(!el) return;
+  let chars=0; document.querySelectorAll('#chat-wrap .bubble').forEach(b=>chars+=(b.textContent||'').length);
+  const tok=Math.round(chars/4), win=128000, pct=Math.min(100,Math.round(tok/win*100));
+  el.textContent = chars? `${pct}% ${LANG==='ar'?'من السياق مُستخدَم':'context used'} · ${(tok/1000).toFixed(1)}k / ${win/1000}k` : '';
+}
+function fallbackCopy(text,cb){
+  const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(e){}
+  document.body.removeChild(ta);cb&&cb();
 }
 async function send(){
   const inp=document.getElementById('chat-in');
