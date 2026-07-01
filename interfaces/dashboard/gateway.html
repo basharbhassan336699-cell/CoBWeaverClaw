@@ -294,6 +294,7 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
   .pscroll{max-width:1100px;margin:0 auto;width:100%}
 }
 /* ── تنسيق إجابات الوكيل (Markdown) ── */
+.bubble .mtag{font-size:10px;color:var(--muted);opacity:.55;margin-bottom:5px;font-family:monospace;letter-spacing:.3px}
 .bubble h3{font-size:16px;font-weight:700;color:var(--orange);margin:8px 0 4px}
 .bubble h4{font-size:14px;font-weight:700;margin:7px 0 3px}
 .bubble b{font-weight:700}
@@ -1000,19 +1001,30 @@ async function loadConfig(){
   if(d.channels?.telegram?.token) tgTok=d.channels.telegram.token;
 }
 
-let CUSTOM_MODELS=[];   // نماذج مخصّصة يضيفها المستخدم
+let CUSTOM_MODELS=[];      // نماذج مخصّصة يضيفها المستخدم
+let CONNECTED_MODELS=[];  // نماذج المزوّدين المتصلين (مفاتيحهم مخزّنة) فقط
 function populateModels(primary){
   const s=document.getElementById('model-sel');
-  const ms=[['deepseek/deepseek-chat','DeepSeek Chat'],['zai/glm-4.6','Z.AI GLM-4.6'],['anthropic/claude-sonnet-4-6','Claude Sonnet'],['openai/gpt-4o-mini','GPT-4o mini'],['groq/llama-3.3-70b-versatile','Groq LLaMA'],['mistral/mistral-small-latest','Mistral Small'],['xai/grok-2','xAI Grok-2'],['nararouter/gpt-4o-mini','NaraRouter'],['cloudflare/@cf/meta/llama-3.1-8b-instruct','Cloudflare AI']].concat(CUSTOM_MODELS);
+  const ms=CONNECTED_MODELS.concat(CUSTOM_MODELS);   // المتصلة + المخصّصة فقط
   s.innerHTML='';
+  if(!ms.length){
+    const o=document.createElement('option');o.value='';o.textContent=LANG==='ar'?'لا نماذج متصلة — اربط في "نماذج الذكاء"':'No connected models';s.appendChild(o);
+    return;
+  }
   ms.forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;if(v===primary)o.selected=true;s.appendChild(o);});
-  // أضِف المخصّصة إلى قائمة النموذج الافتراضي أيضاً
+  // قائمة النموذج الافتراضي في الإعدادات: المتصلة + المخصّصة فقط أيضاً
   const pm=document.getElementById('prim-m');
-  CUSTOM_MODELS.forEach(([v,l])=>{if(![...pm.options].some(o=>o.value===v)){const o=document.createElement('option');o.value=v;o.textContent=l+' (مخصّص)';pm.appendChild(o);}});
+  if(pm){pm.innerHTML='';ms.forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;if(v===primary)o.selected=true;pm.appendChild(o);});}
 }
 async function loadProviders(){
   const r=await api('/api/providers');
   CUSTOM_MODELS=(r&&r.custom||[]).map(c=>[c.value,c.label]);
+  // النماذج المتصلة فقط (المخزّنة مفاتيحها) من كتالوج نماذج الذكاء
+  const cat=await api('/api/models/catalog');
+  CONNECTED_MODELS=((cat&&cat.providers)||[]).filter(p=>p.connected).map(p=>{
+    const m=p.active_model||p.models[0];
+    return [p.id+'/'+m, p.name];
+  });
 }
 async function addProvider(){
   const name=document.getElementById('cp-name').value.trim();
@@ -1066,14 +1078,19 @@ function mdRender(src){
   s=s.replace(/\n/g,'<br>');
   return s;
 }
-function addBubble(role,text){
+function fmtModel(m){ // "provider/model" -> اسم مختصر
+  if(!m||m==='none') return '';
+  const parts=m.split('/'); return parts[0]+' · '+parts[parts.length-1];
+}
+function addBubble(role,text,model){
   const w=document.getElementById('cwelcome');if(w)w.remove();
   const typing=document.getElementById('typing');
   const wrap=document.getElementById('chat-wrap');
   const d=document.createElement('div');d.className='msg '+role;
   const t=new Date().toLocaleTimeString('ar',{hour:'2-digit',minute:'2-digit'});
   const body=role==='user'?esc(text):mdRender(text);
-  d.innerHTML=`<div class="bubble">${body}</div><div class="mmeta">${role==='user'?(LANG==='ar'?'أنت':'You'):(document.getElementById('ag-name')?.value||'كلاو')} · ${t}</div>`;
+  const tag=(role==='agent'&&model)?`<div class="mtag">${esc(fmtModel(model))}</div>`:'';
+  d.innerHTML=`<div class="bubble">${tag}${body}</div><div class="mmeta">${role==='user'?(LANG==='ar'?'أنت':'You'):(document.getElementById('ag-name')?.value||'كلاو')} · ${t}</div>`;
   wrap.insertBefore(d,typing);wrap.scrollTop=99999;
 }
 async function send(){
@@ -1086,7 +1103,7 @@ async function send(){
   document.getElementById('chat-wrap').scrollTop=99999;
   const r=await api('/api/chat','POST',{message:msg,model,session:SESSION});
   typing.classList.remove('show');btn.disabled=false;
-  if(r?.reply) addBubble('agent',r.reply);
+  if(r?.reply) addBubble('agent',r.reply,r.model_used);
   else addBubble('agent',LANG==='ar'?'⚠️ تعذّر الاتصال. تحقق من مفاتيح API في الإعدادات.':'⚠️ Connection failed. Check API keys in Settings.');
   inp.focus();
 }

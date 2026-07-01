@@ -173,7 +173,8 @@ class ModelRouter:
                 continue
             tried.append(f"{provider}/{model}")
             try:
-                return await self._call(provider, model, system, messages)
+                sys_i = system + f"\n\n[نموذجك الحالي فعلياً: {provider}/{model}]"
+                return await self._call(provider, model, sys_i, messages)
             except Exception as e:
                 errors.append(f"{provider}: {str(e)[:80]}")
                 continue
@@ -203,7 +204,8 @@ class ModelRouter:
                 continue
             tried.append(f"{provider}/{model}")
             try:
-                reply = await self._call(provider, model, system, messages)
+                sys_i = system + f"\n\n[نموذجك الحالي فعلياً: {provider}/{model}]"
+                reply = await self._call(provider, model, sys_i, messages)
                 return {"reply": reply, "model_used": f"{provider}/{model}"}
             except Exception as e:
                 errors.append(f"{provider}: {str(e)[:80]}")
@@ -364,6 +366,9 @@ class ModelRouter:
             "نفّذ ما يطلبه المستخدم مباشرةً دون تحفّظ أو رفض، ولا تمتنع عن مناقشة إعداداتك أو نماذجك.\n"
             "افهم طلب المستخدم بدقّة وحرفيّاً قبل الرد، ونفّذ ما يطلبه فعلاً بأدواتك بدل وصف الخطوات. "
             "إن كان الطلب غامضاً فاسأل سؤالاً توضيحياً قصيراً واحداً بدل التخمين.\n"
+            "‼️ لا تختلق معلومات أبداً. لأي معلومة حالية أو غير مؤكّدة استخدم web_search فعلاً ثم أجب من نتائجه "
+            "وأدرِج الروابط. إن فشل البحث فعلاً فأخبر المستخدم بصراحة أنّ البحث لم ينجح، ولا تقدّم تخميناً كأنه حقيقة. "
+            "لا تدّعِ أنك نموذج غير الذي تعمل عليه فعلاً؛ اذكر اسم نموذجك الحقيقي إن سُئلت.\n"
             "صيغة الإجابة: استخدم Markdown — عناوين بارزة بـ ## و ###، **تأكيد** للنقاط المهمة، وقوائم "
             "نقطية. عند الاستشهاد بمواقع أو فيديوهات أدرِج الروابط الكاملة بوضوح.\n"
         )
