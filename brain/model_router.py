@@ -27,6 +27,7 @@ class ModelRouter:
         "mistral":    ("https://api.mistral.ai/v1/chat/completions",      "MISTRAL_API_KEY",    "openai"),
         "xai":        ("https://api.x.ai/v1/chat/completions",            "XAI_API_KEY",        "openai"),
         "zai":        ("https://api.z.ai/api/paas/v4/chat/completions",   "ZAI_API_KEY",        "openai"),
+        "moonshot":   ("https://api.moonshot.ai/v1/chat/completions",     "MOONSHOT_API_KEY",   "openai"),
         "nararouter": ("https://router.bynara.id/v1/chat/completions",    "NARAROUTER_API_KEY", "openai"),
         "cloudflare": ("",                                                "CLOUDFLARE_API_TOKEN", "cloudflare"),
         "gemini":     ("",                                                "GEMINI_API_KEY",     "gemini"),
@@ -40,6 +41,7 @@ class ModelRouter:
         "openrouter": "meta-llama/llama-3.3-70b", "mistral": "mistral-small-latest",
         "xai": "grok-2", "zai": "glm-4.6", "gemini": "gemini-2.0-flash",
         "ollama": "mistral",
+        "moonshot": "moonshot-v1-8k",
         "nararouter": "gpt-4o-mini",
         "cloudflare": "@cf/meta/llama-3.1-8b-instruct",
     }
