@@ -130,6 +130,7 @@ def conversation_get(conv_id: str) -> dict:
 
 def conversation_new() -> dict:
     import time
+    from memory.learning.dreaming import light_dreaming; light_dreaming()
     return {"id": f"conv:{int(time.time())}"}
 
 
