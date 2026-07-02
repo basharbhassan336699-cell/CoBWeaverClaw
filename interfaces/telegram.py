@@ -126,6 +126,7 @@ class TelegramBot:
         elif cmd == "clear":
             try:
                 self.agent.memory.clear("working", user_id)
+                from memory.learning.dreaming import light_dreaming; light_dreaming()
                 await self._send(chat_id, "✅ مُسحت ذاكرة الجلسة (Working).")
             except Exception as e:
                 await self._send(chat_id, f"❌ {e}")

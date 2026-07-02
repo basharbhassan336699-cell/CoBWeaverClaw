@@ -34,6 +34,7 @@ class BuiltinMemoryProvider(MemoryProvider):
         user_file = MEMORIES_DIR / "USER.md"
         if not user_file.exists():
             user_file.write_text("# ملف المستخدم\n\n", encoding="utf-8")
+        from memory.learning.dreaming import schedule_dreaming; schedule_dreaming()
         logger.info("BuiltinMemoryProvider initialized: %s", DB_PATH)
 
     def migrate_from_md(self) -> int:
