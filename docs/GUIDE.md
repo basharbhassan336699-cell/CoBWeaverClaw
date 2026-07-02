@@ -13,7 +13,6 @@
 10. التعلم الذاتي
 11. التداول (Swarm Engine)
 12. استكشاف الأخطاء
-13. الهجرة من OpenClaw / Hermes
 
 ---
 
@@ -251,8 +250,6 @@ agent learn status        # آخر دورة تعلم
 agent update              # تحديث للأحدث
 agent backup              # نسخة احتياطية كاملة
 agent restore file.bak    # استعادة من نسخة
-agent migrate --from openclaw  # هجرة من OpenClaw
-agent migrate --from hermes    # هجرة من Hermes
 agent reset               # إعادة ضبط المصنع
 agent reset --soft        # إعادة الإعدادات مع الحفاظ على الذاكرة
 agent version             # النسخة الحالية
@@ -491,24 +488,6 @@ agent fix --memory
 ```bash
 agent models benchmark
 # يقارن النماذج ويوصي بالأسرع
-```
-
----
-
-## 13. الهجرة من المنافسين
-
-### من OpenClaw
-
-```bash
-agent migrate --from openclaw
-# يستورد: إعدادات + ذاكرة + Skills + مفاتيح API
-```
-
-### من Hermes
-
-```bash
-agent migrate --from hermes
-# يستورد: SQLite + Skills + إعدادات Telegram
 ```
 
 ---

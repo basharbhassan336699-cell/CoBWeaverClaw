@@ -21,26 +21,10 @@
 
 ## ما هو CoBWeaverClaw؟
 
-CoBWeaverClaw هو وكيل ذكاء اصطناعي مفتوح المصدر، منافس مباشر لـ **OpenClaw** و**Hermes Agent**، مبني بفلسفة واحدة:
+CoBWeaverClaw هو وكيل ذكاء اصطناعي شخصي مفتوح المصدر، مبني بفلسفة واحدة:
 
 > **وكيل تملكه أنت بالكامل — يعمل على جهازك، يتعلم منك، يتطور بذاته.**
 > *Your agent. Your rules. Your machine. No cloud lock-in. No limits.*
-
----
-
-## المقارنة مع المنافسين
-
-| الميزة | OpenClaw | Hermes | **CoBWeaverClaw** |
-|--------|----------|--------|-------------------|
-| Android رسمي | ❌ | ❌ | ✅ |
-| iOS رسمي | ❌ | ❌ | ✅ أول وكيل |
-| Windows بدون WSL | ✅ | ❌ | ✅ |
-| ذاكرة لا نهائية | ❌ | ❌ (15 فقط) | ✅ LightRAG |
-| أمان مدمج | ❌ (9 CVEs) | ❌ (4 Critical) | ✅ Sandbox |
-| تعلم ذاتي من الويب | ❌ | ❌ | ✅ |
-| Swarm Trading Engine | ❌ | ❌ | ✅ حصري |
-| متصفح داخلي | ❌ | ❌ | ✅ |
-| نموذج خاص | ❌ | جزئي | ✅ Qwen Fine-tuned |
 
 ---
 
@@ -93,7 +77,6 @@ agent scan          # اكتشاف الجهاز
 agent doctor --fix  # تشخيص وإصلاح تلقائي
 agent status --live # مراقبة حية
 agent learn now     # تعلم ذاتي فوري
-agent migrate --from openclaw  # هجرة من OpenClaw
 ```
 
 ---

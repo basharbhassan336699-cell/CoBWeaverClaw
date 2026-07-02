@@ -13,7 +13,7 @@ class BaseSkill(ABC):
     trigger:     list  = []
     permissions: list  = []
     sandbox:     bool  = True
-    score:       float = 0.8     # 0.0-1.0, updated by SkillClaw
+    score:       float = 0.8     # 0.0-1.0, updated by the Skill evolver
 
     @abstractmethod
     async def run(self, query: str, context: dict) -> str:

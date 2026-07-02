@@ -6,7 +6,7 @@ SQLite Store — Three-layer memory system.
   LAYER 3  Core Knowledge   — تفضيلات وحقائق دائمة عن المستخدم (facts)
 
 كل البيانات في ~/.cobweaverclaw/memory.db — تبقى رغم git clone/pull.
-This is the core differentiator vs Hermes (forgets) and OpenClaw (drifts).
+ذاكرة دائمة لا تُنسى ولا تنحرف عبر الجلسات.
 """
 import sqlite3
 import os

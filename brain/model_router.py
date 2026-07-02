@@ -417,6 +417,15 @@ class ModelRouter:
                     f"- ({e.get('topic','')}) {e.get('key_facts','')}".strip()
                     for e in episodes) + "\n"
 
+        # كتلة نظام الذاكرة المُدمج (memory-merge) + الاسترجاع المُسبَق
+        memory_block = (context or {}).get("memory_block", "")
+        if memory_block and memory_block.strip():
+            prompt += "\n" + memory_block.strip() + "\n"
+        memory_recall = (context or {}).get("memory_recall", "")
+        if memory_recall and memory_recall.strip():
+            prompt += ("\nمعلومات مسترجَعة ذات صلة بالرسالة الحالية (للاستئناس):\n"
+                       + memory_recall.strip() + "\n")
+
         prompt += "\nأجب دائماً بلغة المستخدم في رسالته الحالية."
         return prompt
 

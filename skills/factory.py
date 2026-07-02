@@ -1,6 +1,6 @@
 """
 Skill Factory — Auto-generates new skills from repeated tasks.
-Inspired by Hermes Skill Factory, improved with quality scoring.
+Uses quality scoring to gate generated skills.
 """
 import json
 import os

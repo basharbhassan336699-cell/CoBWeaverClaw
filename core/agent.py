@@ -4,6 +4,7 @@ The heart of the agent.
 """
 import asyncio
 import logging
+import time
 from core.router import Router
 from core.platform import PlatformAdapter
 from core.devices import DeviceRegistry
@@ -37,7 +38,32 @@ class CoBWeaverClaw:
         self.notifier = self._init_notifier()
         self.updater  = Updater(config.get("updates", {}), self.notifier)
 
+        # ── نظام الذاكرة المُدمج (memory-merge) — إضافي ودفاعي ──
+        # يُهيَّأ بشكل كسول ولا يكسر الوكيل إن فشل استيراده أو تهيئته.
+        self.session_id      = f"session-{int(time.time())}"
+        self._memory_manager = None
+        self._memory_messages = []
+        self._init_memory_manager()
+
         logger.info(f"CoBWeaverClaw initialized on {self.platform.platform}")
+
+    def _init_memory_manager(self):
+        """يهيّئ MemoryManager مع BuiltinMemoryProvider (اختياري وآمن)."""
+        mem_cfg = self.config.get("memory", {}) or {}
+        if not mem_cfg.get("manager_enabled", True):
+            logger.info("Memory manager disabled via config")
+            return
+        try:
+            from memory.core.memory_manager import MemoryManager
+            from memory.core.builtin_provider import BuiltinMemoryProvider
+            mm = MemoryManager()
+            mm.add_provider(BuiltinMemoryProvider())
+            mm.initialize_all(session_id=self.session_id)
+            self._memory_manager = mm
+            logger.info("Memory manager initialized (builtin provider)")
+        except Exception as e:
+            self._memory_manager = None
+            logger.warning(f"Memory manager unavailable: {e}")
 
     def _init_notifier(self):
         """ينشئ notifier حسب الإعدادات."""
@@ -81,6 +107,10 @@ class CoBWeaverClaw:
             lang = self._detect_language(message)
 
         context  = await self.memory.get_context(user_id, message)
+
+        # قبل الدورة (pre-turn): حقن كتلة الذاكرة + الاسترجاع المُسبَق
+        context = self._memory_pre_turn(message, context)
+
         response = await self.router.handle(message, context, lang)
         await self.memory.save(user_id, message, response, lang)
         # تلخيص تلقائي في الخلفية (Layer 2) دون مقاطعة المستخدم
@@ -88,7 +118,73 @@ class CoBWeaverClaw:
             await self.memory.maybe_summarize(user_id)
         except Exception:
             pass
+
+        # بعد الدورة (post-turn): مزامنة + جدولة استرجاع + مراجعة خلفية
+        self._memory_post_turn(message, response)
         return response
+
+    def _memory_pre_turn(self, message: str, context: dict) -> dict:
+        """يضيف كتلة نظام الذاكرة والاسترجاع المُسبَق إلى السياق (آمن)."""
+        if self._memory_manager is None:
+            return context
+        context = dict(context or {})
+        try:
+            block = self._memory_manager.build_system_prompt()
+            if block:
+                context["memory_block"] = block
+        except Exception as e:
+            logger.debug(f"memory build_system_prompt failed: {e}")
+        try:
+            recalled = self._memory_manager.prefetch_all(
+                message, session_id=self.session_id
+            )
+            if recalled:
+                context["memory_recall"] = recalled
+        except Exception as e:
+            logger.debug(f"memory prefetch failed: {e}")
+        return context
+
+    def _memory_post_turn(self, message: str, response: str):
+        """يزامن الدورة المكتملة ويجدول الاسترجاع والمراجعة الخلفية (آمن)."""
+        if self._memory_manager is None:
+            return
+        self._memory_messages.append({"role": "user", "content": message})
+        self._memory_messages.append({"role": "assistant", "content": response})
+        try:
+            self._memory_manager.sync_all(
+                message, response, session_id=self.session_id,
+                messages=list(self._memory_messages),
+            )
+            self._memory_manager.queue_prefetch_all(
+                message, session_id=self.session_id
+            )
+        except Exception as e:
+            logger.debug(f"memory sync failed: {e}")
+        self._spawn_background_review()
+
+    def _spawn_background_review(self):
+        """
+        مراجعة خلفية للتعلّم الذاتي — خيط منفصل (اختياري ومعطّل افتراضياً).
+
+        وحدة background_review المنقولة مبنية على واجهة الوكيل الأصلية
+        (curator / model client / session_db ...) وهي غير متوفّرة في
+        CoBWeaverClaw بعد، لذا تبقى معطّلة افتراضياً وتُفعَّل فقط عبر
+        config: memory.background_review = true بعد اكتمال المتطلّبات.
+        """
+        mem_cfg = self.config.get("memory", {}) or {}
+        if not mem_cfg.get("background_review", False):
+            return
+        try:
+            import threading
+            from memory.learning.background_review import (
+                spawn_background_review_thread,
+            )
+            target, _prompt = spawn_background_review_thread(
+                self, list(self._memory_messages), review_memory=True,
+            )
+            threading.Thread(target=target, daemon=True).start()
+        except Exception as e:
+            logger.debug(f"background review skipped: {e}")
 
     async def heartbeat(self):
         """Continuous background monitoring loop."""
@@ -119,4 +215,19 @@ class CoBWeaverClaw:
 
     async def stop(self):
         self.running = False
+        self._memory_session_end()
         logger.info("CoBWeaverClaw stopped")
+
+    def _memory_session_end(self):
+        """يُنهي جلسة الذاكرة ويُغلق المزوّدين (آمن)."""
+        if self._memory_manager is None:
+            return
+        try:
+            self._memory_manager.on_session_end(list(self._memory_messages))
+        except Exception as e:
+            logger.debug(f"memory on_session_end failed: {e}")
+        try:
+            self._memory_manager.shutdown_all()
+        except Exception as e:
+            logger.debug(f"memory shutdown failed: {e}")
+        self._memory_manager = None

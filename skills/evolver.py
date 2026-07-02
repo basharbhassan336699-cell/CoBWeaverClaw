@@ -1,6 +1,6 @@
 """
-SkillClaw Evolver — Improves strong skills, removes weak ones.
-Inspired by SkillClaw from Hermes ecosystem, with dry-run support.
+Skill Evolver — Improves strong skills, removes weak ones.
+Supports dry-run so changes can be previewed before applying.
 """
 
 
