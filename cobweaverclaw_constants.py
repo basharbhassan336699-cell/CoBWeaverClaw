@@ -20,3 +20,6 @@ def get_cobweaverclaw_home() -> Path:
 
 def display_cobweaverclaw_home() -> str:
     return "~/.cobweaverclaw"
+
+
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
