@@ -131,6 +131,11 @@ class CoBWeaverClaw:
         if lang == "auto":
             lang = self._detect_language(message)
 
+        # أوامر تأكيد الذاكرة المعلّقة (write_level=confirm)
+        cmd = (message or "").strip().lower()
+        if cmd in ("/confirm", "/discard"):
+            return self._handle_memory_confirm(cmd)
+
         context  = await self.memory.get_context(user_id, message)
 
         # قبل الدورة (pre-turn): حقن كتلة الذاكرة + الاسترجاع المُسبَق
@@ -147,6 +152,38 @@ class CoBWeaverClaw:
         # بعد الدورة (post-turn): مزامنة + جدولة استرجاع + مراجعة خلفية
         self._memory_post_turn(message, response)
         return response
+
+    def _handle_memory_confirm(self, cmd: str) -> str:
+        """يعالج /confirm و /discard للذكرى المعلّقة في حالة الجلسة."""
+        try:
+            from tools.agent_tools import get_pending_memory, clear_pending_memory
+            pending = get_pending_memory()
+            if not pending:
+                return "لا توجد ذكرى معلّقة بانتظار التأكيد."
+            clear_pending_memory()
+            if cmd == "/discard":
+                return f"🗑️ أُلغيت الذكرى المعلّقة ولم تُحفظ:\n\"{pending.get('content', '')}\""
+            # /confirm — احفظها فعلياً (auto لأن المستخدم أكّد بنفسه)
+            provider = None
+            if self._memory_manager is not None:
+                provider = self._memory_manager.get_provider("builtin")
+            if provider is None:
+                from memory.core.builtin_provider import BuiltinMemoryProvider
+                provider = BuiltinMemoryProvider()
+                provider.initialize()
+            res = provider.add_entry(
+                pending.get("content", ""),
+                context=pending.get("context", "general"),
+                write_level="auto",
+                weight=float(pending.get("weight", 1.0)),
+            )
+            if isinstance(res, dict) and res.get("ok"):
+                return (f"✅ حُفظت الذكرى في [{pending.get('context', 'general')}]:\n"
+                        f"\"{pending.get('content', '')}\"")
+            return f"⚠️ تعذّر حفظ الذكرى: {res.get('error', 'خطأ غير معروف') if isinstance(res, dict) else res}"
+        except Exception as e:
+            logger.warning(f"memory confirm failed: {e}")
+            return f"⚠️ تعذّر معالجة الأمر: {str(e)[:100]}"
 
     def _memory_pre_turn(self, message: str, context: dict) -> dict:
         """يضيف كتلة نظام الذاكرة والاسترجاع المُسبَق إلى السياق (آمن)."""

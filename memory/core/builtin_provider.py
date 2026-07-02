@@ -30,10 +30,53 @@ class BuiltinMemoryProvider(MemoryProvider):
     def initialize(self, session_id: str = "", **kwargs) -> None:
         MEMORIES_DIR.mkdir(parents=True, exist_ok=True)
         self._init_db()
+        self.migrate_from_md()
         user_file = MEMORIES_DIR / "USER.md"
         if not user_file.exists():
             user_file.write_text("# ملف المستخدم\n\n", encoding="utf-8")
         logger.info("BuiltinMemoryProvider initialized: %s", DB_PATH)
+
+    def migrate_from_md(self) -> int:
+        """يرحّل MEMORY.md القديمة إلى القاعدة سطراً سطراً — مرة واحدة فقط.
+
+        يقرأ كل سطر نقطي (يبدأ بـ -) ويُدخله كذكرى general/auto، ويتجاهل
+        العناوين والأسطر الفارغة والمكرّر. flag file اسمه .migrated يمنع
+        إعادة التشغيل؛ لا يُكتب إلا بعد نجاح الترحيل كاملاً.
+        """
+        flag = MEMORIES_DIR / ".migrated"
+        if flag.exists():
+            return 0
+        old = MEMORIES_DIR / "MEMORY.md"
+        migrated = 0
+        try:
+            if old.exists():
+                now = int(time.time())
+                con = self._con()
+                for ln in old.read_text(encoding="utf-8").splitlines():
+                    ln = ln.strip()
+                    if not ln.startswith("-"):
+                        continue
+                    content = ln.lstrip("-").strip()
+                    if not content:
+                        continue
+                    dup = con.execute(
+                        "SELECT 1 FROM memories WHERE content=?", (content,)
+                    ).fetchone()
+                    if dup:
+                        continue
+                    con.execute(
+                        "INSERT INTO memories(context,content,weight,write_level,created_at,updated_at,recall_count)"
+                        " VALUES ('general',?,1.0,'auto',?,?,0)",
+                        (content, now, now),
+                    )
+                    migrated += 1
+                con.commit(); con.close()
+            flag.write_text(f"migrated={migrated} at={int(time.time())}\n", encoding="utf-8")
+            if migrated:
+                logger.info("migrate_from_md: migrated %d entries from MEMORY.md", migrated)
+        except Exception as e:
+            logger.warning("migrate_from_md failed (will retry next init): %s", e)
+        return migrated
 
     def _init_db(self) -> None:
         con = self._con()
