@@ -738,6 +738,42 @@ class MemoryManager:
         Returns JSON string result. Raises ValueError if no provider
         handles the tool.
         """
+        # أدوات الذاكرة المدمجة (CLAUDE_UPGRADE — المرحلة B)
+        if tool_name == "memory_add":
+            provider = self.get_provider("builtin")
+            if not provider:
+                return tool_error("builtin provider غير مسجّل")
+            return json.dumps(provider.add_entry(
+                content     = args.get("content", ""),
+                context     = args.get("context", "general"),
+                write_level = args.get("write_level", "auto"),
+                weight      = float(args.get("weight", 1.0)),
+            ), ensure_ascii=False)
+
+        elif tool_name == "memory_delete":
+            provider = self.get_provider("builtin")
+            if not provider:
+                return tool_error("builtin provider غير مسجّل")
+            return json.dumps(provider.delete_entry(
+                memory_id=int(args.get("id", 0))
+            ), ensure_ascii=False)
+
+        elif tool_name == "memory_list":
+            provider = self.get_provider("builtin")
+            if not provider:
+                return tool_error("builtin provider غير مسجّل")
+            return json.dumps(provider.list_by_context(
+                context=args.get("context", "general")
+            ), ensure_ascii=False)
+
+        elif tool_name == "memory_prune":
+            provider = self.get_provider("builtin")
+            if not provider:
+                return tool_error("builtin provider غير مسجّل")
+            return json.dumps(provider.prune_weak(
+                threshold=float(args.get("threshold", 0.1))
+            ), ensure_ascii=False)
+
         provider = self._tool_to_provider.get(tool_name)
         if provider is None:
             return tool_error(f"No memory provider handles tool '{tool_name}'")
