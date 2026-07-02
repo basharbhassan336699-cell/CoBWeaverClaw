@@ -472,6 +472,19 @@ TOOLS_SCHEMA.extend([{"type": "function", "function": s} for s in MEMORY_TOOL_SC
 
 _MEMORY_MM = None
 
+# الذكرى المعلّقة بانتظار /confirm أو /discard (حالة جلسة مشتركة)
+_PENDING_MEMORY: dict = {}
+
+
+def get_pending_memory():
+    """يعيد الذكرى المعلّقة الحالية أو None."""
+    return dict(_PENDING_MEMORY) if _PENDING_MEMORY else None
+
+
+def clear_pending_memory():
+    """يمسح الذكرى المعلّقة."""
+    _PENDING_MEMORY.clear()
+
 
 def _memory_tool(name: str, args: dict) -> str:
     """ينفّذ أدوات الذاكرة عبر MemoryManager كسول مشترك (نفس قاعدة البيانات)."""
@@ -483,7 +496,22 @@ def _memory_tool(name: str, args: dict) -> str:
         mm.add_provider(BuiltinMemoryProvider())
         mm.initialize_all(session_id="tools")
         _MEMORY_MM = mm
-    return _MEMORY_MM.handle_tool_call(name, args or {})
+    result = _MEMORY_MM.handle_tool_call(name, args or {})
+    # عند write_level=confirm: خزّن الذكرى في حالة الجلسة بانتظار تأكيد المستخدم
+    if name == "memory_add":
+        try:
+            import json as _json
+            data = _json.loads(result)
+            if isinstance(data, dict) and data.get("pending_confirm"):
+                _PENDING_MEMORY.clear()
+                _PENDING_MEMORY.update({
+                    "content": data.get("content", (args or {}).get("content", "")),
+                    "context": data.get("context", (args or {}).get("context", "general")),
+                    "weight":  float((args or {}).get("weight", 1.0)),
+                })
+        except Exception:
+            pass
+    return result
 
 
 for _mt in ("memory_add", "memory_delete", "memory_list", "memory_prune"):
