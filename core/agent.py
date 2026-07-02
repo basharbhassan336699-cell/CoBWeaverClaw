@@ -187,27 +187,37 @@ class CoBWeaverClaw:
             logger.debug(f"memory sync failed: {e}")
         self._spawn_background_review()
 
-    def _spawn_background_review(self):
+    def _spawn_background_review(self, *, force: bool = False):
         """
-        مراجعة خلفية للتعلّم الذاتي — خيط منفصل (اختياري ومعطّل افتراضياً).
+        مراجعة خلفية للتعلّم الذاتي — خيط منفصل (اختياري، معطّل افتراضياً).
 
-        وحدة background_review المنقولة مبنية على واجهة الوكيل الأصلية
-        (curator / model client / session_db ...) وهي غير متوفّرة في
-        CoBWeaverClaw بعد، لذا تبقى معطّلة افتراضياً وتُفعَّل فقط عبر
-        config: memory.background_review = true بعد اكتمال المتطلّبات.
+        يستخدم محوّلاً أصيلاً (review_adapter) يعمل على ModelRouter و
+        BuiltinMemoryProvider الخاصّين بـ CoBWeaverClaw: يعيد تشغيل نصّ
+        المحادثة على النموذج، يستخرج حقائق/تفضيلات المستخدم الدائمة،
+        ويكتبها إلى USER.md / MEMORY.md. لا يمسّ المحادثة الحيّة إطلاقاً.
+
+        يُفعَّل عبر config: memory.background_review = true، ويجري كل
+        memory.review_interval دورة (افتراضي 6) لتقليل التكلفة، أو فوراً
+        عند إغلاق الجلسة (force=True).
         """
         mem_cfg = self.config.get("memory", {}) or {}
         if not mem_cfg.get("background_review", False):
             return
+        if self._memory_manager is None or not self._memory_messages:
+            return
+        # كادنس: راجع كل N دورة فقط (ما لم يكن الإغلاق يفرض المراجعة)
+        if not force:
+            interval = int(mem_cfg.get("review_interval", 6) or 6)
+            turns = len(self._memory_messages) // 2
+            if interval > 0 and turns % interval != 0:
+                return
         try:
             import threading
-            from memory.learning.background_review import (
-                spawn_background_review_thread,
-            )
-            target, _prompt = spawn_background_review_thread(
-                self, list(self._memory_messages), review_memory=True,
-            )
-            threading.Thread(target=target, daemon=True).start()
+            from memory.learning.review_adapter import run_review
+            snapshot = list(self._memory_messages)
+            threading.Thread(
+                target=run_review, args=(self, snapshot), daemon=True,
+            ).start()
         except Exception as e:
             logger.debug(f"background review skipped: {e}")
 
@@ -247,6 +257,14 @@ class CoBWeaverClaw:
         """يُنهي جلسة الذاكرة ويُغلق المزوّدين (آمن)."""
         if self._memory_manager is None:
             return
+        # مراجعة أخيرة متزامنة عند الإغلاق (إن كانت مفعّلة) لالتقاط آخر الدورات
+        mem_cfg = self.config.get("memory", {}) or {}
+        if mem_cfg.get("background_review", False) and self._memory_messages:
+            try:
+                from memory.learning.review_adapter import run_review
+                run_review(self, list(self._memory_messages))
+            except Exception as e:
+                logger.debug(f"final review failed: {e}")
         try:
             self._memory_manager.on_session_end(list(self._memory_messages))
         except Exception as e:

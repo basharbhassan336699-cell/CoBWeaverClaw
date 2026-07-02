@@ -50,3 +50,39 @@ class BuiltinMemoryProvider(MemoryProvider):
 
     def get_tool_schemas(self) -> List[Dict[str, Any]]:
         return []
+
+    # ── كتابة الذاكرة (تستدعيها مراجعة الخلفية) ──────────────────────
+    @staticmethod
+    def _append_bullets(path: Path, bullets: List[str]) -> int:
+        """يضيف نقاطاً جديدة (يتجاهل المكرّر) لملف Markdown ويعيد عدد المضاف."""
+        _MEM_DIR.mkdir(parents=True, exist_ok=True)
+        try:
+            existing = path.read_text(encoding="utf-8") if path.exists() else ""
+        except Exception:
+            existing = ""
+        existing_lines = {
+            ln.strip().lstrip("- ").strip().lower()
+            for ln in existing.splitlines() if ln.strip().startswith("-")
+        }
+        added = []
+        for b in bullets:
+            b = (b or "").strip().lstrip("-").strip()
+            if not b:
+                continue
+            if b.lower() in existing_lines:
+                continue
+            existing_lines.add(b.lower())
+            added.append(f"- {b}")
+        if not added:
+            return 0
+        body = existing.rstrip("\n") + "\n" if existing.strip() else existing
+        path.write_text(body + "\n".join(added) + "\n", encoding="utf-8")
+        return len(added)
+
+    def add_user_facts(self, bullets: List[str]) -> int:
+        """يخزّن حقائق عن المستخدم في USER.md."""
+        return self._append_bullets(_USER_MD, bullets)
+
+    def add_memories(self, bullets: List[str]) -> int:
+        """يخزّن ملاحظات/تفضيلات دائمة في MEMORY.md."""
+        return self._append_bullets(_MEMORY_MD, bullets)
