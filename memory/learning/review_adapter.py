@@ -163,8 +163,8 @@ def run_review(agent: Any, messages: List[Dict[str, Any]]) -> List[str]:
             return []
 
         actions: List[str] = []
-        n_facts = provider.add_user_facts(parsed["user_facts"]) if parsed["user_facts"] else 0
-        n_mem = provider.add_memories(parsed["memories"]) if parsed["memories"] else 0
+        n_facts = _append_user_facts(parsed["user_facts"]) if parsed["user_facts"] else 0
+        n_mem = _add_memories(provider, parsed["memories"]) if parsed["memories"] else 0
         if n_facts:
             actions.append(f"User profile: +{n_facts} fact(s)")
         if n_mem:
@@ -175,6 +175,56 @@ def run_review(agent: Any, messages: List[Dict[str, Any]]) -> List[str]:
     except Exception as e:
         logger.debug("Background review adapter failed: %s", e)
         return []
+
+
+def _append_user_facts(bullets: List[str]) -> int:
+    """يضيف حقائق المستخدم إلى USER.md (بلا تكرار) — يُحقن كـ <user_profile>."""
+    from memory.core.builtin_provider import MEMORIES_DIR
+    path = MEMORIES_DIR / "USER.md"
+    MEMORIES_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        existing = path.read_text(encoding="utf-8") if path.exists() else ""
+    except Exception:
+        existing = ""
+    existing_lines = {
+        ln.strip().lstrip("- ").strip().lower()
+        for ln in existing.splitlines() if ln.strip().startswith("-")
+    }
+    added = []
+    for b in bullets:
+        b = (b or "").strip().lstrip("-").strip()
+        if b and b.lower() not in existing_lines:
+            existing_lines.add(b.lower())
+            added.append(f"- {b}")
+    if not added:
+        return 0
+    body = existing.rstrip("\n") + "\n" if existing.strip() else existing
+    path.write_text(body + "\n".join(added) + "\n", encoding="utf-8")
+    return len(added)
+
+
+def _add_memories(provider: Any, bullets: List[str]) -> int:
+    """يخزّن التفضيلات الدائمة في قاعدة الذاكرة الجديدة (سياق general، بلا تكرار)."""
+    try:
+        existing = {
+            str(e.get("content", "")).strip().lower()
+            for e in provider.list_by_context("general")
+        }
+    except Exception:
+        existing = set()
+    n = 0
+    for b in bullets:
+        b = (b or "").strip().lstrip("-").strip()
+        if not b or b.lower() in existing:
+            continue
+        try:
+            res = provider.add_entry(b, context="general", write_level="auto")
+            if isinstance(res, dict) and res.get("ok"):
+                existing.add(b.lower())
+                n += 1
+        except Exception:
+            continue
+    return n
 
 
 def _find_builtin_provider(agent: Any) -> Any:

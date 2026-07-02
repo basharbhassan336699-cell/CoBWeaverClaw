@@ -466,6 +466,29 @@ _DISPATCH = {
     "update_setting": lambda a: update_setting(a.get("key", ""), a.get("value", "")),
 }
 
+# ── أدوات الذاكرة المدمجة (CLAUDE_UPGRADE — المرحلة C) ─────────────
+from tools.memory_tools import MEMORY_TOOL_SCHEMAS
+TOOLS_SCHEMA.extend([{"type": "function", "function": s} for s in MEMORY_TOOL_SCHEMAS])
+
+_MEMORY_MM = None
+
+
+def _memory_tool(name: str, args: dict) -> str:
+    """ينفّذ أدوات الذاكرة عبر MemoryManager كسول مشترك (نفس قاعدة البيانات)."""
+    global _MEMORY_MM
+    if _MEMORY_MM is None:
+        from memory.core.memory_manager import MemoryManager
+        from memory.core.builtin_provider import BuiltinMemoryProvider
+        mm = MemoryManager()
+        mm.add_provider(BuiltinMemoryProvider())
+        mm.initialize_all(session_id="tools")
+        _MEMORY_MM = mm
+    return _MEMORY_MM.handle_tool_call(name, args or {})
+
+
+for _mt in ("memory_add", "memory_delete", "memory_list", "memory_prune"):
+    _DISPATCH[_mt] = (lambda n: (lambda a: _memory_tool(n, a)))(_mt)
+
 
 def execute(name: str, args: dict) -> str:
     """ينفّذ أداة باسمها ويُعيد نصّ النتيجة."""
