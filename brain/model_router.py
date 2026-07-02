@@ -222,6 +222,24 @@ class ModelRouter:
         return {"reply": "⚠️ تعذّر الاتصال بأي نموذج. " + ("؛ ".join(errors) or ""),
                 "model_used": "none", "tried": tried, "tools": []}
 
+    async def review_complete(self, system: str, user_content: str, force_model=None):
+        """
+        طلب خام بنظام (system) مخصّص ورسالة مستخدم واحدة — يُستخدَم للمراجعة
+        الخلفية للتعلّم الذاتي. يُجرّب نفس ترتيب النماذج ويعيد نص الرد،
+        أو None إن تعذّر الاتصال بأي نموذج. لا يحقن هوية الوكيل.
+        """
+        messages = [{"role": "user", "content": user_content}]
+        order = self._build_order(force_model)
+        for model_str in order:
+            provider, model = self._parse_model(model_str)
+            if provider not in self.PROVIDERS:
+                continue
+            try:
+                return await self._call(provider, model, system, messages)
+            except Exception:
+                continue
+        return None
+
     @staticmethod
     def _is_model_question(message: str) -> bool:
         """يكتشف أسئلة 'أي نموذج تستخدم؟' لضمان جواب صادق."""
