@@ -17,7 +17,6 @@ class CLI:
         "skills":   "Skill management",
         "learn":    "Trigger self-learning",
         "backup":   "Backup agent data",
-        "migrate":  "Migrate from OpenClaw/Hermes",
         "help":     "Show this help",
     }
 

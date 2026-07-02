@@ -9,7 +9,6 @@ import sys
 class Doctor:
     """
     Comprehensive diagnostic and auto-repair system.
-    Inspired by OpenClaw doctor, significantly expanded.
     """
 
     # المزود → (متغير البيئة, رابط فحص الاتصال)
