@@ -58,12 +58,37 @@ class CoBWeaverClaw:
             from memory.core.builtin_provider import BuiltinMemoryProvider
             mm = MemoryManager()
             mm.add_provider(BuiltinMemoryProvider())
+            # مزود ذاكرة خارجي اختياري (memory.provider في الإعدادات)
+            provider_name = mem_cfg.get("provider")
+            if provider_name:
+                self._register_external_provider(mm, provider_name)
             mm.initialize_all(session_id=self.session_id)
             self._memory_manager = mm
             logger.info("Memory manager initialized (builtin provider)")
         except Exception as e:
             self._memory_manager = None
             logger.warning(f"Memory manager unavailable: {e}")
+
+    def _register_external_provider(self, mm, provider_name: str):
+        """يحمّل ويُسجّل مزوّد ذاكرة خارجي إن كان متاحاً (آمن)."""
+        try:
+            from memory.plugins._discovery import load_memory_provider
+            provider = load_memory_provider(provider_name)
+            if provider is None:
+                logger.warning(f"Memory provider '{provider_name}' not found")
+                return
+            if not provider.is_available():
+                logger.warning(
+                    f"Memory provider '{provider_name}' unavailable "
+                    "(missing package or API key) — skipped"
+                )
+                return
+            mm.add_provider(provider)
+            logger.info(f"External memory provider registered: {provider_name}")
+        except Exception as e:
+            logger.warning(
+                f"External memory provider '{provider_name}' failed to load: {e}"
+            )
 
     def _init_notifier(self):
         """ينشئ notifier حسب الإعدادات."""
