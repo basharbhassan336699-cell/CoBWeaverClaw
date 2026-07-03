@@ -426,6 +426,34 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
   </div>
   <div class="sdiv"></div>
   <div class="sidebar-section">
+    <div class="sidebar-lbl" data-ar="المراقبة" data-en="Monitoring">المراقبة</div>
+    <button class="nav-item" onclick="nav('dreaming',this)">
+      <span class="ni"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span>Dreaming</span>
+    </button>
+    <button class="nav-item" onclick="nav('trading',this)">
+      <span class="ni"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="17 6 23 6 23 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span data-ar="التداول" data-en="Trading">التداول</span>
+    </button>
+    <button class="nav-item" onclick="nav('workboard',this)">
+      <span class="ni"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><line x1="9" y1="3" x2="9" y2="21" stroke="currentColor" stroke-width="1.8"/><line x1="15" y1="3" x2="15" y2="21" stroke="currentColor" stroke-width="1.8"/></svg></span>
+      <span data-ar="لوحة العمل" data-en="Workboard">لوحة العمل</span>
+    </button>
+    <button class="nav-item" onclick="nav('pairing',this)">
+      <span class="ni"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span data-ar="الإقران" data-en="Pairing">الإقران</span>
+    </button>
+    <button class="nav-item" onclick="nav('usage',this)">
+      <span class="ni"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><line x1="18" y1="20" x2="18" y2="10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="12" y1="20" x2="12" y2="4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="6" y1="20" x2="6" y2="14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+      <span data-ar="الاستخدام" data-en="Usage">الاستخدام</span>
+    </button>
+    <button class="nav-item" onclick="nav('logs',this)">
+      <span class="ni"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="14 2 14 8 20 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><line x1="8" y1="13" x2="16" y2="13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="17" x2="13" y2="17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+      <span data-ar="السجلات" data-en="Logs">السجلات</span>
+    </button>
+  </div>
+  <div class="sdiv"></div>
+  <div class="sidebar-section">
     <div class="sidebar-lbl" data-ar="الوكيل" data-en="Agent">الوكيل</div>
     <button class="nav-item" onclick="nav('identity',this)">
       <span class="ni"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/></svg></span>
@@ -516,6 +544,17 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
       <div class="stat"><div class="snum" id="ov-mem">—</div><div class="slbl" data-ar="في الذاكرة" data-en="In Memory">في الذاكرة</div></div>
       <div class="stat"><div class="snum">5</div><div class="slbl" data-ar="مهارة نشطة" data-en="Active Skills">مهارة نشطة</div></div>
     </div>
+    <!-- بطاقات إحصائية v2 -->
+    <div class="g3" style="margin-bottom:12px">
+      <div class="stat"><div class="snum" id="ov2-sess">—</div><div class="slbl" data-ar="جلسات نشطة" data-en="Active Sessions">جلسات نشطة</div></div>
+      <div class="stat"><div class="snum" id="ov2-skills">—</div><div class="slbl" data-ar="المهارات" data-en="Skills">المهارات</div></div>
+      <div class="stat"><div class="snum" id="ov2-ch">—</div><div class="slbl" data-ar="قنوات متصلة" data-en="Connected Channels">قنوات متصلة</div></div>
+    </div>
+    <div class="g3" style="margin-bottom:12px">
+      <div class="stat"><div class="snum" id="ov2-mems">—</div><div class="slbl" data-ar="إجمالي الذكريات" data-en="Total Memories">إجمالي الذكريات</div></div>
+      <div class="stat"><div class="snum" id="ov2-tokens">—</div><div class="slbl" data-ar="tokens اليوم" data-en="Today's Tokens">tokens اليوم</div></div>
+      <div class="stat"><div class="snum" id="ov2-dream" style="font-size:14px;padding-top:4px">—</div><div class="slbl" data-ar="Dreaming القادم" data-en="Next Dreaming">Dreaming القادم</div></div>
+    </div>
     <div class="card">
       <div class="ctitle">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
@@ -553,6 +592,16 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
         </button>
       </div>
     </div>
+    <!-- سجل الأحداث المباشر v2 -->
+    <div class="card">
+      <div class="ctitle">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span data-ar="سجل الأحداث المباشر" data-en="Live Event Log">سجل الأحداث المباشر</span>
+      </div>
+      <div id="ov2-log" style="font-family:monospace;font-size:11px;max-height:220px;overflow-y:auto;line-height:1.7">
+        <div class="empty"><div class="ei">📡</div><span data-ar="لا أحداث بعد" data-en="No events yet">لا أحداث بعد</span></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -580,6 +629,41 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
         <button class="btn btn-d" onclick="clearMem('all')"><span data-ar="مسح الكل" data-en="Clear All">مسح الكل</span></button>
       </div>
       <div class="note" data-ar="💡 المعرفة الأساسية لا تُمسح إلا يدوياً — هي ما يجعل الوكيل يتذكر تفضيلاتك الدائمة" data-en="💡 Core knowledge is only deleted manually — it makes the agent remember your permanent preferences">💡 المعرفة الأساسية لا تُمسح إلا يدوياً — هي ما يجعل الوكيل يتذكر تفضيلاتك الدائمة</div>
+    </div>
+    <!-- الذاكرة الموزونة v2 -->
+    <div class="card">
+      <div class="ctitle">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3v18M5 8l7-5 7 5M5 16l7 5 7-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span data-ar="الذاكرة الموزونة (SQLite)" data-en="Weighted Memory (SQLite)">الذاكرة الموزونة (SQLite)</span>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+        <button class="btn btn-g wm-tab" data-ctx="general" onclick="wmTab('general',this)" style="padding:5px 12px;font-size:11px;border-color:var(--orange);color:var(--orange)">general</button>
+        <button class="btn btn-g wm-tab" data-ctx="trading" onclick="wmTab('trading',this)" style="padding:5px 12px;font-size:11px">trading</button>
+        <button class="btn btn-g wm-tab" data-ctx="academic" onclick="wmTab('academic',this)" style="padding:5px 12px;font-size:11px">academic</button>
+        <button class="btn btn-g wm-tab" data-ctx="technical" onclick="wmTab('technical',this)" style="padding:5px 12px;font-size:11px">technical</button>
+      </div>
+      <input id="wm-q" type="text" placeholder="ابحث في المحتوى..." oninput="wmRender()" style="margin-bottom:8px">
+      <div style="overflow-x:auto">
+        <table class="tbl" id="wm-tbl">
+          <thead><tr>
+            <th onclick="wmSort('id')" style="cursor:pointer">ID ↕</th>
+            <th data-ar="المحتوى" data-en="Content">المحتوى</th>
+            <th onclick="wmSort('weight')" style="cursor:pointer"><span data-ar="الوزن" data-en="Weight">الوزن</span> ↕</th>
+            <th onclick="wmSort('eff')" style="cursor:pointer"><span data-ar="الفعلي" data-en="Effective">الفعلي</span> ↕</th>
+            <th onclick="wmSort('recall_count')" style="cursor:pointer"><span data-ar="استدعاء" data-en="Recalls">استدعاء</span> ↕</th>
+            <th>write_level</th><th></th>
+          </tr></thead>
+          <tbody id="wm-body"><tr><td colspan="7" style="color:var(--muted)">—</td></tr></tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:3px">
+          <span data-ar="استخدام السياق" data-en="Context usage">استخدام السياق</span><span id="wm-used">0 / 2200</span>
+        </div>
+        <div style="height:6px;background:var(--card3);border-radius:4px;overflow:hidden">
+          <div id="wm-bar" style="height:100%;width:0%;background:var(--orange);transition:width .3s"></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -782,6 +866,173 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
   </div>
 </div>
 
+<!-- DREAMING -->
+<div id="page-dreaming" class="page">
+  <div class="pscroll">
+    <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+      <button class="btn btn-g dr-tab" data-t="diary" onclick="drTab('diary',this)" style="padding:5px 12px;font-size:11px;border-color:var(--orange);color:var(--orange)"><span data-ar="اليوميات" data-en="Diary">اليوميات</span></button>
+      <button class="btn btn-g dr-tab" data-t="next" onclick="drTab('next',this)" style="padding:5px 12px;font-size:11px"><span data-ar="الموعد التالي" data-en="Next Run">الموعد التالي</span></button>
+      <button class="btn btn-g dr-tab" data-t="trade" onclick="drTab('trade',this)" style="padding:5px 12px;font-size:11px">Trading Summary</button>
+    </div>
+    <div id="dr-diary" class="card">
+      <div class="ctitle"><span data-ar="📖 Dreams Diary — سجل الأحلام" data-en="📖 Dreams Diary">📖 Dreams Diary — سجل الأحلام</span></div>
+      <div id="dr-diary-list"><div class="empty"><div class="ei">💤</div><span data-ar="لا مدخلات بعد" data-en="No entries yet">لا مدخلات بعد</span></div></div>
+    </div>
+    <div id="dr-next" class="card" style="display:none">
+      <div class="ctitle"><span data-ar="⏰ الجدولة" data-en="⏰ Schedule">⏰ الجدولة</span></div>
+      <table class="tbl">
+        <tr><td style="color:var(--muted)" data-ar="آخر تشغيل" data-en="Last run">آخر تشغيل</td><td id="dr-last">—</td></tr>
+        <tr><td style="color:var(--muted)" data-ar="الموعد القادم" data-en="Next run">الموعد القادم</td><td id="dr-nextrun">—</td></tr>
+        <tr><td style="color:var(--muted)" data-ar="العدّاد التنازلي" data-en="Countdown">العدّاد التنازلي</td><td id="dr-count" style="color:var(--orange);font-family:monospace">—</td></tr>
+      </table>
+      <button class="btn btn-p btn-f" style="margin-top:10px" onclick="drRun()"><span data-ar="💤 تشغيل الآن" data-en="💤 Run Now">💤 تشغيل الآن</span></button>
+    </div>
+    <div id="dr-trade" class="card" style="display:none">
+      <div class="ctitle"><span data-ar="📊 ملخص التداول الأسبوعي" data-en="📊 Weekly Trading Summary">📊 ملخص التداول الأسبوعي</span></div>
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr><th data-ar="النمط" data-en="Pattern">النمط</th><th data-ar="ربح" data-en="Wins">ربح</th><th data-ar="خسارة" data-en="Losses">خسارة</th><th>win rate</th><th>PnL%</th></tr></thead>
+          <tbody id="dr-trade-body"><tr><td colspan="5" style="color:var(--muted)">—</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TRADING -->
+<div id="page-trading" class="page">
+  <div class="pscroll">
+    <div class="card">
+      <div class="ctitle" style="justify-content:space-between">
+        <span data-ar="📈 الصفقات" data-en="📈 Trades">📈 الصفقات</span>
+        <select id="tr-filter" onchange="loadTrades()" style="width:auto;font-size:11px;padding:4px 8px">
+          <option value="all" data-ar="الكل" data-en="All">الكل</option>
+          <option value="hit_tp">hit_tp</option>
+          <option value="hit_sl">hit_sl</option>
+          <option value="manual_close">manual_close</option>
+        </select>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr><th data-ar="الأصل" data-en="Asset">الأصل</th><th data-ar="الدخول" data-en="Entry">الدخول</th><th>TP</th><th>SL</th><th data-ar="النمط" data-en="Pattern">النمط</th><th data-ar="الجلسة" data-en="Session">الجلسة</th><th data-ar="النتيجة" data-en="Outcome">النتيجة</th><th>PnL%</th><th data-ar="التاريخ" data-en="Date">التاريخ</th></tr></thead>
+          <tbody id="tr-body"><tr><td colspan="9" style="color:var(--muted)">—</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ctitle"><span data-ar="🧩 الأنماط" data-en="🧩 Patterns">🧩 الأنماط</span></div>
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr><th data-ar="النمط" data-en="Pattern">النمط</th><th data-ar="ربح" data-en="Wins">ربح</th><th data-ar="خسارة" data-en="Losses">خسارة</th><th>win rate%</th><th>PnL%</th><th style="min-width:120px"></th></tr></thead>
+          <tbody id="trp-body"><tr><td colspan="6" style="color:var(--muted)">—</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WORKBOARD -->
+<div id="page-workboard" class="page">
+  <div class="pscroll">
+    <div class="card">
+      <div class="ctitle" style="justify-content:space-between">
+        <span data-ar="🗂️ لوحة العمل" data-en="🗂️ Workboard">🗂️ لوحة العمل</span>
+        <button class="btn btn-d" style="padding:4px 10px;font-size:11px" onclick="wbClearDone()"><span data-ar="حذف المكتملة" data-en="Clear done">حذف المكتملة</span></button>
+      </div>
+      <div style="display:flex;gap:7px;margin-bottom:12px">
+        <input id="wb-new" type="text" placeholder="مهمة جديدة..." onkeydown="if(event.key==='Enter')wbAdd()">
+        <button class="btn btn-p" onclick="wbAdd()">＋</button>
+      </div>
+      <div class="g3" style="align-items:start">
+        <div><div class="slbl" style="text-align:center;margin-bottom:6px" data-ar="⏳ قيد الانتظار" data-en="⏳ Pending">⏳ قيد الانتظار</div><div id="wb-pending"></div></div>
+        <div><div class="slbl" style="text-align:center;margin-bottom:6px" data-ar="🔧 جارٍ" data-en="🔧 Doing">🔧 جارٍ</div><div id="wb-doing"></div></div>
+        <div><div class="slbl" style="text-align:center;margin-bottom:6px" data-ar="✅ مكتمل" data-en="✅ Done">✅ مكتمل</div><div id="wb-done"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAIRING -->
+<div id="page-pairing" class="page">
+  <div class="pscroll">
+    <div class="card">
+      <div class="ctitle"><span data-ar="⏳ طلبات معلّقة" data-en="⏳ Pending Requests">⏳ طلبات معلّقة</span></div>
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr><th data-ar="المنصة" data-en="Platform">المنصة</th><th data-ar="المستخدم" data-en="User">المستخدم</th><th data-ar="وقت الطلب" data-en="Requested">وقت الطلب</th><th></th></tr></thead>
+          <tbody id="pr-pending"><tr><td colspan="4" style="color:var(--muted)" data-ar="لا طلبات" data-en="No requests">لا طلبات</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ctitle"><span data-ar="🔗 مُقرَنون" data-en="🔗 Paired">🔗 مُقرَنون</span></div>
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr><th data-ar="المنصة" data-en="Platform">المنصة</th><th data-ar="الاسم" data-en="Name">الاسم</th><th data-ar="تاريخ الإقران" data-en="Paired at">تاريخ الإقران</th><th></th></tr></thead>
+          <tbody id="pr-approved"><tr><td colspan="4" style="color:var(--muted)" data-ar="لا أحد" data-en="Nobody">لا أحد</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- USAGE -->
+<div id="page-usage" class="page">
+  <div class="pscroll">
+    <div class="card">
+      <div class="ctitle" style="justify-content:space-between">
+        <span data-ar="📊 الاستخدام" data-en="📊 Usage">📊 الاستخدام</span>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-g us-per" data-d="7" onclick="usPeriod(7,this)" style="padding:4px 10px;font-size:11px;border-color:var(--orange);color:var(--orange)"><span data-ar="7 أيام" data-en="7d">7 أيام</span></button>
+          <button class="btn btn-g us-per" data-d="30" onclick="usPeriod(30,this)" style="padding:4px 10px;font-size:11px"><span data-ar="30 يوماً" data-en="30d">30 يوماً</span></button>
+          <button class="btn btn-g us-per" data-d="90" onclick="usPeriod(90,this)" style="padding:4px 10px;font-size:11px"><span data-ar="90 يوماً" data-en="90d">90 يوماً</span></button>
+        </div>
+      </div>
+      <canvas id="us-chart" style="width:100%;height:200px;display:block"></canvas>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px">
+        <span style="color:var(--orange)" data-ar="— tokens/يوم" data-en="— tokens/day">— tokens/يوم</span>
+        <span style="color:var(--green)" data-ar="— التكلفة/يوم ($)" data-en="— cost/day ($)">— التكلفة/يوم ($)</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ctitle"><span data-ar="النماذج" data-en="Models">النماذج</span></div>
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr><th data-ar="النموذج" data-en="Model">النموذج</th><th data-ar="نداءات" data-en="Calls">نداءات</th><th>tokens</th><th data-ar="التكلفة ($)" data-en="Cost ($)">التكلفة ($)</th></tr></thead>
+          <tbody id="us-models"><tr><td colspan="4" style="color:var(--muted)">—</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LOGS -->
+<div id="page-logs" class="page">
+  <div class="pscroll">
+    <div class="card" style="display:flex;flex-direction:column;height:calc(100dvh - 100px)">
+      <div class="ctitle" style="justify-content:space-between;flex-wrap:wrap;gap:6px">
+        <span data-ar="📜 السجلات" data-en="📜 Logs">📜 السجلات</span>
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          <button class="btn btn-g lg-f" data-f="ALL" onclick="lgFilter('ALL',this)" style="padding:3px 9px;font-size:10px;border-color:var(--orange);color:var(--orange)">ALL</button>
+          <button class="btn btn-g lg-f" data-f="INFO" onclick="lgFilter('INFO',this)" style="padding:3px 9px;font-size:10px">INFO</button>
+          <button class="btn btn-g lg-f" data-f="WARN" onclick="lgFilter('WARN',this)" style="padding:3px 9px;font-size:10px">WARN</button>
+          <button class="btn btn-g lg-f" data-f="ERROR" onclick="lgFilter('ERROR',this)" style="padding:3px 9px;font-size:10px">ERROR</button>
+          <button class="btn btn-g lg-f" data-f="MEM" onclick="lgFilter('MEM',this)" style="padding:3px 9px;font-size:10px">MEM</button>
+          <button class="btn btn-g lg-f" data-f="SKILL" onclick="lgFilter('SKILL',this)" style="padding:3px 9px;font-size:10px">SKILL</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        <input id="lg-q" type="text" placeholder="بحث نصي..." oninput="lgRender()" style="flex:1">
+        <button class="btn btn-g" style="padding:5px 10px;font-size:11px" onclick="lgCopy()"><span data-ar="نسخ الكل" data-en="Copy all">نسخ الكل</span></button>
+        <button class="btn btn-g" style="padding:5px 10px;font-size:11px" onclick="lgClear()"><span data-ar="مسح العرض" data-en="Clear view">مسح العرض</span></button>
+      </div>
+      <div id="lg-list" style="flex:1;overflow-y:auto;font-family:monospace;font-size:11px;line-height:1.8;background:var(--card3);border:1px solid var(--border);border-radius:var(--rs);padding:8px">
+        <div class="empty"><div class="ei">📜</div><span data-ar="لا سجلات بعد" data-en="No logs yet">لا سجلات بعد</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 </div><!-- /main -->
 </div><!-- /layout -->
 
@@ -842,11 +1093,18 @@ function nav(page,btn){
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
   if(btn) btn.classList.add('active');
-  if(page==='memory') loadMem();
-  if(page==='overview') loadOv();
-  if(page==='sessions') loadConversations();
-  if(page==='channels') loadTelegram();
-  if(page==='models') loadModelsCatalog();
+  if(page==='memory'){ loadMem(); loadWM(); }
+  else if(page==='overview'){ loadOv(); loadOv2(); }
+  else if(page==='sessions') loadConversations();
+  else if(page==='channels') loadTelegram();
+  else if(page==='models') loadModelsCatalog();
+  else if(page==='dreaming') loadDreaming();
+  else if(page==='trading'){ loadTrades(); loadPatterns(); }
+  else if(page==='workboard') wbLoad();
+  else if(page==='pairing') loadPairing();
+  else if(page==='usage') loadUsage();
+  else if(page==='logs') lgStart();
+  v2Timers(page);                     // مؤقتات التحديث الحي للتبويبات الجديدة
   if(isMobile()) setSidebar(false);   // اقفل القائمة العائمة بعد الاختيار
 }
 
@@ -1253,6 +1511,296 @@ function toast(msg,type='info'){
   el.textContent=msg;el.className='toast show '+type;
   clearTimeout(tt);tt=setTimeout(()=>el.className='toast',3000);
 }
+
+/* ══════════ لوحة v2 — التبويبات الجديدة ══════════ */
+let V2T={};   // مؤقتات التحديث الحي — تُمسح عند مغادرة التبويب
+function v2Timers(page){
+  Object.values(V2T).forEach(t=>clearInterval(t)); V2T={};
+  if(page==='overview') V2T.ov=setInterval(loadOv2,10000);        // كل 10 ثوانٍ
+  if(page==='dreaming') V2T.dr=setInterval(drTick,1000);          // عدّاد تنازلي حي
+  if(page==='logs')     V2T.lg=setInterval(lgPoll,2000);          // تدفق كل ثانيتين
+}
+function fmtTs(ts){ return ts?new Date(ts*1000).toLocaleString(LANG==='ar'?'ar':'en',{dateStyle:'short',timeStyle:'short'}):'—'; }
+
+/* ── Overview v2 ── */
+async function loadOv2(){
+  const [conv,skills,ch,mem,us,dr,lg]=await Promise.all([
+    api('/api/conversations'),api('/api/skills'),api('/api/channels'),
+    api('/api/memory/stats'),api('/api/usage?days=1'),api('/api/dreaming/status'),
+    api('/api/logs?limit=20')]);
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  set('ov2-sess',(conv&&conv.conversations||[]).length);
+  set('ov2-skills',(skills&&skills.skills||[]).length);
+  const chans=(ch&&ch.channels)||ch||{};
+  set('ov2-ch',Array.isArray(chans)?chans.filter(c=>c.connected).length:Object.values(chans).filter(v=>v===true||(v&&v.connected)).length);
+  let tot=0; try{
+    const wm=await Promise.all(['general','trading','academic','technical'].map(c=>api('/api/memory/list?context='+c)));
+    tot=wm.reduce((s,r)=>s+((r&&r.entries)||[]).length,0);
+  }catch(e){}
+  set('ov2-mems',tot);
+  set('ov2-tokens',(us&&us.today_tokens||0).toLocaleString());
+  set('ov2-dream',(dr&&dr.next_run)||'—');
+  const box=document.getElementById('ov2-log');
+  if(box&&lg&&lg.logs&&lg.logs.length){
+    box.innerHTML=lg.logs.slice(-20).reverse().map(l=>lgLine(l)).join('');
+  }
+}
+
+/* ── الذاكرة الموزونة ── */
+let WM={ctx:'general',rows:[],sort:'weight',dir:-1};
+function wmEff(w,upd){ const days=(Date.now()/1000-upd)/86400; return w*Math.exp(-Math.LN2*days/30); }
+async function loadWM(){
+  const r=await api('/api/memory/list?context='+WM.ctx);
+  WM.rows=((r&&r.entries)||[]).map(e=>({...e,eff:wmEff(e.weight,e.updated_at)}));
+  const used=(r&&r.used_chars)||0, lim=(r&&r.char_limit)||2200;
+  const u=document.getElementById('wm-used'); if(u)u.textContent=used+' / '+lim;
+  const b=document.getElementById('wm-bar'); if(b)b.style.width=Math.min(100,used/lim*100)+'%';
+  wmRender();
+}
+function wmTab(ctx,btn){
+  WM.ctx=ctx;
+  document.querySelectorAll('.wm-tab').forEach(x=>{x.style.borderColor='';x.style.color='';});
+  if(btn){btn.style.borderColor='var(--orange)';btn.style.color='var(--orange)';}
+  loadWM();
+}
+function wmSort(k){ WM.dir=(WM.sort===k)?-WM.dir:-1; WM.sort=k; wmRender(); }
+function wmRender(){
+  const q=(document.getElementById('wm-q')||{}).value?.toLowerCase()||'';
+  let rows=WM.rows.filter(r=>!q||r.content.toLowerCase().includes(q));
+  rows.sort((a,b)=>(a[WM.sort]>b[WM.sort]?1:-1)*(-WM.dir));
+  const body=document.getElementById('wm-body'); if(!body)return;
+  body.innerHTML=rows.length?rows.map(r=>`<tr>
+    <td>${r.id}</td><td style="max-width:280px;word-break:break-word">${esc(r.content)}</td>
+    <td>${r.weight.toFixed(2)}</td><td style="color:var(--orange)">${r.eff.toFixed(3)}</td>
+    <td>${r.recall_count}</td>
+    <td><span class="badge ${r.write_level==='permanent'?'bo':'bm'}">${r.write_level}</span></td>
+    <td>${r.write_level==='permanent'?'':`<button class="ibtn" title="حذف" onclick="wmDel(${r.id})" style="width:24px;height:24px">🗑</button>`}</td>
+  </tr>`).join(''):'<tr><td colspan="7" style="color:var(--muted)">'+(LANG==='ar'?'لا ذكريات في هذا السياق':'No memories in this context')+'</td></tr>';
+}
+async function wmDel(id){
+  const r=await api('/api/memory/'+id,'DELETE');
+  if(r&&r.ok){toast(LANG==='ar'?'🗑 حُذفت':'🗑 Deleted','success');loadWM();}
+  else toast('❌ '+((r&&r.error)||'فشل'),'error');
+}
+
+/* ── Dreaming ── */
+let DR={secs:0};
+function drTab(t,btn){
+  document.querySelectorAll('.dr-tab').forEach(x=>{x.style.borderColor='';x.style.color='';});
+  if(btn){btn.style.borderColor='var(--orange)';btn.style.color='var(--orange)';}
+  ['diary','next','trade'].forEach(x=>{const e=document.getElementById('dr-'+x);if(e)e.style.display=(x===t)?'':'none';});
+}
+async function loadDreaming(){
+  const [st,di,ws]=await Promise.all([api('/api/dreaming/status'),
+    api('/api/dreaming/diary'),api('/api/dreaming/weekly-summary')]);
+  if(st){
+    document.getElementById('dr-last').textContent=st.last_run||'—';
+    document.getElementById('dr-nextrun').textContent=st.next_run||'—';
+    DR.secs=st.next_secs||0;
+  }
+  const dl=document.getElementById('dr-diary-list');
+  const ents=(di&&di.entries)||[];
+  if(dl) dl.innerHTML=ents.length?ents.map(e=>`<div class="skr">
+      <div class="ski">${e.type==='deep'?'🌙':'💤'}</div>
+      <div class="skinfo"><div class="skn">${e.time} — <span class="badge ${e.type==='deep'?'bo':'bm'}">${e.type}</span>
+      <span class="badge bm">${LANG==='ar'?'حُذفت':'deleted'}: ${e.deleted}</span></div>
+      <div class="skd">${esc(e.text||'')}</div></div></div>`).join('')
+    :'<div class="empty"><div class="ei">💤</div><span>'+(LANG==='ar'?'لا مدخلات بعد':'No entries yet')+'</span></div>';
+  const tb=document.getElementById('dr-trade-body');
+  const pats=(ws&&ws.patterns)||[];
+  if(tb) tb.innerHTML=pats.length?pats.map(p=>`<tr><td><code>${esc(p.pattern)}</code></td>
+    <td style="color:var(--green)">${p.wins}</td><td style="color:var(--red)">${p.losses}</td>
+    <td>${p.win_rate}%</td><td style="color:${p.total_pnl>=0?'var(--green)':'var(--red)'}">${p.total_pnl}%</td></tr>`).join('')
+    :'<tr><td colspan="5" style="color:var(--muted)">'+(LANG==='ar'?'لا صفقات مسجّلة':'No trades yet')+'</td></tr>';
+}
+function drTick(){
+  if(DR.secs>0){DR.secs--;
+    const d=Math.floor(DR.secs/86400),h=Math.floor(DR.secs%86400/3600),m=Math.floor(DR.secs%3600/60),s=DR.secs%60;
+    const e=document.getElementById('dr-count');
+    if(e)e.textContent=(d?d+(LANG==='ar'?' يوم ':'d '):'')+String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  }
+}
+async function drRun(){
+  toast(LANG==='ar'?'💤 جارٍ التشغيل...':'💤 Running...','info');
+  const r=await api('/api/dreaming/run','POST');
+  if(r&&!r.error){toast(LANG==='ar'?'✅ اكتمل التنظيف العميق':'✅ Deep dreaming done','success');loadDreaming();}
+  else toast('❌ '+((r&&r.error)||'فشل'),'error');
+}
+
+/* ── التداول ── */
+async function loadTrades(){
+  const f=(document.getElementById('tr-filter')||{}).value||'all';
+  const r=await api('/api/trades?outcome='+f);
+  const body=document.getElementById('tr-body'); if(!body)return;
+  const rows=(r&&r.trades)||[];
+  body.innerHTML=rows.length?rows.map(t=>`<tr>
+    <td><code>${esc(t.asset)}</code></td><td>${t.entry}</td><td>${t.tp??'—'}</td><td>${t.sl??'—'}</td>
+    <td>${t.pattern?'<code>'+esc(t.pattern)+'</code>':'—'}</td><td>${esc(t.session||'—')}</td>
+    <td>${t.outcome?`<span class="badge ${t.outcome==='hit_tp'?'bg':t.outcome==='hit_sl'?'br':'bm'}">${t.outcome}</span>`:'<span class="badge bo">'+(LANG==='ar'?'مفتوحة':'open')+'</span>'}</td>
+    <td style="color:${(t.pnl_pct||0)>=0?'var(--green)':'var(--red)'}">${t.pnl_pct??'—'}</td>
+    <td style="font-size:10px;color:var(--muted)">${fmtTs(t.opened_at)}</td></tr>`).join('')
+    :'<tr><td colspan="9" style="color:var(--muted)">'+(LANG==='ar'?'لا صفقات':'No trades')+'</td></tr>';
+}
+async function loadPatterns(){
+  const r=await api('/api/trades/patterns');
+  const body=document.getElementById('trp-body'); if(!body)return;
+  const rows=(r&&r.patterns)||[];
+  body.innerHTML=rows.length?rows.map(p=>`<tr><td><code>${esc(p.pattern)}</code></td>
+    <td style="color:var(--green)">${p.wins}</td><td style="color:var(--red)">${p.losses}</td>
+    <td>${p.win_rate}%</td>
+    <td style="color:${p.total_pnl>=0?'var(--green)':'var(--red)'}">${p.total_pnl}%</td>
+    <td><div style="height:8px;background:var(--card3);border-radius:4px;overflow:hidden"><div style="height:100%;width:${p.win_rate}%;background:var(--orange)"></div></div></td></tr>`).join('')
+    :'<tr><td colspan="6" style="color:var(--muted)">'+(LANG==='ar'?'لا أنماط بعد':'No patterns yet')+'</td></tr>';
+}
+
+/* ── Workboard ── */
+async function wbLoad(){
+  const r=await api('/api/workboard');
+  const tasks=(r&&r.tasks)||[];
+  const cols={pending:[],doing:[],done:[]};
+  tasks.forEach(t=>{(cols[t.status]||cols.pending).push(t);});
+  for(const st of ['pending','doing','done']){
+    const el=document.getElementById('wb-'+st); if(!el)continue;
+    el.innerHTML=cols[st].length?cols[st].map(t=>`
+      <div class="stat" style="text-align:right;margin-bottom:6px;padding:8px">
+        <div style="font-size:12px;word-break:break-word;color:var(--text)">${esc(t.text)}</div>
+        <div style="display:flex;gap:4px;margin-top:6px;justify-content:center">
+          ${st!=='pending'?`<button class="ibtn" style="width:24px;height:24px" title="رجوع" onclick="wbMove(${t.id},'prev')">→</button>`:''}
+          ${st!=='done'?`<button class="ibtn" style="width:24px;height:24px" title="تقدّم" onclick="wbMove(${t.id},'next')">←</button>`:''}
+        </div>
+      </div>`).join('')
+      :'<div style="text-align:center;color:var(--muted);font-size:11px;padding:8px">—</div>';
+  }
+}
+async function wbAdd(){
+  const inp=document.getElementById('wb-new'); const txt=(inp.value||'').trim();
+  if(!txt)return;
+  const r=await api('/api/workboard','POST',{text:txt});
+  if(r&&r.ok){inp.value='';wbLoad();}
+}
+async function wbMove(id,dir){ await api('/api/workboard/move','POST',{id,direction:dir}); wbLoad(); }
+async function wbClearDone(){
+  const r=await api('/api/workboard/clear-done','POST');
+  toast(r&&r.ok?(LANG==='ar'?`🗑 حُذفت ${r.removed} مهمة`:`🗑 Removed ${r.removed}`):'❌','success');
+  wbLoad();
+}
+
+/* ── الإقران ── */
+async function loadPairing(){
+  const [pe,ap]=await Promise.all([api('/api/pairing/pending'),api('/api/pairing/approved')]);
+  const pb=document.getElementById('pr-pending');
+  const rows=(pe&&pe.pending)||[];
+  if(pb) pb.innerHTML=rows.length?rows.map(p=>`<tr>
+    <td><span class="badge bo">${esc(p.platform)}</span></td>
+    <td>${esc(p.name||p.user_id)} <code>${esc(String(p.user_id))}</code></td>
+    <td style="font-size:10px;color:var(--muted)">${fmtTs(p.requested_at)}</td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-p" style="padding:3px 10px;font-size:11px" onclick="prApprove(${p.id})">✓ ${LANG==='ar'?'موافقة':'Approve'}</button>
+      <button class="btn btn-d" style="padding:3px 10px;font-size:11px" onclick="prReject(${p.id})">✗</button>
+    </td></tr>`).join('')
+    :'<tr><td colspan="4" style="color:var(--muted)">'+(LANG==='ar'?'لا طلبات':'No requests')+'</td></tr>';
+  const ab=document.getElementById('pr-approved');
+  const arow=(ap&&ap.approved)||[];
+  if(ab) ab.innerHTML=arow.length?arow.map(p=>`<tr>
+    <td><span class="badge bg">${esc(p.platform)}</span></td>
+    <td>${esc(p.name||p.user_id)}</td>
+    <td style="font-size:10px;color:var(--muted)">${fmtTs(p.approved_at)}</td>
+    <td><button class="btn btn-d" style="padding:3px 10px;font-size:11px" onclick="prUnpair(${p.id})">${LANG==='ar'?'إلغاء الإقران':'Unpair'}</button></td></tr>`).join('')
+    :'<tr><td colspan="4" style="color:var(--muted)">'+(LANG==='ar'?'لا أحد':'Nobody')+'</td></tr>';
+}
+async function prApprove(id){ await api('/api/pairing/approve','POST',{id}); toast('✅','success'); loadPairing(); }
+async function prReject(id){ await api('/api/pairing/'+id,'DELETE'); loadPairing(); }
+async function prUnpair(id){ await api('/api/pairing/approved/'+id,'DELETE'); loadPairing(); }
+
+/* ── الاستخدام ── */
+let US={days:7};
+function usPeriod(d,btn){
+  US.days=d;
+  document.querySelectorAll('.us-per').forEach(x=>{x.style.borderColor='';x.style.color='';});
+  if(btn){btn.style.borderColor='var(--orange)';btn.style.color='var(--orange)';}
+  loadUsage();
+}
+async function loadUsage(){
+  const r=await api('/api/usage?days='+US.days);
+  const series=(r&&r.series)||[];
+  usChart(series);
+  const mb=document.getElementById('us-models'); if(!mb)return;
+  const rows=(r&&r.models)||[];
+  mb.innerHTML=rows.length?rows.map(m=>`<tr><td><code>${esc(m.model)}</code></td>
+    <td>${m.calls}</td><td>${(m.tokens||0).toLocaleString()}</td>
+    <td>$${(m.cost||0).toFixed(4)}</td></tr>`).join('')
+    :'<tr><td colspan="4" style="color:var(--muted)">'+(LANG==='ar'?'لا استخدام مسجّل بعد':'No usage yet')+'</td></tr>';
+}
+function usChart(series){
+  const cv=document.getElementById('us-chart'); if(!cv)return;
+  const dpr=window.devicePixelRatio||1, W=cv.clientWidth||600, H=200;
+  cv.width=W*dpr; cv.height=H*dpr;
+  const ctx=cv.getContext('2d'); ctx.scale(dpr,dpr); ctx.clearRect(0,0,W,H);
+  const cs=getComputedStyle(document.documentElement);
+  const cOrange=cs.getPropertyValue('--orange').trim()||'#FF8C00';
+  const cGreen=cs.getPropertyValue('--green').trim()||'#22c55e';
+  const cMuted=cs.getPropertyValue('--muted').trim()||'#8b949e';
+  const cBorder=cs.getPropertyValue('--border').trim()||'#30363d';
+  const P={l:44,r:44,t:10,b:22}, w=W-P.l-P.r, h=H-P.t-P.b;
+  const maxT=Math.max(1,...series.map(s=>s.tokens));
+  const maxC=Math.max(0.001,...series.map(s=>s.cost));
+  ctx.strokeStyle=cBorder; ctx.lineWidth=1;
+  ctx.font='9px monospace'; ctx.fillStyle=cMuted;
+  for(let i=0;i<=3;i++){
+    const y=P.t+h-h*i/3;
+    ctx.beginPath();ctx.moveTo(P.l,y);ctx.lineTo(W-P.r,y);ctx.stroke();
+    ctx.textAlign='right'; ctx.fillText(Math.round(maxT*i/3).toLocaleString(),P.l-4,y+3);
+    ctx.textAlign='left';  ctx.fillText('$'+(maxC*i/3).toFixed(3),W-P.r+4,y+3);
+  }
+  const X=i=>P.l+(series.length<2?w/2:w*i/(series.length-1));
+  const line=(key,max,color)=>{
+    ctx.strokeStyle=color; ctx.lineWidth=2; ctx.beginPath();
+    series.forEach((s,i)=>{const y=P.t+h-h*(s[key]/max); i?ctx.lineTo(X(i),y):ctx.moveTo(X(i),y);});
+    ctx.stroke();
+    ctx.fillStyle=color;
+    series.forEach((s,i)=>{const y=P.t+h-h*(s[key]/max);ctx.beginPath();ctx.arc(X(i),y,2.5,0,7);ctx.fill();});
+  };
+  line('tokens',maxT,cOrange); line('cost',maxC,cGreen);
+  ctx.fillStyle=cMuted; ctx.textAlign='center';
+  const step=Math.max(1,Math.ceil(series.length/8));
+  series.forEach((s,i)=>{ if(i%step===0) ctx.fillText(s.day.slice(5),X(i),H-6); });
+}
+
+/* ── السجلات ── */
+let LG={rows:[],filter:'ALL',last:0};
+const LG_COLORS={INFO:'#58a6ff',WARN:'#d29922',ERROR:'var(--red)',MEM:'#bc8cff',SKILL:'var(--green)'};
+function lgLine(l){
+  const c=LG_COLORS[l.cat]||'var(--muted)';
+  return `<div style="white-space:pre-wrap;word-break:break-word"><span style="color:var(--muted)">${l.time}</span> <span style="color:${c};font-weight:600">[${l.cat}]</span> <span style="color:var(--muted)">${esc(l.src)}</span> ${esc(l.msg)}</div>`;
+}
+async function lgStart(){ LG.rows=[]; LG.last=0; await lgPoll(); }
+async function lgPoll(){
+  const r=await api('/api/logs/stream?limit=100&since='+LG.last);
+  if(!r)return;
+  LG.last=r.last_id||LG.last;
+  if(r.logs&&r.logs.length){ LG.rows.push(...r.logs); LG.rows=LG.rows.slice(-500); lgRender(); }
+}
+function lgFilter(f,btn){
+  LG.filter=f;
+  document.querySelectorAll('.lg-f').forEach(x=>{x.style.borderColor='';x.style.color='';});
+  if(btn){btn.style.borderColor='var(--orange)';btn.style.color='var(--orange)';}
+  lgRender();
+}
+function lgRender(){
+  const q=(document.getElementById('lg-q')||{}).value?.toLowerCase()||'';
+  const el=document.getElementById('lg-list'); if(!el)return;
+  let rows=LG.rows;
+  if(LG.filter!=='ALL') rows=rows.filter(l=>l.cat===LG.filter||l.level===LG.filter);
+  if(q) rows=rows.filter(l=>(l.msg+' '+l.src).toLowerCase().includes(q));
+  const atBottom=el.scrollHeight-el.scrollTop-el.clientHeight<40;
+  el.innerHTML=rows.length?rows.map(lgLine).join(''):'<div class="empty"><div class="ei">📜</div><span>'+(LANG==='ar'?'لا سجلات':'No logs')+'</span></div>';
+  if(atBottom) el.scrollTop=el.scrollHeight;
+}
+function lgCopy(){
+  const txt=LG.rows.map(l=>`${l.time} [${l.cat}] ${l.src} ${l.msg}`).join('\n');
+  navigator.clipboard.writeText(txt).then(()=>toast(LANG==='ar'?'📋 نُسخ':'📋 Copied','success')).catch(()=>{});
+}
+function lgClear(){ LG.rows=[]; lgRender(); toast(LANG==='ar'?'🧹 مُسح العرض (السيرفر لم يُمسّ)':'🧹 View cleared','info'); }
 </script>
 </body>
 </html>
