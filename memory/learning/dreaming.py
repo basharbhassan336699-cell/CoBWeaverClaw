@@ -11,11 +11,47 @@ import datetime
 import json
 import logging
 import threading
-import time
+import time  # noqa: F401 — تستخدمه اليوميات والجدولة
 
 logger = logging.getLogger(__name__)
 
 _SCHEDULED = False
+
+# يوميات الأحلام — سجل JSONL لكل تشغيل light/deep (للوحة التحكم)
+from pathlib import Path
+_DIARY = Path.home() / ".cobweaverclaw" / "memories" / "dreams.jsonl"
+
+
+def _diary_append(kind: str, deleted: int, text: str) -> None:
+    """يسجّل مدخلة يوميات (آمن — لا يفشل التنظيف بسببها)."""
+    try:
+        _DIARY.parent.mkdir(parents=True, exist_ok=True)
+        entry = {
+            "ts": int(time.time()),
+            "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "type": kind, "deleted": int(deleted), "text": (text or "")[:500],
+        }
+        with open(_DIARY, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except Exception as e:
+        logger.debug("diary append failed: %s", e)
+
+
+def read_diary(limit: int = 50) -> list:
+    """يعيد آخر مدخلات اليوميات (الأحدث أولاً)."""
+    try:
+        if not _DIARY.exists():
+            return []
+        lines = _DIARY.read_text(encoding="utf-8").strip().splitlines()
+        out = []
+        for ln in lines[-max(1, min(int(limit or 50), 200)):]:
+            try:
+                out.append(json.loads(ln))
+            except Exception:
+                continue
+        return list(reversed(out))
+    except Exception:
+        return []
 
 
 def light_dreaming() -> dict:
@@ -24,6 +60,8 @@ def light_dreaming() -> dict:
         from tools.agent_tools import execute
         res = json.loads(execute("memory_prune", {"threshold": 0.1}))
         logger.info("light_dreaming: %s", res)
+        _diary_append("light", res.get("deleted", 0),
+                      f"تنظيف خفيف — حُذفت {res.get('deleted', 0)} ذكرى ضعيفة (عتبة 0.1)")
         return res
     except Exception as e:
         logger.warning("light_dreaming failed: %s", e)
@@ -47,6 +85,9 @@ def deep_dreaming() -> dict:
         result["telegram"] = send_telegram("💤 Deep Dreaming — صيانة أسبوعية\n\n" + summary)
     except Exception as e:
         result["telegram"] = f"error: {str(e)[:100]}"
+    deleted = (result.get("prune") or {}).get("deleted", 0)
+    _diary_append("deep", deleted,
+                  f"تنظيف عميق — حُذفت {deleted} ذكرى (عتبة 0.05) + ملخص التداول أُرسل لتيليجرام")
     logger.info("deep_dreaming: %s", result)
     return result
 

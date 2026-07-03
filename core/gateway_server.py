@@ -18,6 +18,13 @@ from gateway_auth import GatewayAuth
 CONFIG_DIR = Path(os.path.expanduser("~/.cobweaverclaw"))
 BASE_DIR   = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# لوحة v2 — بيانات التبويبات الجديدة (سجلات/استخدام/ذاكرة موزونة/dreaming/تداول/workboard/إقران)
+import sys as _sys
+if BASE_DIR not in _sys.path:
+    _sys.path.insert(0, BASE_DIR)
+from core import dashboard_api as dash
+dash.install_log_handler()
+
 
 # ── config + env helpers (المجلد الآمن فقط) ──────────────────
 def load_config() -> dict:
@@ -549,6 +556,18 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
             elif path == "/api/restart":
                 restart_agent()
                 self._send_json({"status": "restarting"})
+            # ── لوحة v2 ──────────────────────────────────
+            elif path == "/api/dreaming/run":
+                self._send_json(dash.dreaming_run())
+            elif path == "/api/workboard":
+                self._send_json(dash.workboard_add(body.get("text", "")))
+            elif path == "/api/workboard/move":
+                self._send_json(dash.workboard_move(body.get("id", 0),
+                                                    body.get("direction", "next")))
+            elif path == "/api/workboard/clear-done":
+                self._send_json(dash.workboard_clear_done())
+            elif path == "/api/pairing/approve":
+                self._send_json(dash.pairing_approve(body.get("id", 0)))
             else:
                 self._send_json({"error": "not_found"}, 404)
         except Exception as e:
@@ -564,6 +583,21 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
             if parsed.path == "/api/memory/clear":
                 self._send_json({"status": "cleared",
                                  **memory_clear(body.get("layer", "working"))})
+            # ── لوحة v2 ──────────────────────────────────
+            elif parsed.path.startswith("/api/memory/"):
+                mid = parsed.path.rsplit("/", 1)[-1]
+                if mid.isdigit():
+                    self._send_json(dash.memory_delete(int(mid)))
+                else:
+                    self._send_json({"error": "not_found"}, 404)
+            elif parsed.path.startswith("/api/pairing/approved/"):
+                pid = parsed.path.rsplit("/", 1)[-1]
+                self._send_json(dash.pairing_unpair(int(pid)) if pid.isdigit()
+                                else {"error": "not_found"})
+            elif parsed.path.startswith("/api/pairing/"):
+                pid = parsed.path.rsplit("/", 1)[-1]
+                self._send_json(dash.pairing_reject(int(pid)) if pid.isdigit()
+                                else {"error": "not_found"})
             else:
                 self._send_json({"error": "not_found"}, 404)
         except Exception as e:
@@ -604,6 +638,37 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
                 self._send_json(list_providers())
             elif path == "/api/models/catalog":
                 self._send_json(models_catalog())
+            # ── لوحة v2 ──────────────────────────────────
+            elif path == "/api/memory/list":
+                qs = urllib.parse.parse_qs(parsed.query)
+                self._send_json(dash.memory_list(qs.get("context", ["general"])[0]))
+            elif path == "/api/dreaming/status":
+                self._send_json(dash.dreaming_status())
+            elif path == "/api/dreaming/diary":
+                qs = urllib.parse.parse_qs(parsed.query)
+                self._send_json(dash.dreaming_diary(int(qs.get("limit", ["50"])[0] or 50)))
+            elif path == "/api/dreaming/weekly-summary":
+                self._send_json(dash.dreaming_weekly_summary())
+            elif path == "/api/trades":
+                qs = urllib.parse.parse_qs(parsed.query)
+                self._send_json(dash.trades_list(qs.get("outcome", [""])[0]))
+            elif path == "/api/trades/patterns":
+                self._send_json(dash.trades_patterns())
+            elif path == "/api/workboard":
+                self._send_json(dash.workboard_list())
+            elif path == "/api/pairing/pending":
+                self._send_json(dash.pairing_pending())
+            elif path == "/api/pairing/approved":
+                self._send_json(dash.pairing_approved())
+            elif path == "/api/usage":
+                qs = urllib.parse.parse_qs(parsed.query)
+                self._send_json(dash.usage_report(int(qs.get("days", ["7"])[0] or 7)))
+            elif path in ("/api/logs", "/api/logs/stream"):
+                qs = urllib.parse.parse_qs(parsed.query)
+                self._send_json(dash.logs_list(
+                    limit=int(qs.get("limit", ["50"])[0] or 50),
+                    since=int(qs.get("since", ["0"])[0] or 0),
+                    level=qs.get("level", [""])[0]))
             else:
                 self._send_json({"error": "not_found"}, 404)
         except Exception as e:

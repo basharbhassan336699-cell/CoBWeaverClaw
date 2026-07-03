@@ -175,7 +175,9 @@ class ModelRouter:
             tried.append(f"{provider}/{model}")
             try:
                 sys_i = system + f"\n\n[نموذجك الحالي فعلياً: {provider}/{model}]"
-                return await self._call(provider, model, sys_i, messages)
+                reply = await self._call(provider, model, sys_i, messages)
+                self._record_usage(f"{provider}/{model}", sys_i, messages, reply)
+                return reply
             except Exception as e:
                 errors.append(f"{provider}: {str(e)[:80]}")
                 continue
@@ -214,6 +216,7 @@ class ModelRouter:
             try:
                 sys_i = system + f"\n\n[نموذجك الحالي فعلياً: {provider}/{model}]"
                 reply = await self._call(provider, model, sys_i, messages)
+                self._record_usage(f"{provider}/{model}", sys_i, messages, reply)
                 return {"reply": reply, "model_used": f"{provider}/{model}",
                         "tools": list(dict.fromkeys(self._last_tools))}
             except Exception as e:
@@ -239,6 +242,17 @@ class ModelRouter:
             except Exception:
                 continue
         return None
+
+    @staticmethod
+    def _record_usage(model_str, system, messages, reply):
+        """يسجّل استهلاك النداء للوحة (تقدير: حرف/4 ≈ توكن) — آمن تماماً."""
+        try:
+            tin = (len(system or "") + sum(len(str(m.get("content") or "")) for m in messages)) // 4
+            tout = len(reply or "") // 4
+            from core.dashboard_api import record_usage
+            record_usage(model_str, tin, tout)
+        except Exception:
+            pass
 
     @staticmethod
     def _is_model_question(message: str) -> bool:

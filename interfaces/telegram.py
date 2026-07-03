@@ -54,6 +54,28 @@ class TelegramBot:
         except Exception:
             return []
 
+    def _pairing_gate(self, msg: dict, chat_id) -> bool:
+        """بوّابة الإقران: المالك مسموح دائماً؛ الغريب يُسجَّل طلب إقران معلّق.
+
+        إن لم يُضبط owner_chat_id تبقى القناة مفتوحة (توافقاً مع السلوك السابق).
+        يعيد True إذا كان المرسل مسموحاً له.
+        """
+        try:
+            tg_cfg = (self.agent.config.get("interfaces", {}) or {}).get("telegram", {}) or {}
+            owner = str(tg_cfg.get("owner_chat_id", "") or "").strip()
+            if not owner or str(chat_id) == owner:
+                return True
+            from core.dashboard_api import pairing_is_approved, pairing_request
+            if pairing_is_approved("telegram", chat_id):
+                return True
+            frm = msg.get("from", {}) or {}
+            name = (frm.get("first_name", "") + " " + frm.get("last_name", "")).strip() \
+                   or frm.get("username", "") or str(chat_id)
+            pairing_request("telegram", chat_id, name)
+            return False
+        except Exception:
+            return True  # لا تقفل القناة بسبب عطل في البوّابة
+
     async def _handle(self, update: dict):
         msg = update.get("message", {})
         if not msg:
@@ -63,6 +85,13 @@ class TelegramBot:
         # معرّف ثابت حتى تظهر محادثة تيليجرام في لوحة التحكم
         user_id = "telegram"
         if not text:
+            return
+
+        # بوّابة الإقران — غير المُقرَن يُعلَّق طلبه حتى الموافقة من اللوحة
+        if not self._pairing_gate(msg, chat_id):
+            await self._send(chat_id,
+                "🔒 هذا وكيل شخصي خاص. أُرسل طلب إقران للمالك — "
+                "ستتمكن من المراسلة بعد موافقته من لوحة التحكم.")
             return
 
         # ── الأوامر ──
