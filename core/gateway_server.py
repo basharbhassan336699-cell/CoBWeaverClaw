@@ -568,6 +568,17 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
                 self._send_json(dash.workboard_clear_done())
             elif path == "/api/pairing/approve":
                 self._send_json(dash.pairing_approve(body.get("id", 0)))
+            elif path.startswith("/api/simcore/"):
+                from simcore import api as simcore_api
+                action = path.rsplit("/", 1)[-1]
+                fn = {"probe": simcore_api.probe_source,
+                      "run": simcore_api.run_cycle,
+                      "feedback": simcore_api.record_feedback}.get(action)
+                if fn is None:
+                    self._send_json({"error": "not_found"}, 404)
+                else:
+                    body_out, code = fn(body)
+                    self._send_json(body_out, code)
             else:
                 self._send_json({"error": "not_found"}, 404)
         except Exception as e:
@@ -669,6 +680,10 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
                     limit=int(qs.get("limit", ["50"])[0] or 50),
                     since=int(qs.get("since", ["0"])[0] or 0),
                     level=qs.get("level", [""])[0]))
+            elif path == "/api/simcore/domains":
+                from simcore.api import get_domains
+                body_out, code = get_domains()
+                self._send_json(body_out, code)
             else:
                 self._send_json({"error": "not_found"}, 404)
         except Exception as e:

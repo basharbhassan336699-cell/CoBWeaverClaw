@@ -60,7 +60,7 @@ CoBWeaverClaw/
 ├── memory/        ← الذاكرة الثلاثية
 ├── brain/         ← محرك النماذج
 ├── skills/        ← Skill Factory + Evolver
-├── swarm/         ← MiroFish Trading Engine
+├── swarm/         ← SimCore Trading Engine
 ├── browser/       ← المتصفح الداخلي
 ├── interfaces/    ← Telegram + CLI + Dashboard
 ├── auth/          ← JWT + Trust Levels
