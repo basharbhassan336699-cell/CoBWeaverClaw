@@ -22,7 +22,7 @@
 - Triple memory system (SQLite + LightRAG + Compressor)
 - Multi-model engine (Claude / Groq / Ollama / GPT / Gemini)
 - Skill Factory + Skill evolver
-- Swarm Trading Engine (MiroFish-inspired)
+- Swarm Trading Engine (SimCore)
 - Built-in browser (manual + auto)
 - 11 command categories (scan, doctor, fix, monitor...)
 - Security-first Sandbox architecture

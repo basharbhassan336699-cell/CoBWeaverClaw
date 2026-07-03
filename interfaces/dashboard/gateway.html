@@ -454,6 +454,14 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
   </div>
   <div class="sdiv"></div>
   <div class="sidebar-section">
+    <div class="sidebar-lbl">SimCore</div>
+    <button class="nav-item" onclick="nav('simcore',this)">
+      <span class="ni"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><circle cx="4" cy="6" r="2" stroke="currentColor" stroke-width="1.6"/><circle cx="20" cy="6" r="2" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="20" r="2" stroke="currentColor" stroke-width="1.6"/><path d="M5.6 7.4L10 10.5M18.4 7.4L14 10.5M12 15v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+      <span data-ar="محرك التحليل" data-en="Analysis Engine">محرك التحليل</span>
+    </button>
+  </div>
+  <div class="sdiv"></div>
+  <div class="sidebar-section">
     <div class="sidebar-lbl" data-ar="الوكيل" data-en="Agent">الوكيل</div>
     <button class="nav-item" onclick="nav('identity',this)">
       <span class="ni"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/></svg></span>
@@ -866,6 +874,94 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
   </div>
 </div>
 
+<!-- SIMCORE -->
+<div id="page-simcore" class="page">
+  <div class="pscroll">
+    <div class="card">
+      <div class="ctitle"><span data-ar="🧭 التوجه" data-en="🧭 Domain">🧭 التوجه</span></div>
+      <div class="field">
+        <label data-ar="تخصص التحليل" data-en="Analysis domain">تخصص التحليل</label>
+        <select id="sc-domain" onchange="scDomainChange()">
+          <option value="general" data-ar="عام — شامل" data-en="General">عام — شامل</option>
+          <option value="trading" data-ar="تداول" data-en="Trading">تداول</option>
+          <option value="medicine" data-ar="طب" data-en="Medicine">طب</option>
+          <option value="engineering" data-ar="هندسة" data-en="Engineering">هندسة</option>
+          <option value="law" data-ar="قانون" data-en="Law">قانون</option>
+          <option value="marketing" data-ar="تسويق" data-en="Marketing">تسويق</option>
+          <option value="security" data-ar="أمن معلومات" data-en="Security">أمن معلومات</option>
+          <option value="education" data-ar="تعليم" data-en="Education">تعليم</option>
+          <option value="politics" data-ar="سياسة" data-en="Politics">سياسة</option>
+          <option value="other" data-ar="أخرى" data-en="Other">أخرى</option>
+        </select>
+      </div>
+      <div class="field" id="sc-custom-wrap" style="display:none">
+        <label data-ar="اكتب تخصصك" data-en="Your domain">اكتب تخصصك</label>
+        <input id="sc-domain-custom" type="text" placeholder="اكتب تخصصك">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ctitle"><span data-ar="🌐 المصادر" data-en="🌐 Sources">🌐 المصادر</span></div>
+      <div class="field"><label>URL</label>
+        <div style="display:flex;gap:7px">
+          <input id="sc-url" type="text" placeholder="https://example.com أو https://api.binance.com/...">
+          <button class="btn btn-g" style="white-space:nowrap" onclick="scProbe()"><span data-ar="اختبر الاتصال" data-en="Test connection">اختبر الاتصال</span></button>
+        </div>
+      </div>
+      <div id="sc-probe-res" style="font-size:12px;margin-bottom:8px"></div>
+      <div class="field"><label data-ar="اسم المصدر" data-en="Source name">اسم المصدر</label><input id="sc-name" type="text" placeholder="مثال: Binance BTC"></div>
+      <div class="field" id="sc-key-wrap" style="display:none"><label data-ar="مفتاح API" data-en="API key">مفتاح API</label><input id="sc-key" type="password" placeholder="يتطلبه هذا المصدر"></div>
+      <div class="field" id="sc-id-wrap" style="display:none"><label data-ar="معرّف الحساب" data-en="Account ID">معرّف الحساب</label><input id="sc-id" type="text" placeholder="user id / account id"></div>
+      <button class="btn btn-p btn-f" onclick="scAddSource()"><span data-ar="＋ إضافة المصدر" data-en="＋ Add source">＋ إضافة المصدر</span></button>
+      <div style="margin-top:10px;overflow-x:auto">
+        <table class="tbl">
+          <thead><tr><th data-ar="الاسم" data-en="Name">الاسم</th><th>URL</th><th data-ar="النوع" data-en="Type">النوع</th><th></th></tr></thead>
+          <tbody id="sc-sources"><tr><td colspan="4" style="color:var(--muted)" data-ar="لا مصادر بعد" data-en="No sources yet">لا مصادر بعد</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ctitle"><span data-ar="🔑 المفاتيح" data-en="🔑 Keys">🔑 المفاتيح</span></div>
+      <div class="note" style="margin-bottom:10px" data-ar="💡 كل الحقول اختيارية — الفارغ يرث: وكيل ← المفتاح العام ← نماذج CoBWeaverClaw المتصلة" data-en="💡 All optional — empty inherits: agent ← global key ← CoBWeaverClaw connected models">💡 كل الحقول اختيارية — الفارغ يرث: وكيل ← المفتاح العام ← نماذج CoBWeaverClaw المتصلة</div>
+      <div class="krow"><label data-ar="مفتاح عام" data-en="Global key">مفتاح عام</label><input id="sc-gkey" type="password" placeholder="global model key (اختياري)"></div>
+      <div class="krow"><label>Base URL</label><input id="sc-gurl" type="text" placeholder="https://.../v1/chat/completions (اختياري)"></div>
+      <div class="krow"><label data-ar="اسم النموذج" data-en="Model">اسم النموذج</label><input id="sc-gname" type="text" placeholder="gpt-4o-mini (اختياري)"></div>
+      <div class="sdiv" style="margin:8px 0"></div>
+      <div class="krow"><label data-ar="المراقبة" data-en="Monitor">المراقبة</label><input id="sc-kmon" type="password" placeholder="مفتاح وكيل المراقبة (اختياري)"></div>
+      <div class="krow"><label data-ar="التتبع" data-en="Tracker">التتبع</label><input id="sc-ktrk" type="password" placeholder="مفتاح وكيل التتبع (اختياري)"></div>
+      <div class="krow"><label>Oracle</label><input id="sc-korc" type="password" placeholder="مفتاح OracleAgent (اختياري)"></div>
+    </div>
+
+    <button class="btn btn-p btn-f" id="sc-run-btn" onclick="scRun()" style="margin-bottom:12px">
+      <span data-ar="🚀 تشغيل التحليل" data-en="🚀 Run analysis">🚀 تشغيل التحليل</span>
+    </button>
+
+    <div class="card" id="sc-decision-card" style="display:none;border-color:var(--orange)">
+      <div class="ctitle"><span data-ar="⚖️ قرار Oracle" data-en="⚖️ Oracle decision">⚖️ قرار Oracle</span></div>
+      <div class="g3" style="margin-bottom:10px">
+        <div class="stat"><div class="snum" id="sc-dec" style="font-size:16px;padding-top:3px">—</div><div class="slbl" data-ar="القرار" data-en="Decision">القرار</div></div>
+        <div class="stat"><div class="snum" id="sc-conf">—</div><div class="slbl" data-ar="الثقة" data-en="Confidence">الثقة</div></div>
+        <div class="stat"><div class="snum" id="sc-dom" style="font-size:14px;padding-top:4px">—</div><div class="slbl" data-ar="التوجه" data-en="Domain">التوجه</div></div>
+      </div>
+      <table class="tbl">
+        <tr><td style="color:var(--muted)" data-ar="التعليل" data-en="Reasoning">التعليل</td><td id="sc-reason">—</td></tr>
+        <tr><td style="color:var(--muted)" data-ar="الإجراء الآن" data-en="Action">الإجراء الآن</td><td id="sc-action" style="color:var(--orange)">—</td></tr>
+        <tr><td style="color:var(--muted)" data-ar="المخاطر" data-en="Risks">المخاطر</td><td id="sc-risks">—</td></tr>
+      </table>
+    </div>
+
+    <div class="card" id="sc-monitor-card" style="display:none">
+      <div class="ctitle"><span data-ar="👁️ نتائج المراقبة" data-en="👁️ Monitor results">👁️ نتائج المراقبة</span></div>
+      <div id="sc-monitor-res"></div>
+    </div>
+    <div class="card" id="sc-tracker-card" style="display:none">
+      <div class="ctitle"><span data-ar="🕸️ نتائج التتبع" data-en="🕸️ Tracker results">🕸️ نتائج التتبع</span></div>
+      <div id="sc-tracker-res"></div>
+    </div>
+  </div>
+</div>
+
 <!-- DREAMING -->
 <div id="page-dreaming" class="page">
   <div class="pscroll">
@@ -1104,6 +1200,7 @@ function nav(page,btn){
   else if(page==='pairing') loadPairing();
   else if(page==='usage') loadUsage();
   else if(page==='logs') lgStart();
+  else if(page==='simcore') scRenderSources();
   v2Timers(page);                     // مؤقتات التحديث الحي للتبويبات الجديدة
   if(isMobile()) setSidebar(false);   // اقفل القائمة العائمة بعد الاختيار
 }
@@ -1801,6 +1898,102 @@ function lgCopy(){
   navigator.clipboard.writeText(txt).then(()=>toast(LANG==='ar'?'📋 نُسخ':'📋 Copied','success')).catch(()=>{});
 }
 function lgClear(){ LG.rows=[]; lgRender(); toast(LANG==='ar'?'🧹 مُسح العرض (السيرفر لم يُمسّ)':'🧹 View cleared','info'); }
+
+/* ── SimCore — محرك التحليل متعدد الوكلاء ── */
+let SC={sources:[],probe:null};
+function scDomainChange(){
+  const other=document.getElementById('sc-domain').value==='other';
+  document.getElementById('sc-custom-wrap').style.display=other?'':'none';
+}
+async function scProbe(){
+  const url=(document.getElementById('sc-url').value||'').trim();
+  const box=document.getElementById('sc-probe-res');
+  if(!url){box.innerHTML='<span class="badge br">URL مطلوب</span>';return;}
+  box.innerHTML='<span class="badge bm">'+(LANG==='ar'?'جارٍ الاختبار...':'Testing...')+'</span>';
+  const r=await api('/api/simcore/probe','POST',{url});
+  const p=r&&r.result;
+  if(!p){box.innerHTML='<span class="badge br">❌ فشل الطلب</span>';return;}
+  SC.probe=p;
+  box.innerHTML=(p.reachable
+      ?'<span class="badge bg">✅ '+(LANG==='ar'?'متصل':'Connected')+(p.status_code?' · HTTP '+p.status_code:'')+'</span>'
+      :'<span class="badge br">❌ '+(LANG==='ar'?'فشل':'Failed')+(p.error?' · '+esc(p.error):'')+'</span>')
+    +' <span class="badge bo">'+p.suggested_type+'</span>';
+  document.getElementById('sc-key-wrap').style.display=p.needs_key?'':'none';
+  document.getElementById('sc-id-wrap').style.display=p.needs_id?'':'none';
+}
+function scAddSource(){
+  const url=(document.getElementById('sc-url').value||'').trim();
+  if(!url){toast('URL مطلوب','error');return;}
+  const name=(document.getElementById('sc-name').value||'').trim()||url.replace(/^https?:\/\//,'').split('/')[0];
+  SC.sources.push({
+    url, name,
+    api_key:(document.getElementById('sc-key').value||'').trim()||null,
+    account_id:(document.getElementById('sc-id').value||'').trim()||null,
+    source_type:(SC.probe&&SC.probe.url===url?SC.probe.suggested_type:'web'),
+  });
+  ['sc-url','sc-name','sc-key','sc-id'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('sc-probe-res').innerHTML='';
+  document.getElementById('sc-key-wrap').style.display='none';
+  document.getElementById('sc-id-wrap').style.display='none';
+  SC.probe=null; scRenderSources();
+  toast(LANG==='ar'?'✅ أُضيف المصدر':'✅ Source added','success');
+}
+function scDelSource(i){ SC.sources.splice(i,1); scRenderSources(); }
+function scRenderSources(){
+  const b=document.getElementById('sc-sources'); if(!b)return;
+  b.innerHTML=SC.sources.length?SC.sources.map((s,i)=>`<tr>
+    <td>${esc(s.name)}</td><td style="max-width:220px;overflow:hidden;text-overflow:ellipsis"><code>${esc(s.url)}</code></td>
+    <td><span class="badge ${s.source_type==='web'?'bm':'bo'}">${s.source_type}</span></td>
+    <td><button class="ibtn" style="width:24px;height:24px" onclick="scDelSource(${i})">🗑</button></td></tr>`).join('')
+    :'<tr><td colspan="4" style="color:var(--muted)">'+(LANG==='ar'?'لا مصادر بعد':'No sources yet')+'</td></tr>';
+}
+async function scRun(){
+  if(!SC.sources.length){toast(LANG==='ar'?'أضف مصدراً واحداً على الأقل':'Add at least one source','error');return;}
+  const btn=document.getElementById('sc-run-btn'); btn.disabled=true;
+  toast(LANG==='ar'?'🚀 جارٍ التحليل — قد يستغرق دقيقة':'🚀 Analyzing...','info');
+  const payload={
+    domain:document.getElementById('sc-domain').value,
+    domain_custom:(document.getElementById('sc-domain-custom').value||'').trim(),
+    sources:SC.sources,
+    global_model_key:(document.getElementById('sc-gkey').value||'').trim()||null,
+    global_model_url:(document.getElementById('sc-gurl').value||'').trim()||null,
+    global_model_name:(document.getElementById('sc-gname').value||'').trim()||null,
+    monitor_model_key:(document.getElementById('sc-kmon').value||'').trim()||null,
+    tracker_model_key:(document.getElementById('sc-ktrk').value||'').trim()||null,
+    oracle_model_key:(document.getElementById('sc-korc').value||'').trim()||null,
+  };
+  const r=await api('/api/simcore/run','POST',payload);
+  btn.disabled=false;
+  if(!(r&&r.success)){toast('❌ '+((r&&r.error)||'فشل التحليل'),'error');return;}
+  const res=r.result, d=res.decision||{};
+  // قرار Oracle — بارز
+  document.getElementById('sc-decision-card').style.display='';
+  document.getElementById('sc-dec').textContent=d.decision||'—';
+  document.getElementById('sc-conf').textContent=(d.confidence!=null?Math.round(d.confidence*100)+'%':'—');
+  document.getElementById('sc-dom').textContent=res.domain||'—';
+  document.getElementById('sc-reason').textContent=d.reasoning||'—';
+  document.getElementById('sc-action').textContent=d.action||'—';
+  document.getElementById('sc-risks').innerHTML=(d.risks&&d.risks.length)?d.risks.map(x=>'• '+esc(x)).join('<br>'):'—';
+  // نتائج المراقبة
+  const mc=document.getElementById('sc-monitor-card'), mr=document.getElementById('sc-monitor-res');
+  mc.style.display='';
+  mr.innerHTML=(res.monitor_results&&res.monitor_results.length)?res.monitor_results.map(m=>`
+    <div class="skr"><div class="ski">${m.severity==='critical'?'🚨':m.severity==='high'?'⚠️':'👁️'}</div>
+    <div class="skinfo"><div class="skn"><span class="badge bo">${esc(m.signal_type||'')}</span> <span class="badge ${m.severity==='critical'||m.severity==='high'?'br':'bm'}">${esc(m.severity||'')}</span></div>
+    <div class="skd">${esc(m.summary||'')} ${m.details?'— '+esc(m.details):''}</div></div></div>`).join('')
+    :'<div style="color:var(--muted);font-size:12px">'+(LANG==='ar'?'لا إشارات من المنصات':'No platform signals')+'</div>';
+  // نتائج التتبع
+  const tc=document.getElementById('sc-tracker-card'), tr2=document.getElementById('sc-tracker-res');
+  tc.style.display='';
+  tr2.innerHTML=(res.tracker_results&&res.tracker_results.length)?res.tracker_results.map(t=>`
+    <div class="skr"><div class="ski">🕸️</div><div class="skinfo">
+    <div class="skn">${esc(t.source||'')}</div>
+    <div class="skd">${esc(t.summary||'')}</div>
+    ${(t.extracted||[]).map(e2=>`<div class="skd">• ${esc(e2.point||'')} <span class="badge ${e2.sentiment==='positive'?'bg':e2.sentiment==='negative'?'br':'bm'}">${esc(e2.sentiment||'')}</span> <span class="badge bm">w:${e2.weight??''}</span></div>`).join('')}
+    </div></div>`).join('')
+    :'<div style="color:var(--muted);font-size:12px">'+(LANG==='ar'?'لا نتائج تتبع ذات صلة':'No relevant tracker results')+'</div>';
+  toast(LANG==='ar'?'✅ اكتمل التحليل':'✅ Analysis done','success');
+}
 </script>
 </body>
 </html>
