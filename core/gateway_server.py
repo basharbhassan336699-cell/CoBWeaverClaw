@@ -91,14 +91,29 @@ def save_env_keys(env_vars: dict):
 
 
 # ── chat: build memory context + call model ──────────────────
-def run_chat(message: str, model: str = None, session: str = "dashboard") -> dict:
-    """ينفّذ محادثة: يحمّل المفاتيح + الذاكرة، يستدعي النموذج، يحفظ التبادل."""
+def run_chat(message: str, model: str = None, session: str = "dashboard",
+             attachments: list = None) -> dict:
+    """ينفّذ محادثة: يحمّل المفاتيح + الذاكرة، يستدعي النموذج، يحفظ التبادل.
+
+    attachments: [{name,type,size,data(base64)}] — تُحفظ في ~/.cobweaverclaw/uploads
+    ويُحقن نص الملفات النصية في رسالة النموذج.
+    """
     load_env_into_os()
     cfg = load_config()
     import sys
     sys.path.insert(0, BASE_DIR)
     from memory.sqlite_store import SQLiteStore
     from brain.model_router import ModelRouter
+
+    # المرفقات: حفظ + كتلة سياق للنموذج + ملاحظة موجزة للذاكرة
+    model_message = message
+    memory_message = message
+    if attachments:
+        from core.files_api import save_attachments, build_context_block
+        saved = save_attachments(attachments)
+        model_message = message + build_context_block(saved)
+        names = "، ".join(r["name"] for r in saved)
+        memory_message = (message + f"\n[📎 مرفقات: {names}]") if message else f"[📎 مرفقات: {names}]"
 
     sid = session or "dashboard"
     mem_cfg = dict(cfg.get("memory", {}))
@@ -108,9 +123,9 @@ def run_chat(message: str, model: str = None, session: str = "dashboard") -> dic
     lang   = "ar" if any(c in message for c in "ابتثجحخدذرزسشصضطظعغفقكلمنهوي") else "en"
 
     async def _go():
-        ctx = await mem.get_context(sid, message)
-        out = await router.complete_meta(message, ctx, lang, force_model=model or None)
-        await mem.save(sid, message, out.get("reply", ""), lang)
+        ctx = await mem.get_context(sid, memory_message)
+        out = await router.complete_meta(model_message, ctx, lang, force_model=model or None)
+        await mem.save(sid, memory_message, out.get("reply", ""), lang)
         try:
             await mem.maybe_summarize(sid)
         except Exception:
@@ -534,8 +549,21 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
         try:
             if path == "/api/chat":
                 out = run_chat(body.get("message", ""), body.get("model"),
-                               body.get("session", "dashboard"))
+                               body.get("session", "dashboard"),
+                               body.get("attachments"))
                 self._send_json(out)
+            elif path == "/api/files/upload":
+                from core.files_api import upload_files
+                body_out, code = upload_files(body)
+                self._send_json(body_out, code)
+            elif path == "/api/skills/upload":
+                from core.skills_api import upload_skill
+                body_out, code = upload_skill(body)
+                self._send_json(body_out, code)
+            elif path == "/api/skills/create":
+                from core.skills_api import create_skill
+                body_out, code = create_skill(body)
+                self._send_json(body_out, code)
             elif path == "/api/conversations":
                 self._send_json(conversation_new())
             elif path == "/api/telegram/send":
@@ -623,6 +651,12 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
                 pid = parsed.path.rsplit("/", 1)[-1]
                 self._send_json(dash.pairing_reject(int(pid)) if pid.isdigit()
                                 else {"error": "not_found"})
+            elif parsed.path.startswith("/api/skills/"):
+                from core.skills_api import delete_skill
+                import urllib.parse as _up
+                name = _up.unquote(parsed.path[len("/api/skills/"):])
+                body_out, code = delete_skill(name)
+                self._send_json(body_out, code)
             else:
                 self._send_json({"error": "not_found"}, 404)
         except Exception as e:
@@ -645,7 +679,9 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
                 qs = urllib.parse.parse_qs(parsed.query)
                 self._send_json(memory_search(qs.get("q", [""])[0]))
             elif path == "/api/skills":
-                self._send_json({"skills": list_skills()})
+                from core.skills_api import list_user_skills
+                self._send_json({"skills": list_skills(),
+                                 "user_skills": list_user_skills()})
             elif path == "/api/channels":
                 self._send_json(channels_status())
             elif path == "/api/channels/telegram/test":
