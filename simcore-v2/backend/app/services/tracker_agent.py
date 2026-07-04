@@ -40,7 +40,8 @@ class TrackerAgent:
         results = []
         for src in sources:
             fetch = SourceManager.fetch(
-                src["url"], src.get("api_key"), src.get("account_id"))
+                src["url"], api_key=src.get("api_key"),
+                secret=src.get("secret"), account_id=src.get("account_id"))
             if not fetch["success"]:
                 logger.warning("tracker fetch failed %s: %s", src.get("name"), fetch["error"])
                 continue

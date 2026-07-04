@@ -26,47 +26,105 @@
                class="sc-inp" placeholder="اكتب تخصصك"/>
       </div>
 
-      <!-- المصادر -->
+      <!-- ── المنصات ── -->
       <div class="sc-panel">
-        <div class="sc-panel-title">🌐 المصادر</div>
+        <div class="sc-panel-title">🏦 المنصات</div>
+        <p class="sc-hint">منصات التداول والشبكات الاجتماعية — تتصل عبر مفتاح API</p>
 
         <div class="sc-row">
-          <input v-model="ns.url" class="sc-inp sc-inp-url" dir="ltr"
-                 placeholder="https://example.com"/>
-          <button class="sc-btn-ghost" @click="probe" :disabled="probing">
-            {{ probing ? '...' : 'اختبر الاتصال' }}
+          <input v-model="newPlatform.url" class="sc-inp sc-inp-url" dir="ltr"
+                 placeholder="https://api.binance.com/api/v3/ticker/price"/>
+          <button class="sc-btn-ghost" @click="probePlatform" :disabled="pprobing">
+            {{ pprobing ? '...' : 'اختبر الاتصال' }}
           </button>
         </div>
 
-        <div v-if="pr" class="sc-probe" :class="pr.reachable?'ok':'fail'">
-          {{ pr.reachable ? '✅ متصل — ' + pr.suggested_type : '❌ ' + (pr.error||'فشل') }}
+        <div v-if="ppResult" class="sc-probe" :class="ppResult.reachable && !ppResult.auth_failed ? 'ok' : 'fail'">
+          {{ ppResult.auth_ok ? '✅ متصل ومصادق' : ppResult.auth_failed ? '❌ مفتاح خاطئ' : ppResult.reachable ? '⚠️ يحتاج مفتاح' : '❌ ' + (ppResult.error||'فشل') }}
         </div>
 
-        <input v-model="ns.name" class="sc-inp" placeholder="اسم المصدر"/>
+        <input v-model="newPlatform.name" class="sc-inp" placeholder="اسم المنصة — مثال: Binance"/>
 
-        <template v-if="pr && pr.needs_key">
-          <div class="sc-label">مفتاح API</div>
-          <input v-model="ns.api_key" class="sc-inp" type="password" placeholder="API Key"/>
-        </template>
-        <template v-if="pr && pr.needs_id">
-          <div class="sc-label">معرف الحساب</div>
-          <input v-model="ns.account_id" class="sc-inp" placeholder="Account ID"/>
-        </template>
+        <div class="sc-key-row">
+          <label>مفتاح API</label>
+          <input v-model="newPlatform.api_key" class="sc-inp" type="password" placeholder="API Key"/>
+        </div>
+        <div v-if="ppResult && ppResult.needs_secret" class="sc-key-row">
+          <label>Secret</label>
+          <input v-model="newPlatform.secret" class="sc-inp" type="password" placeholder="Secret Key (إذا طلبته المنصة)"/>
+        </div>
+        <div v-if="ppResult && ppResult.needs_id" class="sc-key-row">
+          <label>Account ID</label>
+          <input v-model="newPlatform.account_id" class="sc-inp" placeholder="Account ID (اختياري)"/>
+        </div>
 
-        <button class="sc-btn-add" @click="addSource">+ إضافة المصدر</button>
+        <button class="sc-btn-add" @click="addPlatform">+ إضافة المنصة</button>
+
+        <table v-if="platforms.length" class="sc-tbl">
+          <thead><tr><th>الاسم</th><th>URL</th><th>النوع</th><th>الحالة</th><th></th></tr></thead>
+          <tbody>
+            <tr v-for="(p,i) in platforms" :key="i">
+              <td>{{ p.name }}</td>
+              <td class="mono">{{ p.url.slice(0,30) }}...</td>
+              <td><span class="sc-type">{{ p.source_type }}</span></td>
+              <td><span :class="p.auth_ok ? 'txt-green' : 'txt-amber'">{{ p.auth_ok ? '✅' : '⚠️' }}</span></td>
+              <td><button class="sc-del" @click="platforms.splice(i,1)">✕</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-else class="sc-empty">لا منصات بعد</div>
+      </div>
+
+      <!-- ── المصادر ── -->
+      <div class="sc-panel">
+        <div class="sc-panel-title">🌐 المصادر</div>
+        <p class="sc-hint">مواقع أخبار وويب — تُجلب مباشرة بدون مفتاح</p>
+
+        <div class="sc-row">
+          <input v-model="ns.url" class="sc-inp sc-inp-url" dir="ltr"
+                 placeholder="https://coindesk.com أو أي موقع أخبار"/>
+          <button class="sc-btn-ghost" @click="probe" :disabled="probing">
+            {{ probing ? '...' : 'اختبر' }}
+          </button>
+        </div>
+
+        <div v-if="pr" class="sc-probe" :class="pr.reachable ? 'ok' : 'fail'">
+          {{ pr.reachable ? '✅ متصل' : '❌ ' + (pr.error||'فشل') }}
+        </div>
+
+        <div class="sc-row">
+          <input v-model="ns.name" class="sc-inp" placeholder="اسم المصدر"/>
+          <button class="sc-btn-add" style="width:auto;padding:8px 16px" @click="addSource">+</button>
+        </div>
+
+        <!-- نافذة إضافة مصدر إضافي -->
+        <div v-if="showAddSource" class="sc-modal">
+          <div class="sc-modal-body">
+            <div class="sc-panel-title">+ مصدر جديد</div>
+            <input v-model="extraSource.url"  class="sc-inp" dir="ltr" placeholder="URL"/>
+            <input v-model="extraSource.name" class="sc-inp" placeholder="الاسم"/>
+            <div class="sc-row">
+              <button class="sc-btn-ghost" @click="showAddSource=false">إلغاء</button>
+              <button class="sc-btn-primary" @click="confirmExtraSource">إضافة</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sc-row" style="margin-top:8px">
+          <span class="sc-empty" style="flex:1">{{ sources.length }} مصدر مضاف</span>
+          <button class="sc-btn-ghost" @click="showAddSource=true;extraSource={url:'',name:''}">+ مصدر آخر</button>
+        </div>
 
         <table v-if="sources.length" class="sc-tbl">
-          <thead><tr><th>الاسم</th><th>URL</th><th>النوع</th><th></th></tr></thead>
+          <thead><tr><th>الاسم</th><th>URL</th><th></th></tr></thead>
           <tbody>
             <tr v-for="(s,i) in sources" :key="i">
               <td>{{ s.name }}</td>
               <td class="mono">{{ s.url.slice(0,35) }}...</td>
-              <td><span class="sc-type">{{ s.source_type }}</span></td>
               <td><button class="sc-del" @click="sources.splice(i,1)">✕</button></td>
             </tr>
           </tbody>
         </table>
-        <div v-else class="sc-empty">لا مصادر بعد</div>
       </div>
 
       <!-- المفاتيح -->
@@ -144,6 +202,12 @@ export default {
       sources: [],
       ns: { url:'', name:'', api_key:'', account_id:'', source_type:'web' },
       pr: null, probing: false,
+      platforms: [],
+      newPlatform: { name: '', url: '', api_key: '', secret: '', account_id: '', source_type: 'exchange' },
+      ppResult: null,
+      pprobing: false,
+      showAddSource: false,
+      extraSource: { url: '', name: '' },
       keys: {
         global_model_key:'', global_model_url:'', global_model_name:'',
         monitor_key:'', tracker_key:'', oracle_key:'',
@@ -185,14 +249,43 @@ export default {
       this.sources.push({...this.ns})
       this.ns={url:'',name:'',api_key:'',account_id:'',source_type:'web'}; this.pr=null
     },
+    async probePlatform() {
+      if (!this.newPlatform.url.trim()) return
+      this.pprobing = true; this.ppResult = null
+      try {
+        const r = await fetch('/api/simcore/probe', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ url: this.newPlatform.url,
+                                 api_key: this.newPlatform.api_key,
+                                 secret: this.newPlatform.secret })})
+        const d = await r.json()
+        this.ppResult = d.result
+        this.newPlatform.source_type = d.result?.suggested_type || 'exchange'
+      } catch(e) { this.ppResult = {reachable: false, error: e.message} }
+      finally { this.pprobing = false }
+    },
+    addPlatform() {
+      if (!this.newPlatform.url || !this.newPlatform.name) return
+      this.platforms.push({ ...this.newPlatform, auth_ok: this.ppResult?.auth_ok || false })
+      this.newPlatform = {name:'',url:'',api_key:'',secret:'',account_id:'',source_type:'exchange'}
+      this.ppResult = null
+    },
+    confirmExtraSource() {
+      if (!this.extraSource.url || !this.extraSource.name) return
+      this.sources.push({ ...this.extraSource, source_type: 'web' })
+      this.showAddSource = false
+    },
     async run() {
       this.running=true; this.result=null
       try {
         const r = await fetch('/api/simcore/run',{
           method:'POST', headers:{'Content-Type':'application/json'},
           body: JSON.stringify({
-            domain: this.domain==='other'?this.domainCustom:this.domain,
-            sources: this.sources, ...this.keys})})
+            domain:    this.domain === 'other' ? this.domainCustom : this.domain,
+            sources:   this.sources,
+            platforms: this.platforms,
+            ...this.keys,
+          })})
         const d = await r.json()
         if (d.success) this.result=d; else alert('خطأ: '+d.error)
       } catch(e) { alert('خطأ: '+e.message) }
@@ -261,4 +354,9 @@ export default {
 .sc-track{background:#162235;border-radius:8px;padding:10px;margin-bottom:6px}
 .track-src{font-weight:700;font-size:12px;color:#2dd4bf;margin-bottom:4px}
 .sc-feedback{margin-top:14px;padding-top:12px;border-top:1px solid #1e3352}
+.txt-green { color: #22c55e; }
+.txt-amber { color: #f59e0b; }
+.sc-modal { position:fixed;top:0;left:0;right:0;bottom:0;background:#000a;display:flex;align-items:center;justify-content:center;z-index:100 }
+.sc-modal-body { background:#111b2b;border:1px solid #1e3352;border-radius:12px;padding:20px;width:90%;max-width:400px }
+.sc-btn-primary { background:#e8523a;color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-weight:700 }
 </style>

@@ -37,8 +37,10 @@ class MonitorAgent:
 
     def monitor_once(self, source_url: str, source_name: str,
                      api_key: Optional[str] = None,
-                     account_id: Optional[str] = None) -> Dict[str, Any]:
-        fetch = SourceManager.fetch(source_url, api_key, account_id)
+                     account_id: Optional[str] = None,
+                     secret: Optional[str] = None) -> Dict[str, Any]:
+        fetch = SourceManager.fetch(source_url, api_key=api_key,
+                                    secret=secret, account_id=account_id)
         if not fetch["success"]:
             logger.warning("monitor fetch failed %s: %s", source_url, fetch["error"])
             return {"has_signal": False, "error": fetch["error"]}

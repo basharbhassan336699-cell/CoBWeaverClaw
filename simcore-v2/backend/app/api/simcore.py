@@ -18,20 +18,22 @@ def get_domains():
 
 @simcore_bp.route("/probe", methods=["POST"])
 def probe():
-    """اختبار اتصال أي موقع أو منصة"""
-    url = (request.json or {}).get("url", "").strip()
+    data    = request.json or {}
+    url     = data.get("url","").strip()
+    api_key = data.get("api_key")
+    secret  = data.get("secret")
     if not url:
-        return jsonify({"success": False, "error": "url مطلوب"}), 400
-    result = SourceManager.probe(url)
-    return jsonify({"success": True, "result": result})
+        return jsonify({"success":False,"error":"url مطلوب"}),400
+    return jsonify({"success":True,"result": SourceManager.probe(url, api_key, secret)})
 
 
 @simcore_bp.route("/run", methods=["POST"])
 def run_cycle():
     """تشغيل دورة تحليل كاملة: monitor → tracker → oracle"""
-    d       = request.json or {}
-    domain  = d.get("domain", "general")
-    sources = d.get("sources", [])
+    d         = request.json or {}
+    domain    = d.get("domain", "general")
+    sources   = d.get("sources", [])
+    platforms = d.get("platforms", [])
 
     # مفاتيح مشتركة — fallback لـ Config
     mk = d.get("global_model_key")  or None
@@ -40,9 +42,10 @@ def run_cycle():
 
     errors = []
 
-    # وكيل المراقبة — مصادر API والمنصات
+    # وكيل المراقبة — المنصات (exchange/api/social) من platforms + ما كان في sources
     monitor_results = []
-    api_sources = [s for s in sources if s.get("source_type") in ("api", "social")]
+    api_sources = platforms + [
+        s for s in sources if s.get("source_type") in ("api", "social", "exchange")]
     if api_sources:
         try:
             mon = MonitorAgent(domain,
@@ -51,7 +54,8 @@ def run_cycle():
                                d.get("monitor_name") or mn)
             for src in api_sources:
                 r = mon.monitor_once(src["url"], src.get("name", src["url"]),
-                                     src.get("api_key"), src.get("account_id"))
+                                     src.get("api_key"), src.get("account_id"),
+                                     secret=src.get("secret"))
                 if r.get("has_signal"):
                     monitor_results.append(r)
         except ValueError as e:
