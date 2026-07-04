@@ -59,6 +59,37 @@ def is_first_run():
 
 # ── الأوامر ─────────────────────────────────────────────────
 
+def cmd_simcore(args):
+    """يشغّل باكند SimCore v2 (Flask، منفذ 5001) بمفاتيح الوكيل الموحّدة."""
+    import subprocess
+    run_py = os.path.join(BASE_DIR, "simcore-v2", "backend", "run.py")
+    if not os.path.exists(run_py):
+        print("❌ simcore-v2 غير موجود — حدّث المستودع: git pull")
+        return
+    try:
+        import flask  # noqa: F401
+    except ImportError:
+        print("❌ متطلبات SimCore v2 غير مثبتة. ثبّتها أولاً:\n"
+              "   pip install -r simcore-v2/backend/requirements.txt\n"
+              "   (يكفي flask وflask-cors وopenai وpython-dotenv وrequests "
+              "لتشغيل SimCore بلا محاكاة OASIS)")
+        return
+    port = "5001"
+    if "--port" in args:
+        try:
+            port = args[args.index("--port") + 1]
+        except (ValueError, IndexError):
+            pass
+    env = dict(os.environ)
+    env.setdefault("FLASK_PORT", port)
+    env.setdefault("FLASK_HOST", "127.0.0.1")
+    print(f"\n🕷️  SimCore v2 Backend — http://127.0.0.1:{port}")
+    print("   الواجهة: cd simcore-v2/frontend && npm run dev ثم افتح /simcore")
+    print("   بوابة الوكيل ستكتشفه تلقائياً وتوجّه إليه طلبات SimCore.\n")
+    subprocess.run([sys.executable, run_py], env=env,
+                   cwd=os.path.join(BASE_DIR, "simcore-v2", "backend"))
+
+
 def cmd_gateway(args):
     """فتح بوابة التحكم."""
     if "--stop" in args:
@@ -266,6 +297,8 @@ def main():
         subprocess.run([sys.executable, os.path.join(BASE_DIR, "setup_wizard.py")] + rest)
     elif cmd == "gateway":
         cmd_gateway(rest)
+    elif cmd == "simcore":
+        cmd_simcore(rest)
     elif cmd == "telegram":
         from interfaces.telegram import run_telegram
         run_telegram(load_config())

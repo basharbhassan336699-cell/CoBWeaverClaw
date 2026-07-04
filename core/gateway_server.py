@@ -569,16 +569,30 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
             elif path == "/api/pairing/approve":
                 self._send_json(dash.pairing_approve(body.get("id", 0)))
             elif path.startswith("/api/simcore/"):
-                from simcore import api as simcore_api
                 action = path.rsplit("/", 1)[-1]
-                fn = {"probe": simcore_api.probe_source,
-                      "run": simcore_api.run_cycle,
-                      "feedback": simcore_api.record_feedback}.get(action)
-                if fn is None:
+                if action not in ("probe", "run", "feedback"):
                     self._send_json({"error": "not_found"}, 404)
+                    return
+                # v2 حي → توجيه إليه؛ وإلا النواة المدمجة (نفس العقود)
+                if dash.simcore_v2_alive():
+                    body_out, code = dash.simcore_v2_forward("POST", path, body)
+                    if isinstance(body_out, dict):
+                        body_out.setdefault("engine", "v2")
                 else:
+                    from simcore import api as simcore_api
+                    fn = {"probe": simcore_api.probe_source,
+                          "run": simcore_api.run_cycle,
+                          "feedback": simcore_api.record_feedback}[action]
                     body_out, code = fn(body)
-                    self._send_json(body_out, code)
+                    if isinstance(body_out, dict):
+                        body_out.setdefault("engine", "embedded")
+                # بعد كل دورة تحليل ناجحة: تغذية ذاكرة الوكيل + تنبيهات تيليجرام
+                if action == "run" and code == 200:
+                    try:
+                        dash.simcore_sync_decisions()
+                    except Exception:
+                        pass
+                self._send_json(body_out, code)
             else:
                 self._send_json({"error": "not_found"}, 404)
         except Exception as e:
@@ -680,9 +694,14 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
                     limit=int(qs.get("limit", ["50"])[0] or 50),
                     since=int(qs.get("since", ["0"])[0] or 0),
                     level=qs.get("level", [""])[0]))
+            elif path == "/api/simcore/v2/status":
+                self._send_json(dash.simcore_v2_status())
             elif path == "/api/simcore/domains":
-                from simcore.api import get_domains
-                body_out, code = get_domains()
+                if dash.simcore_v2_alive():
+                    body_out, code = dash.simcore_v2_forward("GET", "/api/simcore/domains")
+                else:
+                    from simcore.api import get_domains
+                    body_out, code = get_domains()
                 self._send_json(body_out, code)
             else:
                 self._send_json({"error": "not_found"}, 404)

@@ -343,6 +343,165 @@ def workboard_clear_done() -> dict:
 
 
 # ══════════════════════════════════════════════════════════════
+# SimCore — جسر v2 + تغذية ذاكرة الوكيل وتيليجرام بالقرارات
+# ══════════════════════════════════════════════════════════════
+SIMCORE_V2_URL = os.environ.get("SIMCORE_V2_URL", "http://127.0.0.1:5001")
+SIMCORE_V2_UI  = os.environ.get("SIMCORE_V2_UI", "http://127.0.0.1:5173/simcore")
+_V2_CACHE = {"ts": 0.0, "alive": False}
+
+_SIMCORE_DIR = _HOME / "simcore"
+_DECISIONS_FILE = _SIMCORE_DIR / "decisions.jsonl"
+_INGEST_MARKER = _SIMCORE_DIR / ".agent_ingested"
+
+# توجه SimCore ← سياق الذاكرة الموزونة
+_DOMAIN_TO_CONTEXT = {
+    "trading": "trading", "education": "academic",
+    "engineering": "technical", "security": "technical",
+}
+
+
+def simcore_v2_alive(force: bool = False) -> bool:
+    """هل باكند SimCore v2 يعمل؟ (نتيجة مخبأة 5 ثوانٍ)."""
+    now = time.time()
+    if not force and now - _V2_CACHE["ts"] < 5:
+        return _V2_CACHE["alive"]
+    alive = False
+    try:
+        import urllib.request
+        req = urllib.request.Request(SIMCORE_V2_URL + "/health")
+        with urllib.request.urlopen(req, timeout=1.5) as r:
+            alive = r.status == 200
+    except Exception:
+        alive = False
+    _V2_CACHE.update(ts=now, alive=alive)
+    return alive
+
+
+def simcore_v2_forward(method: str, path: str, body: dict = None):
+    """يمرّر طلب SimCore إلى باكند v2 ويعيد (json_dict, status)."""
+    import urllib.request
+    data = json.dumps(body or {}, ensure_ascii=False).encode("utf-8") \
+        if method == "POST" else None
+    req = urllib.request.Request(
+        SIMCORE_V2_URL + path, data=data, method=method,
+        headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=180) as r:
+            return json.loads(r.read()), r.status
+    except Exception as e:
+        try:
+            # أخطاء HTTP تحمل جسم JSON غالباً
+            return json.loads(e.read()), e.code            # type: ignore[attr-defined]
+        except Exception:
+            return {"success": False, "error": f"v2 unreachable: {str(e)[:80]}"}, 502
+
+
+def simcore_v2_status() -> dict:
+    """حالة محرك v2 للوحة + مزامنة قرارات جديدة إن وجدت."""
+    alive = simcore_v2_alive(force=True)
+    synced = simcore_sync_decisions()
+    return {"alive": alive, "url": SIMCORE_V2_URL, "ui": SIMCORE_V2_UI,
+            "synced": synced.get("ingested", 0)}
+
+
+def _read_marker() -> int:
+    try:
+        return int(_INGEST_MARKER.read_text().strip() or 0)
+    except Exception:
+        return 0
+
+
+def _write_marker(ts: int) -> None:
+    try:
+        _SIMCORE_DIR.mkdir(parents=True, exist_ok=True)
+        _INGEST_MARKER.write_text(str(int(ts)))
+    except Exception:
+        pass
+
+
+def simcore_sync_decisions() -> dict:
+    """يغذي ذاكرة الوكيل وتيليجرام بقرارات SimCore الجديدة (مرة لكل قرار).
+
+    يقرأ decisions.jsonl المشترك (تكتبه النواة المدمجة وv2 كلاهما) ويستوعب
+    كل مدخلة أحدث من العلامة. أول تشغيل يضبط العلامة على أحدث قرار دون
+    استيعاب رجعي (منعاً لإغراق الذاكرة/تيليجرام بالتاريخ القديم).
+    """
+    try:
+        if not _DECISIONS_FILE.exists():
+            return {"ingested": 0}
+        lines = _DECISIONS_FILE.read_text(encoding="utf-8").strip().splitlines()
+        entries = []
+        for ln in lines:
+            try:
+                entries.append(json.loads(ln))
+            except Exception:
+                continue
+        if not entries:
+            return {"ingested": 0}
+        latest_ts = max(int(e.get("ts", 0)) for e in entries)
+        marker = _read_marker()
+        if marker == 0:
+            _write_marker(latest_ts)
+            return {"ingested": 0, "initialized": True}
+        new = [e for e in entries if int(e.get("ts", 0)) > marker]
+        if not new:
+            return {"ingested": 0}
+        ingested = 0
+        for e in new:
+            if _feed_one_decision(e):
+                ingested += 1
+        _write_marker(latest_ts)
+        return {"ingested": ingested}
+    except Exception as ex:
+        logger.debug("simcore_sync_decisions failed: %s", ex)
+        return {"ingested": 0, "error": str(ex)[:80]}
+
+
+def _feed_one_decision(entry: dict) -> bool:
+    """قرار واحد → ذاكرة الوكيل الموزونة + تنبيه تيليجرام عند الخطورة."""
+    d = entry.get("decision") or {}
+    verdict = str(d.get("decision", "")).strip()
+    if not verdict or verdict == "error":
+        return False
+    domain = str(entry.get("domain", "general"))
+    ctx = _DOMAIN_TO_CONTEXT.get(domain, "general")
+    conf = float(d.get("confidence") or 0)
+    reason = str(d.get("reasoning", ""))[:160]
+    action = str(d.get("action", ""))[:120]
+
+    text = (f"قرار SimCore [{domain}] {verdict} (ثقة {round(conf*100)}%)"
+            + (f" — {reason}" if reason else "")
+            + (f" — الإجراء: {action}" if action else ""))
+    try:
+        from memory.core.builtin_provider import BuiltinMemoryProvider
+        p = BuiltinMemoryProvider()
+        p._init_db()
+        # الثقة الأعلى تعيش أطول أمام التناقص الزمني
+        p.add_entry(text, context=ctx, write_level="auto",
+                    weight=1.0 + min(max(conf, 0.0), 1.0) * 0.5)
+    except Exception as e:
+        logger.debug("simcore memory feed failed: %s", e)
+        return False
+
+    # تنبيه تيليجرام: قرار alert، أو إشارة مراقبة high/critical، أو ثقة ≥ 0.85
+    try:
+        monitor = ((entry.get("inputs") or {}).get("monitor")) or []
+        severities = {str(m.get("severity", "")) for m in monitor if isinstance(m, dict)}
+        if verdict == "alert" or severities & {"high", "critical"} or conf >= 0.85:
+            from tools.agent_tools import send_telegram
+            risks = d.get("risks") or []
+            msg = ("🚨 SimCore — " + domain + "\n"
+                   f"القرار: {verdict} | الثقة: {round(conf*100)}%\n"
+                   + (f"السبب: {reason}\n" if reason else "")
+                   + (f"الإجراء: {action}\n" if action else "")
+                   + (("المخاطر: " + "، ".join(str(r) for r in risks[:3])) if risks else ""))
+            send_telegram(msg.strip())
+    except Exception as e:
+        logger.debug("simcore telegram alert failed: %s", e)
+    return True
+
+
+# ══════════════════════════════════════════════════════════════
 # الإقران (Pairing) — طلبات وصول القنوات (ملف JSON)
 # ══════════════════════════════════════════════════════════════
 _PAIR_FILE = _HOME / "pairing.json"

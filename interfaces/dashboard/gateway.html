@@ -878,6 +878,14 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
 <div id="page-simcore" class="page">
   <div class="pscroll">
     <div class="card">
+      <div class="ctitle" style="justify-content:space-between">
+        <span data-ar="⚙️ المحرك" data-en="⚙️ Engine">⚙️ المحرك</span>
+        <button class="btn btn-g" id="sc-v2-open" style="display:none;padding:4px 10px;font-size:11px" onclick="scOpenV2()"><span data-ar="فتح واجهة v2" data-en="Open v2 UI">فتح واجهة v2</span></button>
+      </div>
+      <div id="sc-engine" style="font-size:12px"><span class="badge bm" data-ar="جارٍ الفحص..." data-en="Checking...">جارٍ الفحص...</span></div>
+      <div class="note" style="margin-top:8px" data-ar="💡 إذا شغّلت SimCore v2 (python main.py simcore) توجَّه إليه الطلبات تلقائياً — وإلا تعمل النواة المدمجة. القرارات من كلا المحركين تُغذّى في ذاكرة الوكيل وتصلك تنبيهاتها الحرجة على تيليجرام." data-en="💡 If SimCore v2 is running (python main.py simcore) requests route to it automatically — otherwise the embedded core serves them. Decisions from both engines feed the agent's memory and critical alerts reach Telegram.">💡 إذا شغّلت SimCore v2 (python main.py simcore) توجَّه إليه الطلبات تلقائياً — وإلا تعمل النواة المدمجة. القرارات من كلا المحركين تُغذّى في ذاكرة الوكيل وتصلك تنبيهاتها الحرجة على تيليجرام.</div>
+    </div>
+    <div class="card">
       <div class="ctitle"><span data-ar="🧭 التوجه" data-en="🧭 Domain">🧭 التوجه</span></div>
       <div class="field">
         <label data-ar="تخصص التحليل" data-en="Analysis domain">تخصص التحليل</label>
@@ -1200,7 +1208,7 @@ function nav(page,btn){
   else if(page==='pairing') loadPairing();
   else if(page==='usage') loadUsage();
   else if(page==='logs') lgStart();
-  else if(page==='simcore') scRenderSources();
+  else if(page==='simcore'){ scRenderSources(); scEngineStatus(); }
   v2Timers(page);                     // مؤقتات التحديث الحي للتبويبات الجديدة
   if(isMobile()) setSidebar(false);   // اقفل القائمة العائمة بعد الاختيار
 }
@@ -1900,7 +1908,22 @@ function lgCopy(){
 function lgClear(){ LG.rows=[]; lgRender(); toast(LANG==='ar'?'🧹 مُسح العرض (السيرفر لم يُمسّ)':'🧹 View cleared','info'); }
 
 /* ── SimCore — محرك التحليل متعدد الوكلاء ── */
-let SC={sources:[],probe:null};
+let SC={sources:[],probe:null,v2ui:''};
+async function scEngineStatus(){
+  const el=document.getElementById('sc-engine'); if(!el)return;
+  const r=await api('/api/simcore/v2/status');
+  const openBtn=document.getElementById('sc-v2-open');
+  if(r&&r.alive){
+    SC.v2ui=r.ui||'';
+    el.innerHTML='<span class="badge bg">🟢 SimCore v2 '+(LANG==='ar'?'يعمل':'running')+' · '+esc(r.url||'')+'</span>'
+      +(r.synced?' <span class="badge bo">+'+r.synced+' '+(LANG==='ar'?'قرار مُزامَن':'synced')+'</span>':'');
+    if(openBtn)openBtn.style.display='';
+  }else{
+    el.innerHTML='<span class="badge bm">⚪ '+(LANG==='ar'?'النواة المدمجة — v2 غير مشغّل':'Embedded core — v2 not running')+'</span>';
+    if(openBtn)openBtn.style.display='none';
+  }
+}
+function scOpenV2(){ if(SC.v2ui) try{window.open(SC.v2ui,'_blank');}catch(e){} }
 function scDomainChange(){
   const other=document.getElementById('sc-domain').value==='other';
   document.getElementById('sc-custom-wrap').style.display=other?'':'none';
@@ -1966,8 +1989,10 @@ async function scRun(){
   btn.disabled=false;
   if(!(r&&r.success)){toast('❌ '+((r&&r.error)||'فشل التحليل'),'error');return;}
   const res=r.result, d=res.decision||{};
-  // قرار Oracle — بارز
+  // قرار Oracle — بارز (مع شارة المحرك الذي نفّذ الدورة)
   document.getElementById('sc-decision-card').style.display='';
+  const dcT=document.querySelector('#sc-decision-card .ctitle span');
+  if(dcT&&r.engine) dcT.innerHTML=(LANG==='ar'?'⚖️ قرار Oracle ':'⚖️ Oracle decision ')+'<span class="badge '+(r.engine==='v2'?'bg':'bm')+'">'+r.engine+'</span>';
   document.getElementById('sc-dec').textContent=d.decision||'—';
   document.getElementById('sc-conf').textContent=(d.confidence!=null?Math.round(d.confidence*100)+'%':'—');
   document.getElementById('sc-dom').textContent=res.domain||'—';
