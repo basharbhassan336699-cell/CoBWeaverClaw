@@ -1,7 +1,7 @@
 """
 Files API — استقبال مرفقات لوحة التحكم وحفظها.
 يحفظ في ~/.cobweaverclaw/uploads/ باسم موقوت، ويستخرج نص الملفات
-النصية لحقنها في سياق المحادثة. حد الحجم 10MB للملف الواحد.
+النصية لحقنها في سياق المحادثة. حد الحجم 200MB للملف الواحد.
 """
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Tuple
 logger = logging.getLogger(__name__)
 
 UPLOADS_DIR = Path.home() / ".cobweaverclaw" / "uploads"
-MAX_FILE_BYTES = 10 * 1024 * 1024  # 10MB
+MAX_FILE_BYTES = 200 * 1024 * 1024  # 200MB
 
 # امتدادات تُقرأ نصاً وتُحقن في سياق النموذج
 _TEXT_EXTS = {
@@ -60,7 +60,7 @@ def save_attachments(attachments: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             blob = base64.b64decode(raw_b64, validate=False)
             rec["size"] = len(blob)
             if len(blob) > MAX_FILE_BYTES:
-                rec["error"] = "الملف يتجاوز الحد الأقصى 10MB"
+                rec["error"] = "الملف يتجاوز الحد الأقصى 200MB"
                 out.append(rec)
                 continue
             ts = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -184,9 +184,61 @@ def extract_content(file_path, mime_type: str = "") -> Dict[str, Any]:
                 out["pages"] = max(len(rows) - 1, 0)
                 return out
 
+        # ZIP — يقرأ ما بداخله: نصوص الملفات النصية + قائمة الصور والملفات الثنائية
+        if ext == "zip" or mime in ("application/zip", "application/x-zip-compressed"):
+            return _extract_zip(p)
+
         return {"content": "", "pages": 0, "error": "نوع الملف غير مدعوم"}
     except Exception as e:
         return {"content": "", "pages": 0, "error": f"فشل الاستخراج: {str(e)[:80]}"}
+
+
+_ZIP_IMAGE_EXTS = {"png", "jpg", "jpeg", "gif", "webp", "bmp", "svg", "tif", "tiff"}
+_ZIP_PER_FILE_LIMIT = 8000     # حرف لكل ملف نصي داخل الأرشيف
+_ZIP_TOTAL_LIMIT = 60000       # سقف إجمالي المحتوى المستخرج من الأرشيف
+
+
+def _extract_zip(p: Path) -> Dict[str, Any]:
+    """يقرأ محتوى أرشيف ZIP: نصوص الملفات النصية + جرد الصور والملفات الثنائية."""
+    import zipfile
+    try:
+        with zipfile.ZipFile(p) as zf:
+            entries = [i for i in zf.infolist() if not i.is_dir()]
+            parts: List[str] = [f"[أرشيف ZIP يحتوي {len(entries)} ملف]"]
+            images: List[str] = []
+            total = 0
+            for info in entries:
+                name = info.filename
+                ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
+                size = info.file_size
+                if ext in _ZIP_IMAGE_EXTS:
+                    images.append(f"  🖼️ {name} ({round(size/1024, 1)}KB)")
+                    continue
+                if ext in _TEXT_EXTS and total < _ZIP_TOTAL_LIMIT:
+                    try:
+                        raw = zf.read(info)[: _ZIP_PER_FILE_LIMIT * 2]
+                        txt = raw.decode("utf-8", errors="replace")[:_ZIP_PER_FILE_LIMIT]
+                        block = f"\n── [{name}] ──\n{txt}"
+                        parts.append(block)
+                        total += len(block)
+                    except Exception:
+                        parts.append(f"\n── [{name}] — تعذّرت القراءة ──")
+                else:
+                    parts.append(f"  📎 {name} ({round(size/1024, 1)}KB)")
+            if images:
+                parts.append("\n[الصور داخل الأرشيف]\n" + "\n".join(images))
+            content = "\n".join(parts)
+            if total >= _ZIP_TOTAL_LIMIT:
+                content += "\n\n[تم اقتطاع بقية المحتوى — الأرشيف كبير]"
+            return {"content": content, "pages": len(entries)}
+    except zipfile.BadZipFile:
+        return {"content": "", "pages": 0, "error": "أرشيف ZIP تالف أو غير صالح"}
+    except RuntimeError as e:  # أرشيف مشفّر بكلمة مرور
+        return {"content": "", "pages": 0,
+                "error": "أرشيف محمي بكلمة مرور — تعذّر فتحه" if "password" in str(e).lower()
+                else f"فشل قراءة الأرشيف: {str(e)[:60]}"}
+    except Exception as e:
+        return {"content": "", "pages": 0, "error": f"فشل قراءة الأرشيف: {str(e)[:60]}"}
 
 
 def build_context_block(saved: List[Dict[str, Any]]) -> str:

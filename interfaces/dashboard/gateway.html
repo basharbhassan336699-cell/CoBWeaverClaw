@@ -1592,21 +1592,22 @@ function fallbackCopy(text,cb){
 }
 /* ── المرفقات في خانة الكتابة ── */
 let ATTACH=[];                       // [{name,type,size,data,kind,thumb}]
-const ATT_MAX=10*1024*1024;          // 10MB للملف الواحد
+const ATT_MAX=200*1024*1024;         // 200MB للملف الواحد
 function attKind(name){
   const e=(name.split('.').pop()||'').toLowerCase();
   if(['png','jpg','jpeg','gif','webp','bmp','svg'].includes(e)) return 'image';
   if(['pdf','docx','doc','txt','md','markdown'].includes(e))    return 'doc';
   if(['csv','xlsx','xls','json'].includes(e))                    return 'table';
   if(['py','js','ts','jsx','tsx','cpp','c','h','java','go','rs','rb','php','sh','sql','html','css','yaml','yml'].includes(e)) return 'code';
+  if(['zip'].includes(e)) return 'archive';
   return 'file';
 }
-const ATT_ICON={image:'🖼️',doc:'📄',table:'📊',code:'💻',file:'📎'};
+const ATT_ICON={image:'🖼️',doc:'📄',table:'📊',code:'💻',archive:'🗜️',file:'📎'};
 function fmtSize(b){ return b>1048576?(b/1048576).toFixed(1)+'MB':(b/1024).toFixed(1)+'KB'; }
 function pickFiles(files){
   for(const f of files){
     if(f.size>ATT_MAX){
-      toast((LANG==='ar'?'⚠️ تجاوز 10MB: ':'⚠️ Over 10MB: ')+f.name,'error');
+      toast((LANG==='ar'?'⚠️ تجاوز 200MB: ':'⚠️ Over 200MB: ')+f.name,'error');
       continue;
     }
     const reader=new FileReader();
