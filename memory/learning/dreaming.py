@@ -85,6 +85,12 @@ def deep_dreaming() -> dict:
         result["telegram"] = send_telegram("💤 Deep Dreaming — صيانة أسبوعية\n\n" + summary)
     except Exception as e:
         result["telegram"] = f"error: {str(e)[:100]}"
+    # مزامنة قرارات SimCore (يلتقط ما أصدره v2 المستقل خارج البوابة)
+    try:
+        from core.dashboard_api import simcore_sync_decisions
+        result["simcore_sync"] = simcore_sync_decisions()
+    except Exception as e:
+        result["simcore_sync"] = {"error": str(e)[:80]}
     deleted = (result.get("prune") or {}).get("deleted", 0)
     _diary_append("deep", deleted,
                   f"تنظيف عميق — حُذفت {deleted} ذكرى (عتبة 0.05) + ملخص التداول أُرسل لتيليجرام")

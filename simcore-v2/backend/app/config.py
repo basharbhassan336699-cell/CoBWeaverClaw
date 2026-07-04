@@ -16,6 +16,41 @@ else:
     # 如果根目录没有 .env，尝试加载环境变量（用于生产环境）
     load_dotenv(override=True)
 
+# ── تكامل CoBWeaverClaw: مفاتيح الوكيل الموحّدة ──────────────────
+# يحمّل ~/.cobweaverclaw/.env كاحتياط (بلا override — ملف SimCore المحلي أولاً)
+# فتعمل مفاتيح وكيلك هنا مباشرة بلا إعداد مكرر.
+_agent_env = os.path.join(os.path.expanduser("~"), ".cobweaverclaw", ".env")
+if os.path.exists(_agent_env):
+    load_dotenv(_agent_env, override=False)
+
+
+def _agent_llm_fallback():
+    """يرث LLM من مزوّدات CoBWeaverClaw عند غياب LLM_API_KEY.
+
+    يفحص مفاتيح المزوّدات بالترتيب ويعيد (key, base_url, model)
+    بصيغة OpenAI SDK، أو (None, None, None) إن لم يوجد مفتاح.
+    """
+    providers = [
+        ("OPENAI_API_KEY",     "https://api.openai.com/v1",      "gpt-4o-mini"),
+        ("GROQ_API_KEY",       "https://api.groq.com/openai/v1", "llama-3.3-70b-versatile"),
+        ("OPENROUTER_API_KEY", "https://openrouter.ai/api/v1",   "openai/gpt-4o-mini"),
+        ("DEEPSEEK_API_KEY",   "https://api.deepseek.com",       "deepseek-chat"),
+        ("MISTRAL_API_KEY",    "https://api.mistral.ai/v1",      "mistral-small-latest"),
+        ("XAI_API_KEY",        "https://api.x.ai/v1",            "grok-2-latest"),
+        ("MOONSHOT_API_KEY",   "https://api.moonshot.ai/v1",     "kimi-k2-0711-preview"),
+        ("ZAI_API_KEY",        "https://api.z.ai/api/paas/v4",   "glm-4.6"),
+    ]
+    for env_key, base_url, model in providers:
+        key = os.environ.get(env_key)
+        if key:
+            return key, base_url, model
+    return None, None, None
+
+
+_FB_KEY, _FB_URL, _FB_MODEL = (None, None, None)
+if not os.environ.get('LLM_API_KEY'):
+    _FB_KEY, _FB_URL, _FB_MODEL = _agent_llm_fallback()
+
 
 class Config:
     """Flask配置类"""
@@ -27,10 +62,10 @@ class Config:
     # JSON配置 - 禁用ASCII转义，让中文直接显示（而不是 \uXXXX 格式）
     JSON_AS_ASCII = False
     
-    # LLM配置（统一使用OpenAI格式）
-    LLM_API_KEY = os.environ.get('LLM_API_KEY')
-    LLM_BASE_URL = os.environ.get('LLM_BASE_URL', 'https://api.openai.com/v1')
-    LLM_MODEL_NAME = os.environ.get('LLM_MODEL_NAME', 'gpt-4o-mini')
+    # LLM配置（统一使用OpenAI格式）— يرث من مزوّدات CoBWeaverClaw عند الغياب
+    LLM_API_KEY = os.environ.get('LLM_API_KEY') or _FB_KEY
+    LLM_BASE_URL = os.environ.get('LLM_BASE_URL') or _FB_URL or 'https://api.openai.com/v1'
+    LLM_MODEL_NAME = os.environ.get('LLM_MODEL_NAME') or _FB_MODEL or 'gpt-4o-mini'
     
     # Zep配置
     ZEP_API_KEY = os.environ.get('ZEP_API_KEY')
