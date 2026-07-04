@@ -105,15 +105,38 @@ def run_chat(message: str, model: str = None, session: str = "dashboard",
     from memory.sqlite_store import SQLiteStore
     from brain.model_router import ModelRouter
 
-    # المرفقات: حفظ + كتلة سياق للنموذج + ملاحظة موجزة للذاكرة
+    # المرفقات: نصية → محتواها قبل الرسالة؛ صور → base64 للنموذج مباشرة
     model_message = message
     memory_message = message
+    chat_images = []
     if attachments:
-        from core.files_api import save_attachments, build_context_block
-        saved = save_attachments(attachments)
-        model_message = message + build_context_block(saved)
-        names = "، ".join(r["name"] for r in saved)
-        memory_message = (message + f"\n[📎 مرفقات: {names}]") if message else f"[📎 مرفقات: {names}]"
+        from core.files_api import save_attachments
+        pre, fresh = [], []
+        for a in attachments:
+            (pre if (a.get("content") is not None or a.get("image")) and a.get("saved_name")
+             else fresh).append(a)
+        saved = (save_attachments(fresh) if fresh else []) + pre
+        text_parts, names = [], []
+        for r in saved:
+            names.append(r.get("name", "ملف"))
+            if r.get("image"):
+                if r.get("data"):
+                    chat_images.append({"mime": r.get("type") or r.get("mime_type")
+                                        or "image/png", "data": r["data"]})
+                else:
+                    text_parts.append(f"[صورة مرفقة: {r.get('name')} — محفوظة في "
+                                      f"{r.get('path', 'uploads')}]")
+            else:
+                content = (r.get("content") or r.get("text") or "")[:12000]
+                if content:
+                    text_parts.append(f"محتوى الملف [{r.get('name')}]:\n\n{content}")
+                elif r.get("error") or r.get("extract_error"):
+                    text_parts.append(f"[الملف {r.get('name')} — "
+                                      f"{r.get('error') or r.get('extract_error')}]")
+        if text_parts:
+            model_message = "\n\n---\n\n".join(text_parts) + "\n\n---\n" + message
+        joined = "، ".join(names)
+        memory_message = (message + f"\n[📎 مرفقات: {joined}]") if message else f"[📎 مرفقات: {joined}]"
 
     sid = session or "dashboard"
     mem_cfg = dict(cfg.get("memory", {}))
@@ -124,6 +147,8 @@ def run_chat(message: str, model: str = None, session: str = "dashboard",
 
     async def _go():
         ctx = await mem.get_context(sid, memory_message)
+        if chat_images:
+            router._pending_images = chat_images   # صور المرفقات (OpenAI vision format)
         out = await router.complete_meta(model_message, ctx, lang, force_model=model or None)
         await mem.save(sid, memory_message, out.get("reply", ""), lang)
         try:
@@ -651,6 +676,11 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
                 pid = parsed.path.rsplit("/", 1)[-1]
                 self._send_json(dash.pairing_reject(int(pid)) if pid.isdigit()
                                 else {"error": "not_found"})
+            elif parsed.path.startswith("/api/files/delete/"):
+                from core.files_api import delete_file
+                fname = urllib.parse.unquote(parsed.path[len("/api/files/delete/"):])
+                body_out, code = delete_file(fname)
+                self._send_json(body_out, code)
             elif parsed.path.startswith("/api/skills/"):
                 from core.skills_api import delete_skill
                 import urllib.parse as _up
@@ -730,6 +760,44 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
                     limit=int(qs.get("limit", ["50"])[0] or 50),
                     since=int(qs.get("since", ["0"])[0] or 0),
                     level=qs.get("level", [""])[0]))
+            elif path == "/api/files/list":
+                from core.files_api import list_files
+                body_out, code = list_files()
+                self._send_json(body_out, code)
+            elif path.startswith("/api/files/download/"):
+                from core.files_api import file_bytes
+                fname = urllib.parse.unquote(path[len("/api/files/download/"):])
+                res = file_bytes(fname)
+                if res is None:
+                    self._send_json({"error": "الملف غير موجود"}, 404)
+                else:
+                    blob, mime, name = res
+                    self.send_response(200)
+                    self.send_header("Content-Type", mime)
+                    self.send_header("Content-Length", str(len(blob)))
+                    self.send_header("Content-Disposition",
+                                     "attachment; filename*=UTF-8''" + urllib.parse.quote(name))
+                    self.end_headers()
+                    self.wfile.write(blob)
+            elif path.startswith("/api/files/view/"):
+                # مثل التنزيل لكن للعرض داخل المتصفح (صور/PDF في العارض)
+                from core.files_api import file_bytes
+                fname = urllib.parse.unquote(path[len("/api/files/view/"):])
+                res = file_bytes(fname)
+                if res is None:
+                    self._send_json({"error": "الملف غير موجود"}, 404)
+                else:
+                    blob, mime, name = res
+                    self.send_response(200)
+                    self.send_header("Content-Type", mime)
+                    self.send_header("Content-Length", str(len(blob)))
+                    self.end_headers()
+                    self.wfile.write(blob)
+            elif path.startswith("/api/files/extract/"):
+                from core.files_api import extract_for
+                fname = urllib.parse.unquote(path[len("/api/files/extract/"):])
+                body_out, code = extract_for(fname)
+                self._send_json(body_out, code)
             elif path == "/api/simcore/v2/status":
                 self._send_json(dash.simcore_v2_status())
             elif path == "/api/simcore/domains":

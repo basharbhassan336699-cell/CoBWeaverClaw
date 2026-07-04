@@ -326,6 +326,18 @@ class ModelRouter:
         if not api_key:
             raise ValueError(f"لا يوجد {env_key}")
         msgs = [{"role": "system", "content": system}] + list(messages)
+        # صور المرفقات — تُحوَّل آخر رسالة مستخدم إلى content blocks (OpenAI vision)
+        pending_images = getattr(self, "_pending_images", None)
+        if pending_images:
+            self._pending_images = None
+            for i in range(len(msgs) - 1, -1, -1):
+                if msgs[i].get("role") == "user" and isinstance(msgs[i].get("content"), str):
+                    blocks = [{"type": "text", "text": msgs[i]["content"]}]
+                    for img in pending_images:
+                        blocks.append({"type": "image_url", "image_url": {
+                            "url": f"data:{img.get('mime', 'image/png')};base64,{img.get('data', '')}"}})
+                    msgs[i] = {"role": "user", "content": blocks}
+                    break
         tools_schema = self._tools_schema()
         last = {}
         for _ in range(5):  # حدّ أقصى 5 جولات أدوات

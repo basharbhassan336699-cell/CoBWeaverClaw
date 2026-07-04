@@ -72,16 +72,121 @@ def save_attachments(attachments: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             dest.write_bytes(blob)
             rec["saved"] = True
             rec["path"] = str(dest)
-            if _ext(name) in _TEXT_EXTS:
-                try:
-                    rec["text"] = blob.decode("utf-8", errors="replace")[:_TEXT_INJECT_LIMIT]
-                except Exception:
-                    pass
+            rec["saved_name"] = dest.name
+            # استخراج المحتوى حسب النوع (نص/PDF/DOCX/جداول)
+            ext_res = extract_content(dest, rec["type"])
+            if ext_res.get("image"):
+                rec["image"] = True
+            else:
+                content = ext_res.get("content") or ""
+                rec["content"] = content
+                rec["text"] = content[:_TEXT_INJECT_LIMIT]  # للحقن في سياق النموذج
+                rec["pages"] = ext_res.get("pages", 0)
+                if ext_res.get("error"):
+                    rec["extract_error"] = ext_res["error"]
             logger.info("Attachment saved: %s (%d bytes)", dest.name, len(blob))
         except Exception as e:
             rec["error"] = f"فشل الحفظ: {str(e)[:80]}"
         out.append(rec)
     return out
+
+
+def extract_content(file_path, mime_type: str = "") -> Dict[str, Any]:
+    """يستخرج محتوى الملف نصاً حسب نوعه.
+
+    يعيد {content, pages, error?} — الصور تعيد {image: True} بلا نص.
+    مكتبات PDF/DOCX/XLSX تُستورد كسولاً؛ غيابها يعيد خطأً واضحاً بأمر التثبيت.
+    """
+    p = Path(file_path)
+    name = p.name.lower()
+    ext = _ext(name)
+    mime = (mime_type or "").lower()
+    out: Dict[str, Any] = {"content": "", "pages": 0}
+
+    try:
+        # صور — لا استخراج؛ تُرسل base64 للنموذج مباشرة
+        if mime.startswith("image/") or ext in ("png", "jpg", "jpeg", "gif", "webp", "bmp", "svg"):
+            out["image"] = True
+            return out
+
+        # جداول أولاً (قبل فرع النص العام — csv نصي لكنه يُقرأ كجدول)
+        if ext in ("xlsx", "xls", "csv") or mime == "text/csv" \
+           or mime.endswith("spreadsheetml.sheet"):
+            pass  # يُعالج في فرعي الجداول أدناه
+        # نصوص وكود وJSON وMD — قراءة مباشرة
+        elif mime.startswith("text/") or mime == "application/json" or ext in _TEXT_EXTS:
+            txt = p.read_text(encoding="utf-8", errors="replace")
+            out["content"] = txt
+            out["pages"] = txt.count("\n") + 1          # أسطر
+            return out
+
+        # PDF — pdfplumber ثم PyPDF2 كاحتياط
+        if mime == "application/pdf" or ext == "pdf":
+            try:
+                import pdfplumber
+                with pdfplumber.open(str(p)) as pdf:
+                    out["pages"] = len(pdf.pages)
+                    out["content"] = "\n\n".join(
+                        (pg.extract_text() or "") for pg in pdf.pages)
+                return out
+            except ImportError:
+                pass
+            try:
+                from PyPDF2 import PdfReader
+                r = PdfReader(str(p))
+                out["pages"] = len(r.pages)
+                out["content"] = "\n\n".join((pg.extract_text() or "") for pg in r.pages)
+                return out
+            except ImportError:
+                return {"content": "", "pages": 0,
+                        "error": "استخراج PDF يتطلب: pip install pdfplumber"}
+
+        # DOCX — python-docx
+        if ext == "docx" or mime.endswith("wordprocessingml.document"):
+            try:
+                import docx
+                d = docx.Document(str(p))
+                paras = [par.text for par in d.paragraphs]
+                out["content"] = "\n".join(paras)
+                out["pages"] = len([x for x in paras if x.strip()])
+                return out
+            except ImportError:
+                return {"content": "", "pages": 0,
+                        "error": "استخراج DOCX يتطلب: pip install python-docx"}
+
+        # XLSX / CSV — pandas (وcsv القياسية كاحتياط للـCSV)
+        if ext in ("xlsx", "xls") or mime.endswith("spreadsheetml.sheet"):
+            try:
+                import pandas as pd
+                sheets = pd.read_excel(str(p), sheet_name=None)
+                parts, rows = [], 0
+                for sname, df in sheets.items():
+                    rows += len(df)
+                    parts.append(f"[ورقة: {sname}]\n" + df.to_string(index=False))
+                out["content"] = "\n\n".join(parts)
+                out["pages"] = rows
+                return out
+            except ImportError:
+                return {"content": "", "pages": 0,
+                        "error": "استخراج XLSX يتطلب: pip install pandas openpyxl"}
+        if ext == "csv" or mime == "text/csv":
+            try:
+                import pandas as pd
+                df = pd.read_csv(str(p))
+                out["content"] = df.to_string(index=False)
+                out["pages"] = len(df)
+                return out
+            except ImportError:
+                import csv as _csv
+                with open(p, encoding="utf-8", errors="replace", newline="") as f:
+                    rows = list(_csv.reader(f))
+                out["content"] = "\n".join("\t".join(r) for r in rows)
+                out["pages"] = max(len(rows) - 1, 0)
+                return out
+
+        return {"content": "", "pages": 0, "error": "نوع الملف غير مدعوم"}
+    except Exception as e:
+        return {"content": "", "pages": 0, "error": f"فشل الاستخراج: {str(e)[:80]}"}
 
 
 def build_context_block(saved: List[Dict[str, Any]]) -> str:
@@ -104,11 +209,95 @@ def build_context_block(saved: List[Dict[str, Any]]) -> str:
 
 
 def upload_files(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
-    """معالج POST /api/files/upload — {files: [{name,type,size,data}]}"""
+    """معالج POST /api/files/upload — {files: [{name,type,size,data}]}
+
+    يعيد لكل ملف: path, name, saved_name, mime_type, size, content,
+    preview (أول 200 حرف), pages — والصور بلا content (image: true).
+    """
     files = (data or {}).get("files") or []
     if not files:
         return {"success": False, "error": "لا ملفات في الطلب"}, 400
     saved = save_attachments(files)
-    return {"success": True,
-            "files": [{k: r.get(k) for k in ("name", "path", "size", "saved", "error")}
-                      for r in saved]}, 200
+    out = []
+    for r in saved:
+        content = r.get("content") or ""
+        out.append({
+            "path": r.get("path"), "name": r.get("name"),
+            "saved_name": r.get("saved_name"),
+            "mime_type": r.get("type") or "application/octet-stream",
+            "size": r.get("size", 0), "saved": r.get("saved", False),
+            "content": content, "preview": content[:200],
+            "pages": r.get("pages", 0),
+            "image": bool(r.get("image")),
+            "error": r.get("error") or r.get("extract_error"),
+        })
+    return {"success": True, "files": out}, 200
+
+
+# ── قائمة/تنزيل/حذف/استخراج الملفات المحفوظة ─────────────────────
+def list_files() -> Tuple[Dict[str, Any], int]:
+    """GET /api/files/list — كل ملفات uploads (الأحدث أولاً)."""
+    import mimetypes
+    UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+    files = []
+    for f in sorted(UPLOADS_DIR.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True):
+        if f.is_file():
+            files.append({
+                "name":      f.name,
+                "size":      f.stat().st_size,
+                "modified":  int(f.stat().st_mtime),
+                "mime_type": mimetypes.guess_type(f.name)[0] or "application/octet-stream",
+            })
+    return {"success": True, "files": files}, 200
+
+
+def _resolve_upload(filename: str) -> Path:
+    """مسار آمن داخل uploads فقط (يمنع الاجتياز)."""
+    safe = _safe_name(filename)
+    p = (UPLOADS_DIR / safe).resolve()
+    if not str(p).startswith(str(UPLOADS_DIR.resolve())):
+        raise ValueError("مسار غير مسموح")
+    return p
+
+
+def file_bytes(filename: str):
+    """GET /api/files/download/<filename> — يعيد (bytes, mime, name) أو None."""
+    import mimetypes
+    try:
+        p = _resolve_upload(filename)
+    except ValueError:
+        return None
+    if not p.exists() or not p.is_file():
+        return None
+    mime = mimetypes.guess_type(p.name)[0] or "application/octet-stream"
+    return p.read_bytes(), mime, p.name
+
+
+def extract_for(filename: str) -> Tuple[Dict[str, Any], int]:
+    """GET /api/files/extract/<filename> — محتوى ملف محفوظ للعارض."""
+    import mimetypes
+    try:
+        p = _resolve_upload(filename)
+    except ValueError:
+        return {"success": False, "error": "مسار غير مسموح"}, 400
+    if not p.exists():
+        return {"success": False, "error": "الملف غير موجود"}, 404
+    mime = mimetypes.guess_type(p.name)[0] or "application/octet-stream"
+    res = extract_content(p, mime)
+    return {"success": True, "name": p.name, "mime_type": mime,
+            "size": p.stat().st_size, "content": res.get("content", ""),
+            "pages": res.get("pages", 0), "image": bool(res.get("image")),
+            "error": res.get("error")}, 200
+
+
+def delete_file(filename: str) -> Tuple[Dict[str, Any], int]:
+    """DELETE /api/files/delete/<filename>"""
+    try:
+        p = _resolve_upload(filename)
+    except ValueError:
+        return {"success": False, "error": "مسار غير مسموح"}, 400
+    if p.exists() and p.is_file():
+        p.unlink()
+        logger.info("Upload deleted: %s", p.name)
+        return {"success": True}, 200
+    return {"success": False, "error": "الملف غير موجود"}, 404
