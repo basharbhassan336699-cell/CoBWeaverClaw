@@ -532,7 +532,13 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
     </div>
   </div>
   <div class="ctxbar" id="ctxbar"></div>
+  <!-- شريط المرفقات — معاينات فوق حقل الكتابة -->
+  <div id="attach-bar" style="display:none;padding:8px 12px;background:var(--card2);border-top:1px solid var(--border);gap:8px;flex-wrap:wrap"></div>
   <div class="cbar">
+    <input type="file" id="file-in" multiple style="display:none" onchange="pickFiles(this.files)">
+    <button class="sbtn" onclick="document.getElementById('file-in').click()" title="إرفاق ملفات" style="background:var(--card);border:1px solid var(--border);color:var(--orange)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
     <button class="sbtn" id="newchat-btn" onclick="newChat()" title="محادثة جديدة" style="background:var(--card);border:1px solid var(--border);color:var(--orange)">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
     </button>
@@ -755,9 +761,40 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
       <div class="skr"><svg class="ski" width="18" height="18" viewBox="0 0 24 24" fill="none"><polygon points="12 2 2 7 12 12 22 7 12 2" stroke="#FF8C00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="2 17 12 22 22 17" stroke="#FF8C00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="2 12 12 17 22 12" stroke="#FF8C00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="skinfo"><div class="skn">base</div><div class="skd" data-ar="المهارات الأساسية للوكيل" data-en="Core agent skills">المهارات الأساسية للوكيل</div></div><label class="tgl"><input type="checkbox" checked><div class="tgl-t"></div></label></div>
       <div class="skr"><svg class="ski" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#FF8C00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="skinfo"><div class="skn">evolver</div><div class="skd" data-ar="تطوير الوكيل ذاتياً" data-en="Self-improvement skill">تطوير الوكيل ذاتياً</div></div><label class="tgl"><input type="checkbox"><div class="tgl-t"></div></label></div>
     </div>
+    <!-- مهاراتي (SKILL.md من الجهاز) -->
     <div class="card">
-      <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span data-ar="ورشة المهارات" data-en="Skill Workshop">ورشة المهارات</span></div>
-      <button class="btn btn-g btn-f" onclick="toast(LANG==='ar'?'قريباً: ورشة المهارات':'Coming Soon: Skill Workshop','info')"><span data-ar="إنشاء مهارة جديدة — قريباً" data-en="Create New Skill — Coming Soon">إنشاء مهارة جديدة — قريباً</span></button>
+      <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 7.7l5.4-.8z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span data-ar="مهاراتي (SKILL.md)" data-en="My Skills (SKILL.md)">مهاراتي (SKILL.md)</span></div>
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr><th data-ar="الاسم" data-en="Name">الاسم</th><th data-ar="الإصدار" data-en="Version">الإصدار</th><th data-ar="التوجه" data-en="Domain">التوجه</th><th data-ar="التاجز" data-en="Tags">التاجز</th><th data-ar="أُضيفت" data-en="Added">أُضيفت</th><th></th></tr></thead>
+          <tbody id="usk-body"><tr><td colspan="6" style="color:var(--muted)" data-ar="لا مهارات مثبتة بعد" data-en="No skills yet">لا مهارات مثبتة بعد</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- رفع مهارة -->
+    <div class="card">
+      <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-ar="رفع مهارة من الجهاز" data-en="Upload Skill">رفع مهارة من الجهاز</span></div>
+      <input type="file" id="usk-file" accept=".md" style="display:none" onchange="uskUpload(this.files[0])">
+      <button class="btn btn-p btn-f" onclick="document.getElementById('usk-file').click()"><span data-ar="📤 اختر ملف SKILL.md" data-en="📤 Choose SKILL.md">📤 اختر ملف SKILL.md</span></button>
+      <div id="usk-err" style="margin-top:8px;font-size:11px;color:var(--red)"></div>
+      <div class="note" style="margin-top:8px" data-ar="💡 الهيكل الصارم: frontmatter (name, version, description, tags, domain) ثم # العنوان و## متى تستخدم هذه المهارة و## الخطوات و## مثال" data-en="💡 Strict structure: frontmatter (name, version, description, tags, domain) then # title, ## when-to-use, ## steps, ## example">💡 الهيكل الصارم: frontmatter (name, version, description, tags, domain) ثم # العنوان و## متى تستخدم هذه المهارة و## الخطوات و## مثال</div>
+    </div>
+
+    <!-- إنشاء مهارة -->
+    <div class="card">
+      <div class="ctitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span data-ar="إنشاء مهارة جديدة" data-en="Create New Skill">إنشاء مهارة جديدة</span></div>
+      <div class="field"><label data-ar="الاسم" data-en="Name">الاسم</label><input id="csk-name" type="text" placeholder="مثال: تحليل-الشموع"></div>
+      <div class="field"><label data-ar="الوصف" data-en="Description">الوصف</label><input id="csk-desc" type="text" placeholder="وصف قصير للمهارة"></div>
+      <div class="field"><label data-ar="التاجز (بفواصل)" data-en="Tags (comma-separated)">التاجز (بفواصل)</label><input id="csk-tags" type="text" placeholder="تداول, شموع"></div>
+      <div class="field"><label data-ar="التوجه" data-en="Domain">التوجه</label>
+        <select id="csk-domain">
+          <option value="general">general</option><option value="trading">trading</option>
+          <option value="academic">academic</option><option value="technical">technical</option>
+        </select>
+      </div>
+      <div class="field"><label data-ar="محتوى SKILL.md (الأقسام تُكمَّل تلقائياً)" data-en="SKILL.md content (sections auto-completed)">محتوى SKILL.md (الأقسام تُكمَّل تلقائياً)</label><textarea id="csk-content" placeholder="## متى تستخدم هذه المهارة&#10;...&#10;## الخطوات&#10;...&#10;## مثال&#10;..."></textarea></div>
+      <button class="btn btn-p btn-f" onclick="cskCreate()"><span data-ar="💾 حفظ المهارة" data-en="💾 Save Skill">💾 حفظ المهارة</span></button>
     </div>
   </div>
 </div>
@@ -1209,6 +1246,7 @@ function nav(page,btn){
   else if(page==='usage') loadUsage();
   else if(page==='logs') lgStart();
   else if(page==='simcore'){ scRenderSources(); scEngineStatus(); }
+  else if(page==='skills') loadUserSkills();
   v2Timers(page);                     // مؤقتات التحديث الحي للتبويبات الجديدة
   if(isMobile()) setSidebar(false);   // اقفل القائمة العائمة بعد الاختيار
 }
@@ -1504,15 +1542,69 @@ function fallbackCopy(text,cb){
   document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(e){}
   document.body.removeChild(ta);cb&&cb();
 }
+/* ── المرفقات في خانة الكتابة ── */
+let ATTACH=[];                       // [{name,type,size,data,kind,thumb}]
+const ATT_MAX=10*1024*1024;          // 10MB للملف الواحد
+function attKind(name){
+  const e=(name.split('.').pop()||'').toLowerCase();
+  if(['png','jpg','jpeg','gif','webp','bmp','svg'].includes(e)) return 'image';
+  if(['pdf','docx','doc','txt','md','markdown'].includes(e))    return 'doc';
+  if(['csv','xlsx','xls','json'].includes(e))                    return 'table';
+  if(['py','js','ts','jsx','tsx','cpp','c','h','java','go','rs','rb','php','sh','sql','html','css','yaml','yml'].includes(e)) return 'code';
+  return 'file';
+}
+const ATT_ICON={image:'🖼️',doc:'📄',table:'📊',code:'💻',file:'📎'};
+function fmtSize(b){ return b>1048576?(b/1048576).toFixed(1)+'MB':(b/1024).toFixed(1)+'KB'; }
+function pickFiles(files){
+  for(const f of files){
+    if(f.size>ATT_MAX){
+      toast((LANG==='ar'?'⚠️ تجاوز 10MB: ':'⚠️ Over 10MB: ')+f.name,'error');
+      continue;
+    }
+    const reader=new FileReader();
+    reader.onload=()=>{
+      const data=String(reader.result).split(',')[1]||'';
+      const kind=attKind(f.name);
+      const item={name:f.name,type:f.type||kind,size:f.size,data,kind,thumb:''};
+      if(kind==='image') item.thumb=String(reader.result);
+      ATTACH.push(item); renderAttach();
+    };
+    reader.readAsDataURL(f);
+  }
+  document.getElementById('file-in').value='';
+}
+function rmAttach(i){ ATTACH.splice(i,1); renderAttach(); }
+function renderAttach(){
+  const bar=document.getElementById('attach-bar'); if(!bar)return;
+  if(!ATTACH.length){bar.style.display='none';bar.innerHTML='';return;}
+  bar.style.display='flex';
+  bar.innerHTML=ATTACH.map((a,i)=>a.kind==='image'
+    ?`<div style="position:relative;width:52px;height:52px;border-radius:var(--rs);overflow:hidden;border:1px solid var(--border);background-image:url('${a.thumb}');background-size:cover;background-position:center" title="${esc(a.name)}">
+        <button onclick="rmAttach(${i})" style="position:absolute;top:1px;left:1px;width:16px;height:16px;border:none;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:10px;cursor:pointer;line-height:1">✕</button>
+      </div>`
+    :`<div style="display:flex;align-items:center;gap:6px;background:var(--card3);border:1px solid var(--border);border-radius:var(--rs);padding:5px 9px;font-size:11px">
+        <span>${ATT_ICON[a.kind]}</span>
+        <span style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.name)}</span>
+        <span style="color:var(--muted)">${fmtSize(a.size)}</span>
+        <button onclick="rmAttach(${i})" style="border:none;background:none;color:var(--red);cursor:pointer;font-size:11px;padding:0">✕</button>
+      </div>`).join('');
+}
+
 async function send(){
   const inp=document.getElementById('chat-in');
   const btn=document.getElementById('send-btn');
-  const msg=inp.value.trim();if(!msg) return;
+  let msg=inp.value.trim();
+  if(!msg&&!ATTACH.length) return;
+  if(!msg) msg=LANG==='ar'?'حلّل المرفقات':'Analyze the attachments';
   const model=document.getElementById('model-sel').value;
-  addBubble('user',msg);inp.value='';inp.style.height='auto';btn.disabled=true;
+  const atts=ATTACH.map(a=>({name:a.name,type:a.type,size:a.size,data:a.data}));
+  const shown=msg+(ATTACH.length?'\n'+ATTACH.map(a=>ATT_ICON[a.kind]+' '+a.name).join(' · '):'');
+  addBubble('user',shown);inp.value='';inp.style.height='auto';btn.disabled=true;
+  ATTACH=[];renderAttach();
   const typing=document.getElementById('typing');typing.classList.add('show');
   document.getElementById('chat-wrap').scrollTop=99999;
-  const r=await api('/api/chat','POST',{message:msg,model,session:SESSION});
+  const r=await api('/api/chat','POST',{message:msg,model,session:SESSION,
+                                        attachments:atts.length?atts:undefined});
   typing.classList.remove('show');btn.disabled=false;
   if(r?.reply) addBubble('agent',r.reply,r.model_used,r.tools);
   else addBubble('agent',LANG==='ar'?'⚠️ تعذّر الاتصال. تحقق من مفاتيح API في الإعدادات.':'⚠️ Connection failed. Check API keys in Settings.');
@@ -1906,6 +1998,63 @@ function lgCopy(){
   navigator.clipboard.writeText(txt).then(()=>toast(LANG==='ar'?'📋 نُسخ':'📋 Copied','success')).catch(()=>{});
 }
 function lgClear(){ LG.rows=[]; lgRender(); toast(LANG==='ar'?'🧹 مُسح العرض (السيرفر لم يُمسّ)':'🧹 View cleared','info'); }
+
+/* ── مهارات SKILL.md من الجهاز ── */
+async function loadUserSkills(){
+  const r=await api('/api/skills');
+  const b=document.getElementById('usk-body'); if(!b)return;
+  const rows=(r&&r.user_skills)||[];
+  b.innerHTML=rows.length?rows.map(s=>`<tr>
+    <td style="font-weight:500">${esc(s.name)}</td>
+    <td>v${esc(String(s.version||'1'))}</td>
+    <td><span class="badge bo">${esc(s.domain||'general')}</span></td>
+    <td>${(s.tags||[]).map(t=>'<span class="badge bm">'+esc(t)+'</span>').join(' ')}</td>
+    <td style="font-size:10px;color:var(--muted)">${esc(s.added_date||'—')}</td>
+    <td><button class="ibtn" style="width:24px;height:24px" title="حذف" onclick="uskDelete('${esc(s.name)}')">🗑</button></td>
+  </tr>`).join(''):'<tr><td colspan="6" style="color:var(--muted)">'+(LANG==='ar'?'لا مهارات مثبتة بعد':'No skills yet')+'</td></tr>';
+}
+async function apiRaw(path,method,body){
+  // مثل api() لكنه يعيد جسم JSON حتى مع 4xx (لعرض أخطاء التحقق التفصيلية)
+  try{
+    const r=await fetch(path,{method,headers:{'Content-Type':'application/json'},
+                              body:body?JSON.stringify(body):undefined});
+    return await r.json();
+  }catch(e){return null;}
+}
+async function uskUpload(file){
+  const err=document.getElementById('usk-err'); err.textContent='';
+  if(!file)return;
+  if(!file.name.toLowerCase().endsWith('.md')){err.textContent=LANG==='ar'?'يُقبل ملف .md فقط':'.md only';return;}
+  const content=await file.text();
+  const r=await apiRaw('/api/skills/upload','POST',{filename:file.name,content});
+  document.getElementById('usk-file').value='';
+  if(r&&r.success){toast(LANG==='ar'?'✅ ثُبّتت المهارة':'✅ Skill installed','success');loadUserSkills();}
+  else{
+    const missing=(r&&r.missing)||[];
+    err.innerHTML=esc((r&&r.error)||'فشل')+(missing.length?'<br>• '+missing.map(esc).join('<br>• '):'');
+  }
+}
+async function cskCreate(){
+  const p={
+    name:document.getElementById('csk-name').value.trim(),
+    description:document.getElementById('csk-desc').value.trim(),
+    tags:document.getElementById('csk-tags').value.trim(),
+    domain:document.getElementById('csk-domain').value,
+    content:document.getElementById('csk-content').value,
+  };
+  const r=await apiRaw('/api/skills/create','POST',p);
+  if(r&&r.success){
+    toast(LANG==='ar'?'✅ أُنشئت المهارة':'✅ Skill created','success');
+    ['csk-name','csk-desc','csk-tags','csk-content'].forEach(i=>document.getElementById(i).value='');
+    loadUserSkills();
+  } else toast('❌ '+((r&&r.error)||'فشل'),'error');
+}
+async function uskDelete(name){
+  if(!confirm((LANG==='ar'?'حذف المهارة ':'Delete skill ')+name+'؟'))return;
+  const r=await api('/api/skills/'+encodeURIComponent(name),'DELETE');
+  if(r&&r.success){toast('🗑 '+(LANG==='ar'?'حُذفت':'Deleted'),'success');loadUserSkills();}
+  else toast('❌ '+((r&&r.error)||'فشل'),'error');
+}
 
 /* ── SimCore — محرك التحليل متعدد الوكلاء ── */
 let SC={sources:[],probe:null,v2ui:''};
