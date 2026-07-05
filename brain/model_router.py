@@ -29,6 +29,7 @@ class ModelRouter:
         "zai":        ("https://api.z.ai/api/paas/v4/chat/completions",   "ZAI_API_KEY",        "openai"),
         "moonshot":   ("https://api.moonshot.ai/v1/chat/completions",     "MOONSHOT_API_KEY",   "openai"),
         "nararouter": ("https://router.bynara.id/v1/chat/completions",    "NARAROUTER_API_KEY", "openai"),
+        "agentrouter":("https://agentrouter.org/v1/chat/completions",     "AGENTROUTER_API_KEY","openai"),
         "cloudflare": ("",                                                "CLOUDFLARE_API_TOKEN", "cloudflare"),
         "gemini":     ("",                                                "GEMINI_API_KEY",     "gemini"),
         "ollama":     ("http://localhost:11434/api/chat",                 "",                   "ollama"),
@@ -42,7 +43,8 @@ class ModelRouter:
         "xai": "grok-2", "zai": "glm-4.6", "gemini": "gemini-2.0-flash",
         "ollama": "mistral",
         "moonshot": "moonshot-v1-8k",
-        "nararouter": "gpt-4o-mini",
+        "nararouter": "Claude Sonnet 4.5 (Free)",
+        "agentrouter": "GLM-4.6 (Free)",
         "cloudflare": "@cf/meta/llama-3.1-8b-instruct",
     }
 

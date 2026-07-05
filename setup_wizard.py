@@ -88,6 +88,16 @@ STRINGS = {
         "ch_slack": "Slack", "ch_slack_desc": "Slack Socket Mode",
         "ch_whatsapp": "WhatsApp", "ch_whatsapp_desc": "WhatsApp Business API",
         "ch_signal": "Signal", "ch_signal_desc": "Signal عبر signal-cli",
+        # مزوّد يدوي/محلي + تخطّي + تسجيل عام (providers_and_channels)
+        "provider_manual": "➕ منصة أخرى (يدوي)", "provider_manual_desc": "أدخل اسم المنصة والمفتاح وقائمة النماذج",
+        "provider_local": "💻 نموذج محلي (Local)", "provider_local_desc": "نموذج مخزّن على جهازك (LM Studio / llama.cpp)",
+        "section_skipped": "تخطّي القسم — يمكنك إعداده لاحقاً بـ: CoBWeaverclaw configure --section {section}",
+        "cp_name_prompt": "اسم المنصة", "cp_base_prompt": "رابط الـ API (OpenAI-compatible base URL)",
+        "cp_key_prompt": "مفتاح API لـ {name}", "cp_models_prompt": "أسماء النماذج (مفصولة بفواصل)",
+        "cp_saved": "سُجّلت المنصة {name} ({n} نموذج)",
+        "local_base_prompt": "رابط الخادم المحلي", "local_model_prompt": "اسم النموذج المحلي",
+        "local_saved": "سُجّل النموذج المحلي: {model}",
+        "ch_token_prompt": "توكين/مفتاح {name}", "ch_generic_saved": "أُعدّت قناة {name}",
         "terminal_set": "Terminal — تشغيل مباشر في الطرفية",
         "tg_link_prompt": "Telegram — طريقة الربط:",
         "tg_enter_token": "إدخال توكين البوت", "tg_enter_token_desc": "من @BotFather (الأضمن)",
@@ -251,6 +261,16 @@ STRINGS = {
         "ch_slack": "Slack", "ch_slack_desc": "Slack Socket Mode",
         "ch_whatsapp": "WhatsApp", "ch_whatsapp_desc": "WhatsApp Business API",
         "ch_signal": "Signal", "ch_signal_desc": "Signal via signal-cli",
+        # manual/local provider + skip + generic channel registration
+        "provider_manual": "➕ Other platform (manual)", "provider_manual_desc": "Enter platform name, key and model list",
+        "provider_local": "💻 Local model", "provider_local_desc": "A model stored on your device (LM Studio / llama.cpp)",
+        "section_skipped": "Skipping — configure later with: CoBWeaverclaw configure --section {section}",
+        "cp_name_prompt": "Platform name", "cp_base_prompt": "API base URL (OpenAI-compatible)",
+        "cp_key_prompt": "API key for {name}", "cp_models_prompt": "Model names (comma-separated)",
+        "cp_saved": "Registered platform {name} ({n} models)",
+        "local_base_prompt": "Local server URL", "local_model_prompt": "Local model name",
+        "local_saved": "Registered local model: {model}",
+        "ch_token_prompt": "{name} token/key", "ch_generic_saved": "Configured {name} channel",
         "terminal_set": "Terminal — running directly in the shell",
         "tg_link_prompt": "Telegram — linking method:",
         "tg_enter_token": "Enter bot token", "tg_enter_token_desc": "From @BotFather (most reliable)",
@@ -484,17 +504,79 @@ PROVIDERS = [
         ["glm-4.6","glm-4.5","glm-4.5-air","glm-4-flash"]),
     ("Kimi (Moonshot)","moonshot",  "moonshot-v1-8k",           "MOONSHOT_API_KEY",   "platform.moonshot.ai/console/api-keys", False,
         ["moonshot-v1-8k","moonshot-v1-32k","moonshot-v1-128k"]),
-    ("NaraRouter",    "nararouter", "gpt-4o-mini",              "NARAROUTER_API_KEY", "router.bynara.id", False,
-        ["gpt-4o-mini","gpt-4o","claude-3.5-sonnet","deepseek-chat","llama-3.3-70b"]),
+    ("AgentRouter",   "agentrouter","GLM-4.6 (Free)",           "AGENTROUTER_API_KEY","agentrouter.org", True,
+        ["GLM-4.5 Air (Free)","GLM-4.6 (Free)","DeepSeek-V2 Lite (Free)","Qwen2-7B-Instruct (Free)",
+         "Mistral-7B-Instruct (Free)","Claude Haiku 3.5","Claude Sonnet 4.5","Claude Sonnet 3.7",
+         "Claude Opus 4.0","Claude Opus 4.5","claude-opus-4-6","claude-haiku-4-5","GPT-3.5 Turbo",
+         "GPT-4o Mini","GPT-4o","GPT-5","Gemini 1.5 Flash","Gemini 2.0 Pro","Gemini 3 Pro",
+         "DeepSeek Coder V2 Lite","DeepSeek R1","deepseek-v3.2","glm-5.1","Qwen3 Coder 480B"]),
+    ("NaraRouter",    "nararouter", "Claude Sonnet 4.5 (Free)", "NARAROUTER_API_KEY", "router.bynara.id", True,
+        ["Mistral Large (Free)","Mistral Medium 3.5 (Free)","Qwen 3.7 Max Naraya (Free)",
+         "Claude Sonnet 4.5 (Free)","Claude Haiku 4.5 (Free)","DeepSeek V4 Flash Naraya (Free)",
+         "DeepSeek 3.2 (Free)","GLM 5 (Free)","Claude Sonnet 4.6","Claude Sonnet 5","Claude Opus 4.7",
+         "Claude Opus 4.8","Claude Fable 5","GLM 5.1","GLM 5.2","GLM 5.2 Plan","GPT-5.4","GPT-5.5",
+         "Kimi K2.6","Kimi K2.7 Code","DeepSeek V4 Flash","DeepSeek V4 Pro","Qwen 3.7 Max",
+         "MiMo V2.5","MiMo V2.5 Pro","MiMo V2.5 Pro Ultraspeed","MiMo V2.5 CoBWeaverClaw",
+         "MiMo V2.5 Pro CoBWeaverClaw","MiniMax M3"]),
     ("Cloudflare",    "cloudflare", "@cf/meta/llama-3.1-8b-instruct", "CLOUDFLARE_API_TOKEN", "dash.cloudflare.com/login", True,
         ["@cf/meta/llama-3.1-8b-instruct","@cf/meta/llama-3.3-70b-instruct-fp8-fast","@cf/qwen/qwen1.5-14b-chat-awq"]),
     ("Ollama",        "ollama",     "mistral",                  "",                   "ollama.ai", True,
         ["mistral","llama3.3","qwen2.5","gemma3","phi4"]),
 ]
 
+# قنوات إضافية (منصات التراسل من مجلد القنوات) — تُسجَّل بمفتاح/توكن مثل بقية القنوات
+# (id, ENV_KEY لحفظ التوكين)
+EXTRA_CHANNELS = [
+    ("weixin",        "WEIXIN_TOKEN"),        # WeChat
+    ("qqbot",         "QQBOT_TOKEN"),         # QQ
+    ("feishu",        "FEISHU_TOKEN"),        # Feishu / Lark
+    ("dingtalk",      "DINGTALK_TOKEN"),      # DingTalk
+    ("line",          "LINE_TOKEN"),          # LINE
+    ("matrix",        "MATRIX_TOKEN"),        # Matrix
+    ("msteams",       "MSTEAMS_TOKEN"),       # Microsoft Teams
+    ("mattermost",    "MATTERMOST_TOKEN"),    # Mattermost
+    ("whatsapp_cloud","WHATSAPP_CLOUD_TOKEN"),# WhatsApp Cloud API
+    ("webhook",       "WEBHOOK_SECRET"),      # Webhook عام
+]
+
+# أسماء عرض القنوات الإضافية (لا تحتاج ترجمة — أسماء منصات)
+EXTRA_CHANNEL_LABELS = {
+    "weixin":         ("WeChat (微信)",        "WeChat/微信 bot"),
+    "qqbot":          ("QQ Bot",               "QQ bot"),
+    "feishu":         ("Feishu (飞书) / Lark",  "Feishu/Lark bot"),
+    "dingtalk":       ("DingTalk (钉钉)",       "DingTalk bot"),
+    "line":           ("LINE",                 "LINE Messaging API"),
+    "matrix":         ("Matrix",               "Matrix homeserver bot"),
+    "msteams":        ("Microsoft Teams",      "Teams bot"),
+    "mattermost":     ("Mattermost",           "Mattermost bot"),
+    "whatsapp_cloud": ("WhatsApp Cloud",       "WhatsApp Cloud API"),
+    "webhook":        ("Webhook",              "Generic inbound webhook"),
+}
+_EXTRA_CH_ENV = dict(EXTRA_CHANNELS)
+
 # (id) فقط — الاسم والوصف يُترجمان
-CHANNELS = ["terminal", "telegram", "discord", "slack", "whatsapp", "signal"]
-SEARCH_IDS = ["internal", "duckduckgo", "brave", "tavily", "skip"]
+CHANNELS = ["terminal", "telegram", "discord", "slack", "whatsapp", "signal"] + \
+           [cid for cid, _env in EXTRA_CHANNELS]
+
+
+def channel_label(cid):
+    """(label, desc) لأي قناة — مدمجة (مترجمة) أو إضافية (اسم منصة)."""
+    if cid in EXTRA_CHANNEL_LABELS:
+        return EXTRA_CHANNEL_LABELS[cid]
+    return (t(f"ch_{cid}"), t(f"ch_{cid}_desc"))
+
+
+def skip_option(section):
+    """خيار التخطي — يُوضَع دائماً آخر القائمة. النص حرفي مع اسم القسم الفعلي."""
+    return ("Skip for now",
+            f"(Configure later with CoBWeaverclaw configure --section {section})")
+
+
+def with_skip(opts, section):
+    """يُلحق خيار التخطي بنهاية القائمة ويعيد (opts, skip_index)."""
+    opts = list(opts) + [skip_option(section)]
+    return opts, len(opts) - 1
+SEARCH_IDS = ["internal", "duckduckgo", "brave", "tavily"]
 HOOK_IDS = ["session-memory", "command-logger", "boot-notify", "update-notify", "backup-reminder"]
 
 def test_key(provider, key):
@@ -528,6 +610,43 @@ def test_telegram(token):
         return d.get("result") if d.get("ok") else None
     except Exception:
         return None
+
+def register_manual_platform(cfg):
+    """(نقطة 5) منصة غير مذكورة: الاسم + المفتاح + قائمة النماذج → تُسجَّل
+    بنفس آلية المزوّدين المخصّصين (custom_providers)."""
+    name = ask(t("cp_name_prompt"))
+    if not name:
+        return
+    base = ask(t("cp_base_prompt"))
+    key = ask(t("cp_key_prompt", name=name), secret=True)
+    models_raw = ask(t("cp_models_prompt"))
+    models = [m.strip() for m in models_raw.split(",") if m.strip()]
+    cid = (name.strip().lower().replace(" ", "") or "custom")
+    env = cid.upper() + "_API_KEY"
+    entry = {"id": cid, "name": name.strip(), "base_url": base.strip(),
+             "key_env": env, "model": models[0] if models else "",
+             "models": models}
+    cfg.setdefault("custom_providers", []).append(entry)
+    if key:
+        save_env({env: key})
+    if models:
+        cfg.setdefault("brain", {})["fallback"] = f"{cid}/{models[0]}"
+    ok(t("cp_saved", name=name.strip(), n=len(models)))
+
+
+def register_local_model(cfg):
+    """(نقطة 6) مزوّد محلي: نموذج مخزّن على الجهاز عبر خادم OpenAI-compatible
+    (LM Studio / llama.cpp / vLLM) — يُسجَّل بنفس آلية المزوّدين."""
+    base = ask(t("local_base_prompt"), default="http://localhost:1234/v1")
+    model = ask(t("local_model_prompt"))
+    if not model:
+        return
+    cfg.setdefault("custom_providers", []).append(
+        {"id": "local", "name": "Local", "base_url": base.strip(),
+         "key_env": "LOCAL_API_KEY", "model": model.strip()})
+    cfg.setdefault("brain", {})["local"] = f"local/{model.strip()}"
+    ok(t("local_saved", model=model.strip()))
+
 
 # ════════════════════════════════════════════════════════════
 # الخطوات
@@ -599,13 +718,31 @@ def step4_provider(cfg):
     for name, pid, model, env, url, free, models in PROVIDERS:
         badge = f"{G}{t('badge_free')}{R}" if free else f"{Y}{t('badge_paid')}{R}"
         opts.append((name, f"{badge} · {model}"))
+    manual_i = len(opts)
+    opts.append((t("provider_manual"), t("provider_manual_desc")))   # (نقطة 5) منصة أخرى
+    local_i = len(opts)
+    opts.append((t("provider_local"), t("provider_local_desc")))     # (نقطة 6) نموذج محلي
+    opts, skip_i = with_skip(opts, "providers")                       # (نقطة 3) تخطّي
     sel = select(t("provider_prompt"), opts, allow_back=True, hint=t("provider_hint"))
     if sel == BACK:
         return BACK
+    if sel == skip_i:
+        info(t("section_skipped", section="providers"))
+        return "next"
+    if sel == manual_i:
+        register_manual_platform(cfg)
+        cfg["_skip_model_step"] = True
+        return "next"
+    if sel == local_i:
+        register_local_model(cfg)
+        cfg["_skip_model_step"] = True
+        return "next"
     cfg["_chosen_provider"] = sel
     return "next"
 
 def step5_model_def(cfg):
+    if cfg.pop("_skip_model_step", False):   # منصة يدوية/محلية عُولجت في step4
+        return "next"
     idx = cfg.get("_chosen_provider", 0)
     name, pid, default_model, env, url, free, models = PROVIDERS[idx]
     header(5, "model_title")
@@ -669,13 +806,28 @@ def step5_model_def(cfg):
 
 def step6_channel(cfg):
     header(6, "channel_title")
-    opts = [(t(f"ch_{cid}"), t(f"ch_{cid}_desc")) for cid in CHANNELS]
+    opts = [channel_label(cid) for cid in CHANNELS]
+    opts, skip_i = with_skip(opts, "channels")   # (نقطة 3) تخطّي
     sel = select(t("channel_prompt"), opts, allow_back=True)
     if sel == BACK:
         return BACK
+    if sel == skip_i:
+        info(t("section_skipped", section="channels"))
+        return "next"
     cid = CHANNELS[sel]
 
     cfg.setdefault("interfaces", {})
+
+    # القنوات الإضافية (منصات التراسل) — تسجيل عام بتوكين مثل بقية القنوات
+    if cid in _EXTRA_CH_ENV:
+        label = channel_label(cid)[0]
+        token = ask(t("ch_token_prompt", name=label), secret=True)
+        if not token:
+            return step6_channel(cfg)
+        cfg["interfaces"][cid] = {"enabled": True}
+        save_env({_EXTRA_CH_ENV[cid]: token})
+        ok(t("ch_generic_saved", name=label))
+        return "next"
 
     if cid == "terminal":
         cfg["interfaces"]["cli"] = {"enabled": True}
@@ -771,9 +923,13 @@ def step7_search(cfg):
     header(7, "search_title")
     opts = [(t(f"sp_{sid if sid!='duckduckgo' else 'ddg'}"),
              t(f"sp_{sid if sid!='duckduckgo' else 'ddg'}_desc")) for sid in SEARCH_IDS]
+    opts, skip_i = with_skip(opts, "search")   # (نقطة 3) تخطّي
     sel = select(t("search_prompt"), opts, allow_back=True)
     if sel == BACK:
         return BACK
+    if sel == skip_i:
+        info(t("section_skipped", section="search"))
+        return "next"
     sid = SEARCH_IDS[sel]
     cfg.setdefault("browser", {})
     cfg["browser"]["provider"] = sid
