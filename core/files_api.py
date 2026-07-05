@@ -77,6 +77,7 @@ def save_attachments(attachments: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             ext_res = extract_content(dest, rec["type"])
             if ext_res.get("image"):
                 rec["image"] = True
+                rec["data"] = raw_b64   # يبقى للنموذج (vision) حتى في مسار الحفظ المتأخر
             else:
                 content = ext_res.get("content") or ""
                 rec["content"] = content
@@ -183,6 +184,24 @@ def extract_content(file_path, mime_type: str = "") -> Dict[str, Any]:
                 out["content"] = "\n".join("\t".join(r) for r in rows)
                 out["pages"] = max(len(rows) - 1, 0)
                 return out
+
+        # PowerPoint — python-pptx (نصوص الشرائح)
+        if ext in ("pptx", "ppt") or mime.endswith("presentationml.presentation"):
+            try:
+                from pptx import Presentation
+                prs = Presentation(str(p))
+                slides = []
+                for i, slide in enumerate(prs.slides, 1):
+                    texts = [sh.text for sh in slide.shapes
+                             if getattr(sh, "has_text_frame", False) and sh.text.strip()]
+                    slides.append(f"[شريحة {i}]\n" + "\n".join(texts))
+                out["content"] = "\n\n".join(slides)
+                out["pages"] = len(prs.slides._sldIdLst) if hasattr(prs.slides, "_sldIdLst") \
+                    else len(slides)
+                return out
+            except ImportError:
+                return {"content": "", "pages": 0,
+                        "error": "استخراج PowerPoint يتطلب: pip install python-pptx"}
 
         # ZIP — يقرأ ما بداخله: نصوص الملفات النصية + قائمة الصور والملفات الثنائية
         if ext == "zip" or mime in ("application/zip", "application/x-zip-compressed"):

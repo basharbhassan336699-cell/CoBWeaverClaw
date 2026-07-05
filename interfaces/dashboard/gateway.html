@@ -1208,18 +1208,19 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
 
 <div class="toast" id="toast"></div>
 
-<!-- FILE VIEWER — modal كامل الشاشة -->
-<div id="fviewer" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;flex-direction:column">
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--card2);border-bottom:1px solid var(--border)">
-    <div id="fv-title" style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</div>
-    <div style="display:flex;gap:6px;align-items:center">
+<!-- FILE VIEWER — واجهة جانبية لاستعراض الملف (الدردشة تبقى ظاهرة) -->
+<div id="fviewer" style="display:none;position:fixed;top:50px;bottom:0;left:0;width:min(520px,100vw);background:var(--card2);border-right:1px solid var(--border);box-shadow:6px 0 24px rgba(0,0,0,.45);z-index:500;flex-direction:column">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border)">
+    <div id="fv-title" style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:ltr;text-align:left">—</div>
+    <div style="display:flex;gap:5px;align-items:center;flex-shrink:0">
       <button class="ibtn" id="fv-zin" title="تكبير" onclick="fvZoom(0.25)">➕</button>
       <button class="ibtn" id="fv-zout" title="تصغير" onclick="fvZoom(-0.25)">➖</button>
       <button class="ibtn" onclick="fvClose()" title="إغلاق" style="color:var(--red)">✕</button>
     </div>
   </div>
-  <div id="fv-body" style="flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;align-items:center;gap:10px"></div>
-  <div style="padding:10px 16px;background:var(--card2);border-top:1px solid var(--border);display:flex;justify-content:center">
+  <div id="fv-body" style="flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;align-items:center;gap:10px"></div>
+  <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:center">
+    <button class="btn btn-g" id="fv-view" onclick="fvOpenRaw()"><span data-ar="👁 عرض" data-en="👁 View">👁 عرض</span></button>
     <button class="btn btn-p" id="fv-dl" onclick="fvDownload()"><span data-ar="⬇ تنزيل الملف" data-en="⬇ Download file">⬇ تنزيل الملف</span></button>
   </div>
 </div>
@@ -1596,7 +1597,7 @@ const ATT_MAX=200*1024*1024;         // 200MB للملف الواحد
 function attKind(name){
   const e=(name.split('.').pop()||'').toLowerCase();
   if(['png','jpg','jpeg','gif','webp','bmp','svg'].includes(e)) return 'image';
-  if(['pdf','docx','doc','txt','md','markdown'].includes(e))    return 'doc';
+  if(['pdf','docx','doc','txt','md','markdown','pptx','ppt'].includes(e)) return 'doc';
   if(['csv','xlsx','xls','json'].includes(e))                    return 'table';
   if(['py','js','ts','jsx','tsx','cpp','c','h','java','go','rs','rb','php','sh','sql','html','css','yaml','yml'].includes(e)) return 'code';
   if(['zip'].includes(e)) return 'archive';
@@ -1617,7 +1618,7 @@ function pickFiles(files){
       const item={name:f.name,type:f.type||kind,size:f.size,data,kind,thumb:''};
       if(kind==='image') item.thumb=String(reader.result);
       ATTACH.push(item); renderAttach();
-      attUpload(item);   // رفع فوري: يحفظ ويستخرج المحتوى (pages/preview/content)
+      item._p=attUpload(item);   // رفع فوري: يحفظ ويستخرج — الوعد يُنتظر عند الإرسال
     };
     reader.readAsDataURL(f);
   }
@@ -1657,6 +1658,11 @@ async function send(){
   if(!msg&&!ATTACH.length) return;
   if(!msg) msg=LANG==='ar'?'حلّل المرفقات':'Analyze the attachments';
   const model=document.getElementById('model-sel').value;
+  // انتظر اكتمال رفع/استخراج كل المرفقات — يمنع ضياع المحتوى عند الإرسال السريع
+  if(ATTACH.some(a=>a._p)){
+    btn.disabled=true;
+    try{await Promise.all(ATTACH.map(a=>a._p).filter(Boolean));}catch(e){}
+  }
   // صور → data للنموذج؛ نصية مرفوعة مسبقاً → المحتوى المستخرج (بلا إعادة حفظ)
   const atts=ATTACH.map(a=>a.kind==='image'
     ?{name:a.name,type:a.type,size:a.size,data:a.data,image:true,saved_name:a.srv||''}
@@ -2093,7 +2099,12 @@ function firstSentence(t){const s=(t||'').replace(/\s+/g,' ').trim();
 function fvPreviewHTML(f){
   const click=`onclick="fvOpen(${f.id})" style="cursor:pointer"`;
   if(f.kind==='image')
-    return `<img src="${f.thumb}" ${click} title="${esc(f.name)}" style="width:200px;height:150px;object-fit:cover;border-radius:var(--rs);border:1px solid var(--border);display:block">`;
+    return `<div ${click} title="${esc(f.name)}" style="width:230px;display:flex;gap:8px;align-items:center;background:var(--card3);border:1px solid var(--border);border-radius:var(--rs);padding:6px 8px">
+      ${f.thumb?`<img src="${f.thumb}" style="width:36px;height:36px;object-fit:cover;border-radius:6px;flex-shrink:0">`:`<span style="font-size:20px">🖼️</span>`}
+      <div style="overflow:hidden;flex:1">
+        <div style="font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}</div>
+        <div style="font-size:10px;color:var(--muted)">${LANG==='ar'?'صورة':'Image'} · ${fmtSize(f.size||0)}</div>
+      </div><span style="color:var(--muted);font-size:12px">👁</span></div>`;
   const e=(f.name.split('.').pop()||'').toLowerCase();
   if(e==='pdf')
     return `<div ${click} style="width:200px;background:var(--card3);border:1px solid var(--border);border-radius:var(--rs);overflow:hidden">
@@ -2137,6 +2148,12 @@ function fvDownload(){
   const f=FV.file; if(!f)return;
   const srv=f.srv||f.name;
   window.open('/api/files/download/'+encodeURIComponent(srv),'_blank');
+}
+function fvOpenRaw(){
+  // «عرض»: يفتح الملف الأصلي كما هو في تبويب المتصفح (صورة/PDF بالحجم الكامل)
+  const f=FV.file; if(!f)return;
+  if(f.thumb&&!f.srv){const w=window.open('','_blank');if(w)w.document.write('<img src="'+f.thumb+'" style="max-width:100%">');return;}
+  window.open('/api/files/view/'+encodeURIComponent(f.srv||f.name),'_blank');
 }
 function fvZoom(d){
   FV.zoom=Math.min(3,Math.max(0.5,FV.zoom+d));
@@ -2203,8 +2220,8 @@ async function fvOpen(id){
     body.innerHTML=`<div class="card" style="max-width:800px;width:100%">${mdRender(content||'')}</div>`;
     return;
   }
-  // DOCX — فقرات منسقة من النص المستخرج
-  if(e==='docx'||e==='doc'){
+  // DOCX / PowerPoint — فقرات منسقة من النص المستخرج
+  if(['docx','doc','pptx','ppt'].includes(e)){
     body.innerHTML=`<div class="card" style="max-width:800px;width:100%">${(content||'—').split('\n').filter(x=>x.trim()).map(p=>'<p style="margin:0 0 10px;line-height:1.7">'+esc(p)+'</p>').join('')}</div>`;
     return;
   }
