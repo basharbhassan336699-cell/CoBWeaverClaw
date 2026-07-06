@@ -39,14 +39,11 @@ class MonitorAgent(BaseAgent):
 """
 
     def monitor_once(self, source_url: str, source_name: str,
-                     api_key: str = None, account_id: str = None) -> Dict[str, Any]:
+                     api_key: str = None, account_id: str = None,
+                     secret: str = None) -> Dict[str, Any]:
         """دورة مراقبة واحدة"""
-        from ..config import SourceConfig
-        source = SourceConfig(
-            url=source_url, name=source_name,
-            api_key=api_key, account_id=account_id,
-        )
-        fetch = SourceManager.fetch_content(source)
+        fetch = SourceManager.fetch(source_url, api_key=api_key,
+                                    secret=secret, account_id=account_id)
         if not fetch["success"]:
             return {"has_signal": False, "error": fetch["error"]}
 

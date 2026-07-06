@@ -96,6 +96,36 @@ def run_cycle():
     })
 
 
+@simcore_bp.route("/platform/connect", methods=["POST"])
+def platform_connect():
+    from ..services.platforms import connect_platform
+    return jsonify(connect_platform(**(request.json or {})))
+
+
+@simcore_bp.route("/platform/list", methods=["GET"])
+def platform_list():
+    from ..services.platforms import list_platforms
+    return jsonify(list_platforms())
+
+
+@simcore_bp.route("/platform/delete/<name>", methods=["DELETE"])
+def platform_delete(name):
+    from ..services.platforms import delete_platform
+    return jsonify(delete_platform(name))
+
+
+@simcore_bp.route("/website/connect", methods=["POST"])
+def website_connect():
+    from ..services.platforms import connect_website
+    return jsonify(connect_website(**(request.json or {})))
+
+
+@simcore_bp.route("/website/list", methods=["GET"])
+def website_list():
+    from ..services.platforms import list_websites
+    return jsonify(list_websites())
+
+
 @simcore_bp.route("/feedback", methods=["POST"])
 def feedback():
     """تسجيل نتيجة فعلية لقرار سابق لتحسين الدقة"""

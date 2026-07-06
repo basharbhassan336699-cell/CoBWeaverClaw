@@ -974,23 +974,35 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
       </div>
     </div>
 
+    <!-- القسم الأول — المنصات (تداول/تواصل عبر مفتاح+سكريت) -->
     <div class="card">
-      <div class="ctitle"><span data-ar="🌐 المصادر" data-en="🌐 Sources">🌐 المصادر</span></div>
-      <div class="field"><label>URL</label>
-        <div style="display:flex;gap:7px">
-          <input id="sc-url" type="text" placeholder="https://example.com أو https://api.binance.com/...">
-          <button class="btn btn-g" style="white-space:nowrap" onclick="scProbe()"><span data-ar="اختبر الاتصال" data-en="Test connection">اختبر الاتصال</span></button>
-        </div>
-      </div>
-      <div id="sc-probe-res" style="font-size:12px;margin-bottom:8px"></div>
-      <div class="field"><label data-ar="اسم المصدر" data-en="Source name">اسم المصدر</label><input id="sc-name" type="text" placeholder="مثال: Binance BTC"></div>
-      <div class="field" id="sc-key-wrap" style="display:none"><label data-ar="مفتاح API" data-en="API key">مفتاح API</label><input id="sc-key" type="password" placeholder="يتطلبه هذا المصدر"></div>
-      <div class="field" id="sc-id-wrap" style="display:none"><label data-ar="معرّف الحساب" data-en="Account ID">معرّف الحساب</label><input id="sc-id" type="text" placeholder="user id / account id"></div>
-      <button class="btn btn-p btn-f" onclick="scAddSource()"><span data-ar="＋ إضافة المصدر" data-en="＋ Add source">＋ إضافة المصدر</span></button>
+      <div class="ctitle"><span data-ar="🏦 المنصات" data-en="🏦 Platforms">🏦 المنصات</span></div>
+      <div class="field"><label data-ar="اسم المنصة" data-en="Platform name">اسم المنصة</label><input id="scp-name" type="text" placeholder="مثال: Binance"></div>
+      <div class="field"><label>Base URL</label><input id="scp-url" type="text" placeholder="https://api.binance.com" oninput="scpUrlChange()"></div>
+      <div class="field"><label data-ar="مفتاح API" data-en="API key">مفتاح API</label><input id="scp-key" type="password" placeholder="API key"></div>
+      <div class="field"><label data-ar="المفتاح السرّي" data-en="Secret key">المفتاح السرّي</label><input id="scp-secret" type="password" placeholder="Secret key"></div>
+      <div class="field" id="scp-pass-wrap" style="display:none"><label>Passphrase</label><input id="scp-pass" type="password" placeholder="passphrase (KuCoin/OKX)"></div>
+      <button class="btn btn-p btn-f" onclick="scPlatformConnect()"><span data-ar="🔌 اتصال" data-en="🔌 Connect">🔌 اتصال</span></button>
+      <div id="scp-result" style="margin-top:10px;font-size:12px"></div>
       <div style="margin-top:10px;overflow-x:auto">
         <table class="tbl">
-          <thead><tr><th data-ar="الاسم" data-en="Name">الاسم</th><th>URL</th><th data-ar="النوع" data-en="Type">النوع</th><th></th></tr></thead>
-          <tbody id="sc-sources"><tr><td colspan="4" style="color:var(--muted)" data-ar="لا مصادر بعد" data-en="No sources yet">لا مصادر بعد</td></tr></tbody>
+          <thead><tr><th data-ar="الاسم" data-en="Name">الاسم</th><th data-ar="النوع" data-en="Type">النوع</th><th>URL</th><th></th></tr></thead>
+          <tbody id="scp-list"><tr><td colspan="4" style="color:var(--muted)" data-ar="لا منصات بعد" data-en="No platforms yet">لا منصات بعد</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- القسم الثاني — المواقع (ويب) -->
+    <div class="card">
+      <div class="ctitle" style="justify-content:space-between">
+        <span data-ar="🌐 المواقع" data-en="🌐 Websites">🌐 المواقع</span>
+        <button class="btn btn-g" style="padding:4px 10px;font-size:11px" onclick="scWebsiteAdd()"><span data-ar="＋ موقع" data-en="＋ Site">＋ موقع</span></button>
+      </div>
+      <div id="scw-forms"></div>
+      <div style="margin-top:10px;overflow-x:auto">
+        <table class="tbl">
+          <thead><tr><th data-ar="الاسم" data-en="Name">الاسم</th><th>URL</th><th data-ar="الحالة" data-en="Status">الحالة</th><th></th></tr></thead>
+          <tbody id="scw-list"><tr><td colspan="4" style="color:var(--muted)" data-ar="لا مواقع بعد" data-en="No sites yet">لا مواقع بعد</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1291,7 +1303,7 @@ function nav(page,btn){
   else if(page==='pairing') loadPairing();
   else if(page==='usage') loadUsage();
   else if(page==='logs') lgStart();
-  else if(page==='simcore'){ scRenderSources(); scEngineStatus(); }
+  else if(page==='simcore'){ scRenderPage(); scEngineStatus(); }
   else if(page==='skills') loadUserSkills();
   else if(page==='files') flLoad();
   v2Timers(page);                     // مؤقتات التحديث الحي للتبويبات الجديدة
@@ -2356,7 +2368,9 @@ async function uskDelete(name){
 }
 
 /* ── SimCore — محرك التحليل متعدد الوكلاء ── */
-let SC={sources:[],probe:null,v2ui:''};
+let SC={platforms:[],websiteForms:[{name:'',url:'',api_key:'',result:null,needs_key:false,connecting:false}],
+        websites:[],newPlatform:{name:'',base_url:'',api_key:'',secret_key:'',passphrase:''},
+        platformResult:null,v2ui:''};
 async function scEngineStatus(){
   const el=document.getElementById('sc-engine'); if(!el)return;
   const r=await api('/api/simcore/v2/status');
@@ -2376,56 +2390,114 @@ function scDomainChange(){
   const other=document.getElementById('sc-domain').value==='other';
   document.getElementById('sc-custom-wrap').style.display=other?'':'none';
 }
-async function scProbe(){
-  const url=(document.getElementById('sc-url').value||'').trim();
-  const box=document.getElementById('sc-probe-res');
-  if(!url){box.innerHTML='<span class="badge br">URL مطلوب</span>';return;}
-  box.innerHTML='<span class="badge bm">'+(LANG==='ar'?'جارٍ الاختبار...':'Testing...')+'</span>';
-  const r=await api('/api/simcore/probe','POST',{url});
-  const p=r&&r.result;
-  if(!p){box.innerHTML='<span class="badge br">❌ فشل الطلب</span>';return;}
-  SC.probe=p;
-  box.innerHTML=(p.reachable
-      ?'<span class="badge bg">✅ '+(LANG==='ar'?'متصل':'Connected')+(p.status_code?' · HTTP '+p.status_code:'')+'</span>'
-      :'<span class="badge br">❌ '+(LANG==='ar'?'فشل':'Failed')+(p.error?' · '+esc(p.error):'')+'</span>')
-    +' <span class="badge bo">'+p.suggested_type+'</span>';
-  document.getElementById('sc-key-wrap').style.display=p.needs_key?'':'none';
-  document.getElementById('sc-id-wrap').style.display=p.needs_id?'':'none';
+/* المنصات — اتصال مصادَق حقيقي (أرصدة) */
+function scpUrlChange(){
+  const u=(document.getElementById('scp-url').value||'').toLowerCase();
+  const need=u.includes('kucoin')||u.includes('okx');
+  document.getElementById('scp-pass-wrap').style.display=need?'':'none';
 }
-function scAddSource(){
-  const url=(document.getElementById('sc-url').value||'').trim();
-  if(!url){toast('URL مطلوب','error');return;}
-  const name=(document.getElementById('sc-name').value||'').trim()||url.replace(/^https?:\/\//,'').split('/')[0];
-  SC.sources.push({
-    url, name,
-    api_key:(document.getElementById('sc-key').value||'').trim()||null,
-    account_id:(document.getElementById('sc-id').value||'').trim()||null,
-    source_type:(SC.probe&&SC.probe.url===url?SC.probe.suggested_type:'web'),
-  });
-  ['sc-url','sc-name','sc-key','sc-id'].forEach(i=>document.getElementById(i).value='');
-  document.getElementById('sc-probe-res').innerHTML='';
-  document.getElementById('sc-key-wrap').style.display='none';
-  document.getElementById('sc-id-wrap').style.display='none';
-  SC.probe=null; scRenderSources();
-  toast(LANG==='ar'?'✅ أُضيف المصدر':'✅ Source added','success');
+async function scPlatformConnect(){
+  SC.newPlatform={
+    name:(document.getElementById('scp-name').value||'').trim(),
+    base_url:(document.getElementById('scp-url').value||'').trim(),
+    api_key:(document.getElementById('scp-key').value||'').trim(),
+    secret_key:(document.getElementById('scp-secret').value||'').trim(),
+    passphrase:(document.getElementById('scp-pass').value||'').trim(),
+  };
+  const box=document.getElementById('scp-result');
+  if(!SC.newPlatform.base_url){box.innerHTML='<span class="badge br">Base URL مطلوب</span>';return;}
+  box.innerHTML='<span class="badge bm">'+(LANG==='ar'?'جارٍ الاتصال...':'Connecting...')+'</span>';
+  const r=await apiRaw('/api/simcore/platform/connect','POST',SC.newPlatform);
+  SC.platformResult=r||{success:false,error:'فشل الطلب'};
+  if(r&&r.success){
+    // عرض النتيجة الحقيقية (الأرصدة إن وُجدت)
+    let html='<span class="badge bg">✅ '+(LANG==='ar'?'متصل ومصادق':'Connected')+' · '+esc(r.platform||'')+'</span>';
+    if(r.balances&&r.balances.length){
+      html+='<div style="margin-top:8px;overflow-x:auto"><table class="tbl"><thead><tr><th>Asset</th><th>Free</th><th>Locked</th></tr></thead><tbody>'
+        +r.balances.map(b=>`<tr><td><code>${esc(b.asset)}</code></td><td style="color:var(--green)">${esc(b.free)}</td><td>${esc(b.locked||'0')}</td></tr>`).join('')
+        +'</tbody></table></div>';
+    } else if(r.content){ html+='<pre style="margin-top:8px;font-size:11px;max-height:160px;overflow:auto;white-space:pre-wrap" dir="ltr">'+esc(String(r.content).slice(0,1500))+'</pre>'; }
+    box.innerHTML=html;
+    ['scp-name','scp-url','scp-key','scp-secret','scp-pass'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('scp-pass-wrap').style.display='none';
+    loadPlatforms();
+    toast(LANG==='ar'?'✅ اتصلت المنصة':'✅ Platform connected','success');
+  } else {
+    box.innerHTML='<span class="badge br">❌ '+esc((r&&r.error)||'فشل الاتصال')+'</span>';
+  }
 }
-function scDelSource(i){ SC.sources.splice(i,1); scRenderSources(); }
-function scRenderSources(){
-  const b=document.getElementById('sc-sources'); if(!b)return;
-  b.innerHTML=SC.sources.length?SC.sources.map((s,i)=>`<tr>
-    <td>${esc(s.name)}</td><td style="max-width:220px;overflow:hidden;text-overflow:ellipsis"><code>${esc(s.url)}</code></td>
-    <td><span class="badge ${s.source_type==='web'?'bm':'bo'}">${s.source_type}</span></td>
-    <td><button class="ibtn" style="width:24px;height:24px" onclick="scDelSource(${i})">🗑</button></td></tr>`).join('')
-    :'<tr><td colspan="4" style="color:var(--muted)">'+(LANG==='ar'?'لا مصادر بعد':'No sources yet')+'</td></tr>';
+async function loadPlatforms(){
+  const r=await api('/api/simcore/platform/list');
+  SC.platforms=(r&&r.platforms)||[];
+  const b=document.getElementById('scp-list'); if(!b)return;
+  b.innerHTML=SC.platforms.length?SC.platforms.map(p=>`<tr>
+    <td>${esc(p.name)}</td><td><span class="badge bo">${esc(p.platform_type||'')}</span></td>
+    <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis"><code>${esc(p.base_url)}</code></td>
+    <td><button class="ibtn" style="width:24px;height:24px" onclick="scDelPlatform('${esc(p.name)}')">🗑</button></td></tr>`).join('')
+    :'<tr><td colspan="4" style="color:var(--muted)">'+(LANG==='ar'?'لا منصات بعد':'No platforms yet')+'</td></tr>';
 }
+async function scDelPlatform(name){
+  const r=await apiRaw('/api/simcore/platform/delete/'+encodeURIComponent(name),'DELETE');
+  if(r&&r.success){toast('🗑 '+(LANG==='ar'?'حُذفت':'Deleted'),'success');loadPlatforms();}
+}
+
+/* المواقع — نموذج متكرر */
+function scWebsiteAdd(){ SC.websiteForms.push({name:'',url:'',api_key:'',result:null,needs_key:false,connecting:false}); scRenderWebForms(); }
+function scWebDel(i){ SC.websiteForms.splice(i,1); if(!SC.websiteForms.length)scWebsiteAdd(); else scRenderWebForms(); }
+function scWebField(i,f,v){ SC.websiteForms[i][f]=v; }
+function scRenderWebForms(){
+  const c=document.getElementById('scw-forms'); if(!c)return;
+  c.innerHTML=SC.websiteForms.map((s,i)=>`
+    <div style="border:1px solid var(--border);border-radius:var(--rs);padding:10px;margin-bottom:8px">
+      <div class="field"><label data-ar="اسم الموقع" data-en="Site name">اسم الموقع</label>
+        <input type="text" value="${esc(s.name)}" oninput="scWebField(${i},'name',this.value)" placeholder="مثال: CoinDesk"></div>
+      <div class="field"><label>URL</label>
+        <input type="text" value="${esc(s.url)}" oninput="scWebField(${i},'url',this.value)" placeholder="https://..."></div>
+      ${s.needs_key?`<div class="field"><label data-ar="مفتاح API" data-en="API key">مفتاح API</label>
+        <input type="password" value="${esc(s.api_key)}" oninput="scWebField(${i},'api_key',this.value)" placeholder="يحتاجه هذا الموقع"></div>`:''}
+      <div style="display:flex;gap:7px">
+        <button class="btn btn-p" onclick="scWebsiteConnect(${i})" ${s.connecting?'disabled':''}>${s.connecting?'...':(LANG==='ar'?'🔌 اتصال':'🔌 Connect')}</button>
+        ${(s.result&&s.result.needs_auth&&s.url)?`<button class="btn btn-g" onclick="window.open('${esc(s.url)}','_blank')"><span data-ar="🔑 تسجيل الدخول" data-en="🔑 Login">🔑 تسجيل الدخول</span></button>`:''}
+        <button class="ibtn" style="width:32px" onclick="scWebDel(${i})" title="حذف">✕</button>
+      </div>
+      ${s.result?`<div style="margin-top:6px;font-size:11px">${s.result.success
+          ?'<span class="badge bg">✅ '+(LANG==='ar'?'متصل':'Reachable')+(s.result.needs_auth?' · '+(LANG==='ar'?'يحتاج تسجيل دخول':'needs login'):'')+'</span>'
+          :'<span class="badge br">❌ '+esc(s.result.error||'فشل')+'</span>'}</div>`:''}
+    </div>`).join('');
+}
+async function scWebsiteConnect(idx){
+  const site=SC.websiteForms[idx];
+  if(!site.url){toast(LANG==='ar'?'URL مطلوب':'URL required','error');return;}
+  site.connecting=true; scRenderWebForms();
+  const r=await apiRaw('/api/simcore/website/connect','POST',{name:site.name,url:site.url,api_key:site.api_key});
+  site.result=r||{success:false,error:'فشل الطلب'};
+  site.needs_key=(r&&r.needs_auth)||false;
+  site.connecting=false; scRenderWebForms();
+  if(r&&r.success) loadWebsites();
+}
+async function loadWebsites(){
+  const r=await api('/api/simcore/website/list');
+  SC.websites=(r&&r.websites)||[];
+  const b=document.getElementById('scw-list'); if(!b)return;
+  b.innerHTML=SC.websites.length?SC.websites.map(s=>`<tr>
+    <td>${esc(s.name)}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis"><code>${esc(s.url)}</code></td>
+    <td>${s.needs_auth?'<span class="badge bo">'+(LANG==='ar'?'يحتاج دخول':'auth')+'</span>':'<span class="badge bg">'+(LANG==='ar'?'مفتوح':'open')+'</span>'}</td>
+    <td></td></tr>`).join('')
+    :'<tr><td colspan="4" style="color:var(--muted)">'+(LANG==='ar'?'لا مواقع بعد':'No sites yet')+'</td></tr>';
+}
+function scRenderPage(){ scRenderWebForms(); loadPlatforms(); loadWebsites(); }
 async function scRun(){
-  if(!SC.sources.length){toast(LANG==='ar'?'أضف مصدراً واحداً على الأقل':'Add at least one source','error');return;}
+  // المنصات المحفوظة + المواقع المتصلة تُبنى payload للتحليل
+  const platforms=SC.platforms.map(p=>({name:p.name,url:p.base_url,source_type:'exchange'}));
+  const sources=SC.websiteForms.filter(s=>s.url&&s.result&&s.result.success)
+    .map(s=>({name:s.name||s.url,url:s.url,api_key:s.api_key||null,source_type:'web'}));
+  if(!platforms.length&&!sources.length){toast(LANG==='ar'?'أضف منصة أو موقعاً أولاً':'Add a platform or website first','error');return;}
   const btn=document.getElementById('sc-run-btn'); btn.disabled=true;
   toast(LANG==='ar'?'🚀 جارٍ التحليل — قد يستغرق دقيقة':'🚀 Analyzing...','info');
   const payload={
     domain:document.getElementById('sc-domain').value,
     domain_custom:(document.getElementById('sc-domain-custom').value||'').trim(),
-    sources:SC.sources,
+    platforms, sources,
     global_model_key:(document.getElementById('sc-gkey').value||'').trim()||null,
     global_model_url:(document.getElementById('sc-gurl').value||'').trim()||null,
     global_model_name:(document.getElementById('sc-gname').value||'').trim()||null,

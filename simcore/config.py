@@ -58,4 +58,5 @@ class SimCoreConfig:
     global_model_url:  Optional[str] = None
     global_model_name: Optional[str] = None
     sources:      list         = field(default_factory=list)
+    platforms:    list         = field(default_factory=list)  # منصات api/social/exchange
     agents:       list         = field(default_factory=list)
