@@ -5,3 +5,4 @@ anthropic>=0.30
 requests>=2.31
 pypdf>=4.0        # PDF (نقية Python — خفيفة على Termux)
 openpyxl>=3.1     # Excel (نقية Python — بلا بناء)
+headroom-ai[all]
