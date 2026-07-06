@@ -632,6 +632,20 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
                 self._send_json(dash.workboard_clear_done())
             elif path == "/api/pairing/approve":
                 self._send_json(dash.pairing_approve(body.get("id", 0)))
+            elif path == "/api/simcore/platform/connect":
+                if dash.simcore_v2_alive():
+                    body_out, code = dash.simcore_v2_forward("POST", path, body)
+                else:
+                    from simcore.platforms import connect_platform
+                    body_out, code = connect_platform(**(body or {})), 200
+                self._send_json(body_out, code)
+            elif path == "/api/simcore/website/connect":
+                if dash.simcore_v2_alive():
+                    body_out, code = dash.simcore_v2_forward("POST", path, body)
+                else:
+                    from simcore.platforms import connect_website
+                    body_out, code = connect_website(**(body or {})), 200
+                self._send_json(body_out, code)
             elif path.startswith("/api/simcore/"):
                 action = path.rsplit("/", 1)[-1]
                 if action not in ("probe", "run", "feedback"):
@@ -691,6 +705,14 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
                 from core.files_api import delete_file
                 fname = urllib.parse.unquote(parsed.path[len("/api/files/delete/"):])
                 body_out, code = delete_file(fname)
+                self._send_json(body_out, code)
+            elif parsed.path.startswith("/api/simcore/platform/delete/"):
+                name = urllib.parse.unquote(parsed.path[len("/api/simcore/platform/delete/"):])
+                if dash.simcore_v2_alive():
+                    body_out, code = dash.simcore_v2_forward("DELETE", parsed.path)
+                else:
+                    from simcore.platforms import delete_platform
+                    body_out, code = delete_platform(name), 200
                 self._send_json(body_out, code)
             elif parsed.path.startswith("/api/skills/"):
                 from core.skills_api import delete_skill
@@ -811,6 +833,20 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
                 self._send_json(body_out, code)
             elif path == "/api/simcore/v2/status":
                 self._send_json(dash.simcore_v2_status())
+            elif path == "/api/simcore/platform/list":
+                if dash.simcore_v2_alive():
+                    body_out, code = dash.simcore_v2_forward("GET", path)
+                else:
+                    from simcore.platforms import list_platforms
+                    body_out, code = list_platforms(), 200
+                self._send_json(body_out, code)
+            elif path == "/api/simcore/website/list":
+                if dash.simcore_v2_alive():
+                    body_out, code = dash.simcore_v2_forward("GET", path)
+                else:
+                    from simcore.platforms import list_websites
+                    body_out, code = list_websites(), 200
+                self._send_json(body_out, code)
             elif path == "/api/simcore/domains":
                 if dash.simcore_v2_alive():
                     body_out, code = dash.simcore_v2_forward("GET", "/api/simcore/domains")

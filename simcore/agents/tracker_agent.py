@@ -43,7 +43,8 @@ class TrackerAgent(BaseAgent):
         domain  = self.config.domain or self.system_config.domain
 
         for source in sources:
-            fetch = SourceManager.fetch_content(source)
+            fetch = SourceManager.fetch(source.url, api_key=source.api_key,
+                                        account_id=source.account_id)
             if not fetch["success"]:
                 continue
             prompt = self.TRACKER_PROMPT.format(

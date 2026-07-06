@@ -48,23 +48,28 @@ class SimCoreEngine:
         monitor_results = []
         tracker_results = []
 
-        # المراقبة — مصادر API/منصات
-        api_sources = [s for s in self.config.sources
-                       if isinstance(s, dict) and s.get("source_type") in ("api", "social")]
+        # المراقبة — المنصات (exchange/api/social) من platforms + ما كان في sources
+        platforms = getattr(self.config, "platforms", None) or []
+        api_sources = list(platforms) + [
+            s for s in self.config.sources
+            if isinstance(s, dict) and s.get("source_type") in ("api", "social", "exchange")]
         for src in api_sources:
             result = self.monitor.monitor_once(
                 source_url  = src["url"],
-                source_name = src["name"],
+                source_name = src.get("name", src.get("url", "")),
                 api_key     = src.get("api_key"),
                 account_id  = src.get("account_id"),
+                secret      = src.get("secret") or src.get("secret_key"),
             )
             if result.get("has_signal"):
                 monitor_results.append(result)
 
-        # التتبع — مواقع ويب
+        # التتبع — مواقع ويب (نُبقي حقول SourceConfig المعروفة فقط)
+        _sc_fields = {"url", "name", "api_key", "account_id", "connected", "source_type"}
         web_sources = [
-            SourceConfig(**s) for s in self.config.sources
-            if isinstance(s, dict) and s.get("source_type", "web") == "web"
+            SourceConfig(**{k: v for k, v in s.items() if k in _sc_fields})
+            for s in self.config.sources
+            if isinstance(s, dict) and s.get("source_type", "web") == "web" and s.get("url")
         ]
         if web_sources:
             tracker_results = self.tracker.track(web_sources)
