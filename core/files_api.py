@@ -121,87 +121,41 @@ def extract_content(file_path, mime_type: str = "") -> Dict[str, Any]:
             out["pages"] = txt.count("\n") + 1          # أسطر
             return out
 
-        # PDF — pdfplumber ثم PyPDF2 كاحتياط
+        # PDF — pypdf/PyPDF2 (نقية Python وخفيفة)؛ pdfplumber إن وُجدت
         if mime == "application/pdf" or ext == "pdf":
-            try:
-                import pdfplumber
-                with pdfplumber.open(str(p)) as pdf:
-                    out["pages"] = len(pdf.pages)
-                    out["content"] = "\n\n".join(
-                        (pg.extract_text() or "") for pg in pdf.pages)
-                return out
-            except ImportError:
-                pass
-            try:
-                from PyPDF2 import PdfReader
-                r = PdfReader(str(p))
-                out["pages"] = len(r.pages)
-                out["content"] = "\n\n".join((pg.extract_text() or "") for pg in r.pages)
-                return out
-            except ImportError:
-                return {"content": "", "pages": 0,
-                        "error": "استخراج PDF يتطلب: pip install pdfplumber"}
+            for _mod in ("pypdf", "PyPDF2"):
+                try:
+                    reader = __import__(_mod, fromlist=["PdfReader"]).PdfReader(str(p))
+                    out["pages"] = len(reader.pages)
+                    out["content"] = "\n\n".join((pg.extract_text() or "") for pg in reader.pages)
+                    return out
+                except ImportError:
+                    continue
+                except Exception as e:
+                    return {"content": "", "pages": 0, "error": f"فشل قراءة PDF: {str(e)[:60]}"}
+            return {"content": "", "pages": 0,
+                    "error": "استخراج PDF يتطلب: pip install pypdf"}
 
-        # DOCX — python-docx
+        # DOCX — بلا مكتبات: Word ملف ZIP فيه XML، نقرأه بمكتبة بايثون القياسية
         if ext == "docx" or mime.endswith("wordprocessingml.document"):
-            try:
-                import docx
-                d = docx.Document(str(p))
-                paras = [par.text for par in d.paragraphs]
-                out["content"] = "\n".join(paras)
-                out["pages"] = len([x for x in paras if x.strip()])
-                return out
-            except ImportError:
-                return {"content": "", "pages": 0,
-                        "error": "استخراج DOCX يتطلب: pip install python-docx"}
+            return _extract_docx(p)
 
-        # XLSX / CSV — pandas (وcsv القياسية كاحتياط للـCSV)
-        if ext in ("xlsx", "xls") or mime.endswith("spreadsheetml.sheet"):
-            try:
-                import pandas as pd
-                sheets = pd.read_excel(str(p), sheet_name=None)
-                parts, rows = [], 0
-                for sname, df in sheets.items():
-                    rows += len(df)
-                    parts.append(f"[ورقة: {sname}]\n" + df.to_string(index=False))
-                out["content"] = "\n\n".join(parts)
-                out["pages"] = rows
-                return out
-            except ImportError:
-                return {"content": "", "pages": 0,
-                        "error": "استخراج XLSX يتطلب: pip install pandas openpyxl"}
-        if ext == "csv" or mime == "text/csv":
-            try:
-                import pandas as pd
-                df = pd.read_csv(str(p))
-                out["content"] = df.to_string(index=False)
-                out["pages"] = len(df)
-                return out
-            except ImportError:
-                import csv as _csv
-                with open(p, encoding="utf-8", errors="replace", newline="") as f:
-                    rows = list(_csv.reader(f))
-                out["content"] = "\n".join("\t".join(r) for r in rows)
-                out["pages"] = max(len(rows) - 1, 0)
-                return out
-
-        # PowerPoint — python-pptx (نصوص الشرائح)
+        # PowerPoint — بلا مكتبات: نصوص الشرائح من XML داخل الملف
         if ext in ("pptx", "ppt") or mime.endswith("presentationml.presentation"):
-            try:
-                from pptx import Presentation
-                prs = Presentation(str(p))
-                slides = []
-                for i, slide in enumerate(prs.slides, 1):
-                    texts = [sh.text for sh in slide.shapes
-                             if getattr(sh, "has_text_frame", False) and sh.text.strip()]
-                    slides.append(f"[شريحة {i}]\n" + "\n".join(texts))
-                out["content"] = "\n\n".join(slides)
-                out["pages"] = len(prs.slides._sldIdLst) if hasattr(prs.slides, "_sldIdLst") \
-                    else len(slides)
-                return out
-            except ImportError:
-                return {"content": "", "pages": 0,
-                        "error": "استخراج PowerPoint يتطلب: pip install python-pptx"}
+            return _extract_pptx(p)
+
+        # XLSX — openpyxl (نقية Python)؛ وإلا قراءة XML بالمكتبة القياسية
+        if ext in ("xlsx", "xls") or mime.endswith("spreadsheetml.sheet"):
+            return _extract_xlsx(p)
+
+        # CSV — المكتبة القياسية (بلا أي تثبيت)
+        if ext == "csv" or mime == "text/csv":
+            import csv as _csv
+            with open(p, encoding="utf-8", errors="replace", newline="") as f:
+                rows = list(_csv.reader(f))
+            out["content"] = "\n".join("\t".join(r) for r in rows)
+            out["pages"] = max(len(rows) - 1, 0)
+            return out
 
         # ZIP — يقرأ ما بداخله: نصوص الملفات النصية + قائمة الصور والملفات الثنائية
         if ext == "zip" or mime in ("application/zip", "application/x-zip-compressed"):
@@ -215,6 +169,116 @@ def extract_content(file_path, mime_type: str = "") -> Dict[str, Any]:
 _ZIP_IMAGE_EXTS = {"png", "jpg", "jpeg", "gif", "webp", "bmp", "svg", "tif", "tiff"}
 _ZIP_PER_FILE_LIMIT = 8000     # حرف لكل ملف نصي داخل الأرشيف
 _ZIP_TOTAL_LIMIT = 60000       # سقف إجمالي المحتوى المستخرج من الأرشيف
+
+
+def _xml_texts(xml_bytes: bytes, tag: str) -> list:
+    """يستخرج نصوص كل عناصر <tag> من XML (بلا حساسية لـ namespace)."""
+    import xml.etree.ElementTree as ET
+    try:
+        root = ET.fromstring(xml_bytes)
+    except Exception:
+        return []
+    out = []
+    for el in root.iter():
+        if el.tag.rsplit("}", 1)[-1] == tag and el.text:
+            out.append(el.text)
+    return out
+
+
+def _extract_docx(p: Path) -> Dict[str, Any]:
+    """Word = ZIP + word/document.xml — نصوص <w:t> بالمكتبة القياسية فقط."""
+    import zipfile, xml.etree.ElementTree as ET
+    try:
+        with zipfile.ZipFile(p) as zf:
+            root = ET.fromstring(zf.read("word/document.xml"))
+        paras = []
+        for el in root.iter():
+            if el.tag.rsplit("}", 1)[-1] == "p":          # كل <w:p> فقرة
+                txt = "".join(t.text or "" for t in el.iter()
+                              if t.tag.rsplit("}", 1)[-1] == "t")
+                if txt.strip():
+                    paras.append(txt)
+        return {"content": "\n".join(paras), "pages": max(len(paras), 1)}
+    except KeyError:
+        return {"content": "", "pages": 0, "error": "ملف Word غير صالح"}
+    except Exception as e:
+        return {"content": "", "pages": 0, "error": f"فشل قراءة Word: {str(e)[:60]}"}
+
+
+def _extract_pptx(p: Path) -> Dict[str, Any]:
+    """PowerPoint = ZIP + ppt/slides/slideN.xml — نصوص <a:t> بالمكتبة القياسية."""
+    import zipfile, re as _re
+    try:
+        with zipfile.ZipFile(p) as zf:
+            slides = sorted(
+                (n for n in zf.namelist()
+                 if _re.match(r"ppt/slides/slide\d+\.xml$", n)),
+                key=lambda n: int(_re.search(r"(\d+)", n).group(1)))
+            parts = []
+            for i, sn in enumerate(slides, 1):
+                texts = _xml_texts(zf.read(sn), "t")
+                if texts:
+                    parts.append(f"[شريحة {i}]\n" + "\n".join(texts))
+        return {"content": "\n\n".join(parts), "pages": len(slides)}
+    except Exception as e:
+        return {"content": "", "pages": 0, "error": f"فشل قراءة PowerPoint: {str(e)[:60]}"}
+
+
+def _extract_xlsx(p: Path) -> Dict[str, Any]:
+    """Excel: openpyxl (نقية Python) إن وُجدت، وإلا قراءة XML بالمكتبة القياسية."""
+    try:
+        import openpyxl
+        wb = openpyxl.load_workbook(str(p), read_only=True, data_only=True)
+        parts, rows = [], 0
+        for ws in wb.worksheets:
+            lines = []
+            for row in ws.iter_rows(values_only=True):
+                cells = ["" if c is None else str(c) for c in row]
+                if any(cells):
+                    lines.append("\t".join(cells)); rows += 1
+            if lines:
+                parts.append(f"[ورقة: {ws.title}]\n" + "\n".join(lines))
+        wb.close()
+        return {"content": "\n\n".join(parts), "pages": rows}
+    except ImportError:
+        pass
+    # احتياط بلا أي تثبيت: sharedStrings + خلايا من XML
+    import zipfile
+    try:
+        with zipfile.ZipFile(p) as zf:
+            shared = []
+            if "xl/sharedStrings.xml" in zf.namelist():
+                shared = _xml_texts(zf.read("xl/sharedStrings.xml"), "t")
+            import re as _re
+            sheets = sorted(n for n in zf.namelist()
+                            if _re.match(r"xl/worksheets/sheet\d+\.xml$", n))
+            import xml.etree.ElementTree as ET
+            parts, rows = [], 0
+            for sn in sheets:
+                root = ET.fromstring(zf.read(sn))
+                lines = []
+                for row in root.iter():
+                    if row.tag.rsplit("}", 1)[-1] != "row":
+                        continue
+                    vals = []
+                    for c in row:
+                        t = c.get("t"); v = None
+                        for child in c:
+                            if child.tag.rsplit("}", 1)[-1] == "v":
+                                v = child.text
+                        if v is None:
+                            vals.append("")
+                        elif t == "s":
+                            vals.append(shared[int(v)] if v.isdigit() and int(v) < len(shared) else "")
+                        else:
+                            vals.append(v)
+                    if any(vals):
+                        lines.append("\t".join(vals)); rows += 1
+                if lines:
+                    parts.append("\n".join(lines))
+        return {"content": "\n\n".join(parts), "pages": rows}
+    except Exception as e:
+        return {"content": "", "pages": 0, "error": f"فشل قراءة Excel: {str(e)[:60]}"}
 
 
 def _extract_zip(p: Path) -> Dict[str, Any]:
