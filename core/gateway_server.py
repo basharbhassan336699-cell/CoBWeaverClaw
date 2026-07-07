@@ -623,6 +623,16 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
             # ── لوحة v2 ──────────────────────────────────
             elif path == "/api/dreaming/run":
                 self._send_json(dash.dreaming_run())
+            elif path == "/api/trades":
+                self._send_json(dash.trades_log(body))
+            elif path == "/api/trades/close":
+                self._send_json(dash.trades_close(body))
+            elif path == "/api/trades/simulate":
+                self._send_json(dash.simulate_entry(body))
+            elif path == "/api/trades/regime":
+                self._send_json(dash.regime_status(body))
+            elif path == "/api/trades/manipulation":
+                self._send_json(dash.manipulation_alerts(body))
             elif path == "/api/workboard":
                 self._send_json(dash.workboard_add(body.get("text", "")))
             elif path == "/api/workboard/move":
@@ -778,6 +788,14 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
                 self._send_json(dash.trades_list(qs.get("outcome", [""])[0]))
             elif path == "/api/trades/patterns":
                 self._send_json(dash.trades_patterns())
+            elif path == "/api/trades/regime":
+                self._send_json(dash.regime_status())
+            elif path == "/api/trades/manipulation":
+                self._send_json(dash.manipulation_alerts())
+            elif path == "/api/trades/emergency":
+                self._send_json(dash.emergency_status())
+            elif path == "/api/trades/emergency/report":
+                self._send_json(dash.emergency_report())
             elif path == "/api/workboard":
                 self._send_json(dash.workboard_list())
             elif path == "/api/pairing/pending":

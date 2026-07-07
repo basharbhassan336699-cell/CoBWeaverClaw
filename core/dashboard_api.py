@@ -279,6 +279,175 @@ def trades_patterns() -> dict:
         return {"patterns": []}
 
 
+def trades_log(body: dict) -> dict:
+    """يسجّل صفقة جديدة (asset + entry إلزاميّان)."""
+    try:
+        from memory.trading.trade_memory import init_trade_db, log_trade
+        init_trade_db()
+        asset = str((body or {}).get("asset", "")).strip()
+        if not asset:
+            return {"ok": False, "error": "asset مطلوب"}
+        try:
+            entry = float((body or {}).get("entry"))
+        except (TypeError, ValueError):
+            return {"ok": False, "error": "entry رقم مطلوب"}
+
+        def _num(k):
+            v = (body or {}).get(k)
+            if v in (None, ""):
+                return None
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                return None
+
+        def _txt(k):
+            v = (body or {}).get(k)
+            v = str(v).strip() if v not in (None, "") else ""
+            return v or None
+
+        return log_trade(asset, entry, tp=_num("tp"), sl=_num("sl"),
+                         pattern=_txt("pattern"), session=_txt("session"),
+                         notes=_txt("notes"))
+    except Exception as e:
+        logger.debug("trades_log failed: %s", e)
+        return {"ok": False, "error": str(e)[:120]}
+
+
+def trades_close(body: dict) -> dict:
+    """يُغلق صفقة: trade_id + outcome (hit_tp/hit_sl/manual) + pnl_pct."""
+    try:
+        from memory.trading.trade_memory import init_trade_db, close_trade
+        init_trade_db()
+        try:
+            trade_id = int((body or {}).get("trade_id"))
+        except (TypeError, ValueError):
+            return {"ok": False, "error": "trade_id مطلوب"}
+        outcome = str((body or {}).get("outcome", "")).strip()
+        if not outcome:
+            return {"ok": False, "error": "outcome مطلوب"}
+        try:
+            pnl_pct = float((body or {}).get("pnl_pct", 0) or 0)
+        except (TypeError, ValueError):
+            pnl_pct = 0.0
+        return close_trade(trade_id, outcome, pnl_pct)
+    except Exception as e:
+        logger.debug("trades_close failed: %s", e)
+        return {"ok": False, "error": str(e)[:120]}
+
+
+def _num_list(body: dict, key: str) -> list:
+    """يحوّل قيمة body[key] (قائمة أو نص مفصول بفواصل) إلى قائمة أرقام."""
+    v = (body or {}).get(key)
+    if isinstance(v, str):
+        v = [x for x in v.replace("\n", ",").split(",") if x.strip()]
+    out = []
+    for x in (v or []):
+        try:
+            out.append(float(x))
+        except (TypeError, ValueError):
+            pass
+    return out
+
+
+def regime_status(body: dict = None) -> dict:
+    """حالة السوق: يكتشف من أسعار مُرسَلة أو يعيد آخر سجل."""
+    try:
+        from memory.trading.regime_detector import detect_regime, save_regime_log, latest_regime
+        prices = _num_list(body or {}, "prices")
+        volumes = _num_list(body or {}, "volumes")
+        if prices:
+            r = detect_regime(prices, volumes)
+            asset = str((body or {}).get("asset", "")).strip() or "—"
+            try:
+                save_regime_log(asset, r["regime"], r["strength"], r["recommended_strategy"])
+            except Exception:
+                pass
+            r["asset"] = asset
+            return r
+        last = latest_regime((body or {}).get("asset"))
+        return {"latest": last} if last else {"regime": None, "reasoning": "لا سجلّ حالة بعد."}
+    except Exception as e:
+        logger.debug("regime_status failed: %s", e)
+        return {"regime": None, "error": str(e)[:120]}
+
+
+def manipulation_alerts(body: dict = None) -> dict:
+    """تنبيهات التلاعب: يفحص أسعاراً مُرسَلة + آخر الأحداث المسجّلة."""
+    try:
+        from memory.trading.manipulation_detector import (
+            detect_manipulation, log_manipulation_event, recent_manipulations)
+        result = {}
+        prices = _num_list(body or {}, "prices")
+        volumes = _num_list(body or {}, "volumes")
+        if prices:
+            d = detect_manipulation(prices, volumes)
+            if d.get("manipulation_detected"):
+                asset = str((body or {}).get("asset", "")).strip() or "—"
+                try:
+                    log_manipulation_event(asset, d["type"], d["confidence"], d["action"])
+                except Exception:
+                    pass
+            result["current"] = d
+        result["recent"] = recent_manipulations(10)
+        return result
+    except Exception as e:
+        logger.debug("manipulation_alerts failed: %s", e)
+        return {"recent": [], "error": str(e)[:120]}
+
+
+def emergency_status(_: dict = None) -> dict:
+    """حالة مكابح الطوارئ الحالية + الإحصاءات."""
+    try:
+        from memory.trading.emergency_stop import emergency_state
+        return emergency_state()
+    except Exception as e:
+        logger.debug("emergency_status failed: %s", e)
+        return {"active": False, "error": str(e)[:120]}
+
+
+def emergency_report(_: dict = None) -> dict:
+    """يولّد تقرير الطوارئ الحالي (Markdown عربي)."""
+    try:
+        from memory.trading.emergency_stop import generate_emergency_report
+        return {"report": generate_emergency_report()}
+    except Exception as e:
+        logger.debug("emergency_report failed: %s", e)
+        return {"report": "", "error": str(e)[:120]}
+
+
+def simulate_entry(body: dict) -> dict:
+    """محاكاة صفقة قبل التنفيذ (asset + entry إلزاميّان)."""
+    try:
+        from memory.trading.scenario_simulator import simulate_trade
+        b = body or {}
+        asset = str(b.get("asset", "")).strip()
+        if not asset:
+            return {"error": "asset مطلوب"}
+        try:
+            entry = float(b.get("entry"))
+        except (TypeError, ValueError):
+            return {"error": "entry رقم مطلوب"}
+
+        def _n(k):
+            v = b.get(k)
+            if v in (None, ""):
+                return None
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                return None
+
+        return simulate_trade(asset, entry, tp=_n("tp"), sl=_n("sl"),
+                              pattern=(str(b.get("pattern", "")).strip() or None),
+                              regime="auto",
+                              prices=_num_list(b, "prices"),
+                              volumes=_num_list(b, "volumes"))
+    except Exception as e:
+        logger.debug("simulate_entry failed: %s", e)
+        return {"error": str(e)[:120]}
+
+
 # ══════════════════════════════════════════════════════════════
 # Workboard — لوحة مهام Kanban (ملف JSON)
 # ══════════════════════════════════════════════════════════════

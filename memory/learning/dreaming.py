@@ -81,8 +81,33 @@ def deep_dreaming() -> dict:
         init_trade_db()
         summary = weekly_summary()
         result["summary"] = summary
+        # تقرير حالة النظام: مكابح الطوارئ + آخر حالة سوق
+        extra = ""
+        try:
+            from memory.trading.emergency_stop import emergency_state
+            es = emergency_state()
+            s = es.get("stats", {})
+            state = "🚨 نشطة" if es.get("active") else "✅ طبيعي"
+            extra += (f"\n\n🛡️ *حالة النظام:* {state}\n"
+                      f"• خسارة يومية: {s.get('daily_loss_pct', 0)}% | "
+                      f"أسبوعية: {s.get('weekly_loss_pct', 0)}% | "
+                      f"متتالية: {s.get('consecutive_losses', 0)}")
+            if es.get("active") and es.get("reason"):
+                extra += f"\n• السبب: {es['reason']}"
+        except Exception as e:
+            logger.debug("emergency state in dreaming failed: %s", e)
+        try:
+            from memory.trading.regime_detector import latest_regime
+            lr = latest_regime()
+            if lr:
+                extra += (f"\n\n🎯 *آخر حالة سوق:* {lr.get('regime')} "
+                          f"({lr.get('strength')}%) — {lr.get('strategy')}")
+        except Exception as e:
+            logger.debug("latest regime in dreaming failed: %s", e)
+        result["system_report"] = extra
         from tools.agent_tools import send_telegram
-        result["telegram"] = send_telegram("💤 Deep Dreaming — صيانة أسبوعية\n\n" + summary)
+        result["telegram"] = send_telegram(
+            "💤 Deep Dreaming — صيانة أسبوعية\n\n" + summary + extra)
     except Exception as e:
         result["telegram"] = f"error: {str(e)[:100]}"
     # مزامنة قرارات SimCore (يلتقط ما أصدره v2 المستقل خارج البوابة)
