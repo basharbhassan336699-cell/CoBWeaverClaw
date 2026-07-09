@@ -1,6 +1,9 @@
 """
 SimCore — API endpoints للوكلاء والمصادر المفتوحة
 """
+import json
+import time
+from pathlib import Path
 from flask import Blueprint, request, jsonify
 from ..services.source_manager import SourceManager
 from ..services.monitor_agent  import MonitorAgent
@@ -140,3 +143,69 @@ def feedback():
         return jsonify({"success": True})
     except ValueError as e:
         return jsonify({"success": False, "error": str(e)}), 400
+
+
+# ── قواعد التنبيه (AlertAgent) + سجل التنفيذ (ExecutorAgent) ──────────
+def _alert_rules_path() -> Path:
+    return Path.home() / ".cobweaverclaw" / "simcore" / "alert_rules.json"
+
+
+@simcore_bp.route("/alerts/add", methods=["POST"])
+def alert_add():
+    d = request.json or {}
+    # يُحفظ في ~/.cobweaverclaw/simcore/alert_rules.json
+    path = _alert_rules_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    rules = json.loads(path.read_text()) if path.exists() else []
+    rules.append({
+        "rule_id":     d.get("rule_id", str(int(time.time()))),
+        "description": d.get("description", ""),
+        "source_url":  d.get("source_url", ""),
+        "condition":   d.get("condition", "anomaly"),
+        "threshold":   float(d.get("threshold", 0)),
+        "api_key":     d.get("api_key", ""),
+        "created_at":  int(time.time()),
+    })
+    path.write_text(json.dumps(rules, ensure_ascii=False, indent=2))
+    return jsonify({"success": True})
+
+
+@simcore_bp.route("/alerts/list", methods=["GET"])
+def alert_list():
+    path  = _alert_rules_path()
+    rules = json.loads(path.read_text()) if path.exists() else []
+    return jsonify({"success": True, "rules": rules})
+
+
+@simcore_bp.route("/alerts/delete/<rule_id>", methods=["DELETE"])
+def alert_delete(rule_id):
+    path  = _alert_rules_path()
+    if path.exists():
+        rules = json.loads(path.read_text())
+        rules = [r for r in rules if r["rule_id"] != rule_id]
+        path.write_text(json.dumps(rules, ensure_ascii=False, indent=2))
+    return jsonify({"success": True})
+
+
+@simcore_bp.route("/executions", methods=["GET"])
+def executions_list():
+    path = Path.home() / ".cobweaverclaw" / "simcore" / "executions.jsonl"
+    if not path.exists():
+        return jsonify({"success": True, "executions": []})
+    entries = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        try:
+            entries.append(json.loads(line))
+        except Exception:
+            pass
+    return jsonify({"success": True, "executions": list(reversed(entries[-50:]))})
+
+
+@simcore_bp.route("/executor/toggle", methods=["POST"])
+def executor_toggle():
+    # يحفظ حالة ExecutorAgent في config
+    enabled = (request.json or {}).get("enabled", False)
+    path    = Path.home() / ".cobweaverclaw" / "simcore" / "executor_config.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"enabled": enabled}, ensure_ascii=False))
+    return jsonify({"success": True, "enabled": enabled})
