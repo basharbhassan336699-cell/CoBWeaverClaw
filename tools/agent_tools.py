@@ -604,6 +604,18 @@ for _mt in ("memory_add", "memory_delete", "memory_list", "memory_prune"):
     _DISPATCH[_mt] = (lambda n: (lambda a: _memory_tool(n, a)))(_mt)
 
 
+# ── أداة ذكاء الويب (web_intelligence) ────────────────────────────
+# تُسجَّل دائماً، لكنها تُعرَض للنموذج فقط حين تفعيل 🌐 من اللوحة
+# (يُفلترها model_router عبر WEB_TOOL_ENABLED). تتدهور بأمان بلا تبعيات.
+try:
+    from tools.web_tool import WEB_TOOL_SCHEMA, execute_web_tool
+    TOOLS_SCHEMA.append({"type": "function", "function": WEB_TOOL_SCHEMA})
+    _DISPATCH["web_intelligence"] = (
+        lambda a: json.dumps(execute_web_tool(a or {}), ensure_ascii=False))
+except Exception as _e:  # pragma: no cover — لا يكسر تحميل الأدوات
+    pass
+
+
 def execute(name: str, args: dict) -> str:
     """ينفّذ أداة باسمها ويُعيد نصّ النتيجة."""
     fn = _DISPATCH.get(name)

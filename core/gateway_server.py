@@ -92,13 +92,21 @@ def save_env_keys(env_vars: dict):
 
 # ── chat: build memory context + call model ──────────────────
 def run_chat(message: str, model: str = None, session: str = "dashboard",
-             attachments: list = None) -> dict:
+             attachments: list = None, web_tool: dict = None) -> dict:
     """ينفّذ محادثة: يحمّل المفاتيح + الذاكرة، يستدعي النموذج، يحفظ التبادل.
 
     attachments: [{name,type,size,data(base64)}] — تُحفظ في ~/.cobweaverclaw/uploads
     ويُحقن نص الملفات النصية في رسالة النموذج.
+    web_tool: {"enabled":bool,"mode":"auto|stealth|crawl|browser"} — تفعيل 🌐 لهذه الجلسة.
     """
     load_env_into_os()
+    # تفعيل/إيقاف أداة ذكاء الويب لهذه الرسالة (يفلترها model_router)
+    _wt = web_tool or {}
+    if _wt.get("enabled"):
+        os.environ["WEB_TOOL_ENABLED"] = "1"
+        os.environ["WEB_TOOL_MODE"] = _wt.get("mode", "auto") or "auto"
+    else:
+        os.environ["WEB_TOOL_ENABLED"] = "0"
     cfg = load_config()
     import sys
     sys.path.insert(0, BASE_DIR)
@@ -586,7 +594,7 @@ class GatewayHandler(http.server.BaseHTTPRequestHandler):
             if path == "/api/chat":
                 out = run_chat(body.get("message", ""), body.get("model"),
                                body.get("session", "dashboard"),
-                               body.get("attachments"))
+                               body.get("attachments"), body.get("web_tool"))
                 self._send_json(out)
             elif path == "/api/files/upload":
                 from core.files_api import upload_files

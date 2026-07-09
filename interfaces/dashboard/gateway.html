@@ -546,6 +546,10 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
     <button class="sbtn" id="newchat-btn" onclick="newChat()" title="محادثة جديدة" style="background:var(--card);border:1px solid var(--border);color:var(--orange)">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
     </button>
+    <!-- Web Intelligence Toggle -->
+    <button class="sbtn" id="web-tool-btn" onclick="toggleWebTool()" title="Web Intelligence — اضغط لتفعيل/إيقاف (ضغط مطوّل: تغيير الوضع)" style="position:relative;background:var(--card);border:1px solid var(--border);color:var(--muted);font-size:16px;display:flex;align-items:center;gap:3px">
+      🌐<span id="web-tool-status" style="width:7px;height:7px;border-radius:50%;background:var(--card3);display:inline-block"></span>
+    </button>
     <select id="model-sel"></select>
     <textarea class="cinput" id="chat-in" rows="1" placeholder="اكتب رسالتك..." onkeydown="ck(event)" oninput="ar(this)"></textarea>
     <button class="sbtn" id="send-btn" onclick="send()">
@@ -1751,12 +1755,86 @@ async function send(){
   ATTACH=[];renderAttach();
   const typing=document.getElementById('typing');typing.classList.add('show');
   document.getElementById('chat-wrap').scrollTop=99999;
-  const r=await api('/api/chat','POST',{message:msg,model,session:SESSION,
-                                        attachments:atts.length?atts:undefined});
+  const r=await api('/api/chat','POST',injectWebToolIfEnabled({message:msg,model,session:SESSION,
+                                        attachments:atts.length?atts:undefined}));
   typing.classList.remove('show');btn.disabled=false;
   if(r?.reply) addBubble('agent',r.reply,r.model_used,r.tools);
   else addBubble('agent',LANG==='ar'?'⚠️ تعذّر الاتصال. تحقق من مفاتيح API في الإعدادات.':'⚠️ Connection failed. Check API keys in Settings.');
   inp.focus();
+}
+
+// ── Web Intelligence 🌐 ──────────────────────────────────
+let webToolEnabled=false;
+const WEB_TOOL_MODES=['auto','stealth','crawl','browser'];
+let webToolMode='auto';
+
+function toggleWebTool(){
+  webToolEnabled=!webToolEnabled;
+  const btn=document.getElementById('web-tool-btn');
+  const dot=document.getElementById('web-tool-status');
+  if(!btn||!dot) return;
+  if(webToolEnabled){
+    btn.style.borderColor='var(--orange)';
+    btn.style.color='var(--orange)';
+    btn.style.background='color-mix(in srgb, var(--orange) 12%, transparent)';
+    dot.style.background='var(--orange)';
+    dot.style.boxShadow='0 0 6px var(--orange)';
+    btn.title=(LANG==='ar'?`Web Intelligence — مفعّل (${webToolMode}) — ضغط مطوّل لتغيير الوضع`:`Web Intelligence — on (${webToolMode}) — long-press to change mode`);
+    showWebToolBadge(webToolMode);
+  }else{
+    btn.style.borderColor='var(--border)';
+    btn.style.color='var(--muted)';
+    btn.style.background='var(--card)';
+    dot.style.background='var(--card3)';
+    dot.style.boxShadow='none';
+    btn.title=(LANG==='ar'?'Web Intelligence — معطّل':'Web Intelligence — off');
+    hideWebToolBadge();
+  }
+}
+
+// ضغط طويل لتغيير الوضع
+let webToolHoldTimer=null;
+document.getElementById('web-tool-btn')?.addEventListener('mousedown',()=>{
+  webToolHoldTimer=setTimeout(()=>{
+    const idx=WEB_TOOL_MODES.indexOf(webToolMode);
+    webToolMode=WEB_TOOL_MODES[(idx+1)%WEB_TOOL_MODES.length];
+    const labels={auto:'تلقائي',stealth:'خفي',crawl:'زحف',browser:'متصفح'};
+    showNotif('Web Tool: '+(LANG==='ar'?labels[webToolMode]:webToolMode));
+    if(webToolEnabled){
+      showWebToolBadge(webToolMode);
+      const b=document.getElementById('web-tool-btn');
+      if(b) b.title=(LANG==='ar'?`Web Intelligence — مفعّل (${webToolMode})`:`Web Intelligence — on (${webToolMode})`);
+    }
+  },600);
+});
+document.getElementById('web-tool-btn')?.addEventListener('mouseup',()=>clearTimeout(webToolHoldTimer));
+document.getElementById('web-tool-btn')?.addEventListener('mouseleave',()=>clearTimeout(webToolHoldTimer));
+
+function showWebToolBadge(mode){
+  const btn=document.getElementById('web-tool-btn'); if(!btn) return;
+  let badge=document.getElementById('web-tool-badge');
+  if(!badge){
+    badge=document.createElement('span');
+    badge.id='web-tool-badge';
+    badge.style.cssText='position:absolute;top:-8px;inset-inline-start:-6px;background:var(--orange);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;letter-spacing:.5px;pointer-events:none';
+    btn.appendChild(badge);
+  }
+  badge.textContent=mode.toUpperCase();
+}
+function hideWebToolBadge(){ document.getElementById('web-tool-badge')?.remove(); }
+
+// حقن web_tool في الرسالة عند الإرسال
+function injectWebToolIfEnabled(payload){
+  if(!webToolEnabled) return payload;
+  return {...payload, web_tool:{enabled:true, mode:webToolMode}};
+}
+
+function showNotif(msg){
+  const n=document.createElement('div');
+  n.textContent=msg;
+  n.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid var(--orange);color:var(--text);padding:8px 16px;border-radius:8px;font-size:12px;z-index:9999';
+  document.body.appendChild(n);
+  setTimeout(()=>n.remove(),2000);
 }
 
 // ── MEMORY ──────────────────────────────────────────

@@ -5,3 +5,10 @@ anthropic>=0.30
 requests>=2.31
 pypdf>=4.0        # PDF (نقية Python — خفيفة على Termux)
 openpyxl>=3.1     # Excel (نقية Python — بلا بناء)
+
+# ── طبقة ذكاء الويب (web_intelligence) — اختيارية، غير مثبّتة افتراضياً ──
+# ثقيلة على Termux؛ فعّلها فقط على جهاز يتحمّلها. الأداة تتدهور بأمان بدونها.
+#   firecrawl-py>=4.32.0   # ClawCrawl — بحث/زحف (يحتاج CLAW_CRAWL_API_KEY)
+#   browser-use>=0.1.40    # ClawBrowser — متصفح حقيقي (يحتاج playwright + Chromium)
+#   playwright>=1.40.0     # ثم: playwright install chromium
+# ClawStealth (curl-impersonate) يُبنى من المصدر أو Docker — راجع claw-stealth/INSTALL.md
