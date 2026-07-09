@@ -85,10 +85,18 @@ class ClawStealth:
         script = self.STEALTH_DIR / self.BROWSERS.get(browser, self.BROWSERS["chrome116"])
 
         if not script.exists():
-            return WebResult(
-                success=False, content="", url=url, tool_used="stealth",
-                error=f"claw-stealth غير مبني — شغّل make في {self.STEALTH_DIR}"
-            )
+            # fallback لـ requests عادي (بلا curl-impersonate مبني)
+            import requests
+            try:
+                r = requests.get(url, headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                                  "AppleWebKit/537.36 Chrome/116.0.0.0 Safari/537.36"
+                }, timeout=timeout)
+                return WebResult(success=True, content=r.text,
+                                 url=url, tool_used="stealth-fallback")
+            except Exception as e:
+                return WebResult(success=False, content="", url=url,
+                                 tool_used="stealth", error=str(e))
 
         cmd = [str(script), "-s", "-L", "--max-time", str(timeout)]
 
@@ -141,7 +149,7 @@ class ClawCrawl:
     """
     Scraping وCrawling وSearch جاهز للـ LLM.
     يعيد Markdown نظيف مباشرة بدون معالجة إضافية.
-    يستخدم claw-crawl Python SDK.
+    يستخدم حزمة firecrawl-py (تُثبَّت عبر pip عند الحاجة).
     """
 
     def __init__(self, api_key: str | None = None, base_url: str | None = None):
@@ -153,18 +161,16 @@ class ClawCrawl:
     def _get_client(self):
         if self._client is None:
             try:
-                import sys
-                sdk_path = str(Path(__file__).parent / "claw-crawl" / "apps" / "python-sdk")
-                if sdk_path not in sys.path:
-                    sys.path.insert(0, sdk_path)
                 from firecrawl import Firecrawl as _FC
-                self._client = _FC(
-                    api_key=self.api_key,
-                    **({"base_url": self.base_url} if self.base_url else {})
-                )
-            except ImportError as e:
-                logger.error("ClawCrawl SDK غير مثبت: %s", e)
-                raise
+            except ImportError:
+                import subprocess, sys
+                subprocess.run([sys.executable, "-m", "pip", "install",
+                               "firecrawl-py", "-q"], check=True)
+                from firecrawl import Firecrawl as _FC
+            self._client = _FC(
+                api_key=self.api_key,
+                **({"base_url": self.base_url} if self.base_url else {})
+            )
         return self._client
 
     def scrape(
@@ -269,11 +275,13 @@ class ClawCrawl:
     async def scrape_async(self, url: str, formats: list[str] | None = None) -> WebResult:
         """نسخة async من scrape"""
         try:
-            import sys
-            sdk_path = str(Path(__file__).parent / "claw-crawl" / "apps" / "python-sdk")
-            if sdk_path not in sys.path:
-                sys.path.insert(0, sdk_path)
-            from firecrawl import AsyncFirecrawl
+            try:
+                from firecrawl import AsyncFirecrawl
+            except ImportError:
+                import subprocess, sys
+                subprocess.run([sys.executable, "-m", "pip", "install",
+                               "firecrawl-py", "-q"], check=True)
+                from firecrawl import AsyncFirecrawl
             client  = AsyncFirecrawl(api_key=self.api_key)
             result  = await client.scrape(url, formats=formats or ["markdown"])
             content = getattr(result, "markdown", "") or str(result)
@@ -309,28 +317,31 @@ class ClawBrowser:
 
     def _build_llm(self):
         """بناء LLM client من المفتاح المتاح"""
-        try:
-            import sys
-            browser_path = str(Path(__file__).parent / "claw-browser")
-            if browser_path not in sys.path:
-                sys.path.insert(0, browser_path)
-
-            if "claude" in self.llm_model.lower() or "anthropic" in (self.llm_base_url or ""):
-                from claw_browser.llm.anthropic.chat import ChatAnthropic
-                return ChatAnthropic(
-                    model_name=self.llm_model,
-                    api_key=self.llm_api_key,
-                )
-            else:
-                from claw_browser.llm.openai.like import ChatOpenAILike
-                return ChatOpenAILike(
-                    model=self.llm_model,
-                    api_key=self.llm_api_key,
-                    base_url=self.llm_base_url,
-                )
-        except ImportError as e:
-            logger.error("ClawBrowser: browser-use غير مثبت: %s", e)
-            raise
+        if "claude" in self.llm_model.lower() or "anthropic" in (self.llm_base_url or ""):
+            try:
+                from browser_use.llm.anthropic.chat import ChatAnthropic
+            except ImportError:
+                import subprocess, sys
+                subprocess.run([sys.executable, "-m", "pip", "install",
+                               "browser-use", "-q"], check=True)
+                from browser_use.llm.anthropic.chat import ChatAnthropic
+            return ChatAnthropic(
+                model_name=self.llm_model,
+                api_key=self.llm_api_key,
+            )
+        else:
+            try:
+                from browser_use.llm.openai.like import ChatOpenAILike
+            except ImportError:
+                import subprocess, sys
+                subprocess.run([sys.executable, "-m", "pip", "install",
+                               "browser-use", "-q"], check=True)
+                from browser_use.llm.openai.like import ChatOpenAILike
+            return ChatOpenAILike(
+                model=self.llm_model,
+                api_key=self.llm_api_key,
+                base_url=self.llm_base_url,
+            )
 
     async def run_task(
         self,
@@ -346,12 +357,13 @@ class ClawBrowser:
         screenshot: هل تريد screenshot عند الانتهاء؟
         """
         try:
-            import sys
-            browser_path = str(Path(__file__).parent / "claw-browser")
-            if browser_path not in sys.path:
-                sys.path.insert(0, browser_path)
-
-            from claw_browser import Agent, Browser, BrowserProfile
+            try:
+                from browser_use import Agent, Browser, BrowserProfile
+            except ImportError:
+                import subprocess, sys
+                subprocess.run([sys.executable, "-m", "pip", "install",
+                               "browser-use", "-q"], check=True)
+                from browser_use import Agent, Browser, BrowserProfile
 
             llm     = self._build_llm()
             profile = BrowserProfile(headless=self.headless)
