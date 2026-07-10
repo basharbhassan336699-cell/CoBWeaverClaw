@@ -60,3 +60,6 @@ class SimCoreConfig:
     sources:      list         = field(default_factory=list)
     platforms:    list         = field(default_factory=list)  # منصات api/social/exchange
     agents:       list         = field(default_factory=list)
+    executor_enabled: bool     = False   # ExecutorAgent مُعطَّل افتراضياً
+    deep_research:    bool      = False   # تشغيل ResearchAgent ضمن الدورة
+    research_query:   str       = ""      # موضوع البحث المعمّق (اختياري)

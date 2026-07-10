@@ -9,8 +9,26 @@ from .source_manager import SourceManager
 from .agents.monitor_agent  import MonitorAgent
 from .agents.tracker_agent  import TrackerAgent
 from .agents.oracle_agent   import OracleAgent
+from .agents.memory_agent   import MemoryAgent
+from .agents.research_agent import ResearchAgent
+from .agents.alert_agent    import AlertAgent, AlertRule
+from .agents.executor_agent import ExecutorAgent
 
 logger = logging.getLogger("simcore.engine")
+
+_DEFAULT_MM = None   # مفرد مُخزَّن لمدير الذاكرة الافتراضي (يُبنى مرة واحدة)
+
+
+class _SyncTelegramNotifier:
+    """مُبلِّغ متزامن يوجّه إلى نفس بوت Telegram (tools.agent_tools.send_telegram)."""
+    def send(self, message: str) -> bool:
+        try:
+            from tools.agent_tools import send_telegram
+            res = send_telegram(message)
+            return isinstance(res, str) and "✅" in res
+        except Exception as e:
+            logger.debug("notifier send failed: %s", e)
+            return False
 
 
 class SimCoreEngine:
@@ -20,8 +38,17 @@ class SimCoreEngine:
     يُعيد: قرار نهائي موجّه للمستخدم
     """
 
-    def __init__(self, config: SimCoreConfig):
+    def __init__(self, config: SimCoreConfig, memory_manager=None, notifier=None):
         self.config = config
+
+        # مُبلِّغ افتراضي متزامن (Telegram) إن لم يُمرَّر
+        notifier = notifier or _SyncTelegramNotifier()
+        self.notifier = notifier
+
+        # مدير ذاكرة افتراضي (نفس قاعدة النظام) إن لم يُمرَّر
+        if memory_manager is None:
+            memory_manager = self._default_memory_manager()
+        self.memory_manager = memory_manager
 
         # إنشاء الوكلاء
         self.monitor = MonitorAgent(
@@ -42,6 +69,36 @@ class SimCoreEngine:
                                         activity="deep"),
             system_config = config,
         )
+
+        # الوكلاء الجدد
+        self.memory_agent   = MemoryAgent(config, memory_manager)
+        self.research_agent = ResearchAgent(
+            config        = AgentConfig(agent_id="research", role="research",
+                                        domain=config.domain),
+            system_config = config,
+        )
+        self.alert_agent    = AlertAgent(config, notifier=notifier)
+        self.executor_agent = ExecutorAgent(
+            config, notifier=notifier,
+            enabled=getattr(config, "executor_enabled", False))
+
+    @staticmethod
+    def _default_memory_manager():
+        """يبني MemoryManager بنفس مزوّد النظام المدمج (مفرد مُخزَّن، فشل آمن → None)."""
+        global _DEFAULT_MM
+        if _DEFAULT_MM is not None:
+            return _DEFAULT_MM
+        try:
+            from memory.core.memory_manager import MemoryManager
+            from memory.core.builtin_provider import BuiltinMemoryProvider
+            mm = MemoryManager()
+            mm.add_provider(BuiltinMemoryProvider())
+            mm.initialize_all(session_id="simcore")
+            _DEFAULT_MM = mm
+            return mm
+        except Exception as e:
+            logger.debug("default memory manager unavailable: %s", e)
+            return None
 
     def run_cycle(self) -> Dict[str, Any]:
         """دورة تحليل كاملة"""
@@ -74,13 +131,30 @@ class SimCoreEngine:
         if web_sources:
             tracker_results = self.tracker.track(web_sources)
 
+        # بحث معمّق اختياري عبر ResearchAgent
+        if getattr(self.config, "deep_research", False):
+            research = self.research_agent.research(
+                query   = getattr(self.config, "research_query", "") or self.config.domain,
+                sources = web_sources,
+                domain  = self.config.domain,
+            )
+            tracker_results.append({"source": "ResearchAgent", **research})
+
         # القرار النهائي
         decision = self.oracle.decide(monitor_results, tracker_results)
+
+        # تنفيذ اختياري على أول منصة (ExecutorAgent مُعطَّل افتراضياً)
+        executor_result = (
+            self.executor_agent.execute(decision, platforms[0])
+            if platforms and decision.get("decision") in ("buy", "sell")
+            else None
+        )
 
         return {
             "monitor_results": monitor_results,
             "tracker_results": tracker_results,
             "decision":        decision,
+            "executor_result": executor_result,
             "domain":          self.config.domain,
         }
 

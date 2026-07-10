@@ -136,6 +136,15 @@ class CoBWeaverClaw:
         if cmd in ("/confirm", "/discard"):
             return self._handle_memory_confirm(cmd)
 
+        # موافقة/رفض تثبيت حزمة معلّقة (لا نشغّل pip دون إذن المستخدم)
+        try:
+            from tools.pkg_guard import handle_command as _pkg_cmd
+            _pkg_reply = _pkg_cmd(message)
+            if _pkg_reply is not None:
+                return _pkg_reply
+        except Exception:
+            pass
+
         context  = await self.memory.get_context(user_id, message)
 
         # قبل الدورة (pre-turn): حقن كتلة الذاكرة + الاسترجاع المُسبَق

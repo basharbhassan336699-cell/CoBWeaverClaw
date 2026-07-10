@@ -546,6 +546,10 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
     <button class="sbtn" id="newchat-btn" onclick="newChat()" title="محادثة جديدة" style="background:var(--card);border:1px solid var(--border);color:var(--orange)">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
     </button>
+    <!-- Web Intelligence Toggle -->
+    <button class="sbtn" id="web-tool-btn" onclick="toggleWebTool()" title="Web Intelligence — اضغط لتفعيل/إيقاف (ضغط مطوّل: تغيير الوضع)" style="position:relative;background:var(--card);border:1px solid var(--border);color:var(--muted);font-size:16px;display:flex;align-items:center;gap:3px">
+      🌐<span id="web-tool-status" style="width:7px;height:7px;border-radius:50%;background:var(--card3);display:inline-block"></span>
+    </button>
     <select id="model-sel"></select>
     <textarea class="cinput" id="chat-in" rows="1" placeholder="اكتب رسالتك..." onkeydown="ck(event)" oninput="ar(this)"></textarea>
     <button class="sbtn" id="send-btn" onclick="send()">
@@ -1085,6 +1089,71 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
 <div id="page-trading" class="page">
   <div class="pscroll">
     <div class="card">
+      <div class="ctitle"><span data-ar="➕ تسجيل صفقة" data-en="➕ Log a trade">➕ تسجيل صفقة</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px">
+        <div class="field"><label data-ar="الأصل *" data-en="Asset *">الأصل *</label><input id="tl-asset" type="text" placeholder="BTCUSDT"></div>
+        <div class="field"><label data-ar="الدخول *" data-en="Entry *">الدخول *</label><input id="tl-entry" type="number" step="any" placeholder="0.0"></div>
+        <div class="field"><label>TP</label><input id="tl-tp" type="number" step="any"></div>
+        <div class="field"><label>SL</label><input id="tl-sl" type="number" step="any"></div>
+        <div class="field"><label data-ar="النمط" data-en="Pattern">النمط</label><input id="tl-pattern" type="text" placeholder="breakout"></div>
+        <div class="field"><label data-ar="الجلسة" data-en="Session">الجلسة</label><input id="tl-session" type="text" placeholder="london"></div>
+        <div class="field" style="grid-column:1/-1"><label data-ar="ملاحظات" data-en="Notes">ملاحظات</label><input id="tl-notes" type="text"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+        <button class="btn btn-p" onclick="logTrade()" data-ar="تسجيل" data-en="Log">تسجيل</button>
+        <span id="tl-msg" style="font-size:12px;color:var(--muted)"></span>
+      </div>
+    </div>
+
+    <!-- 🎯 Regime + ⚠️ Manipulation -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">
+      <div class="card" style="margin:0">
+        <div class="ctitle"><span data-ar="🎯 حالة السوق" data-en="🎯 Market Regime">🎯 حالة السوق</span></div>
+        <div id="rg-out" style="font-size:13px;color:var(--muted)">—</div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <input id="rg-asset" type="text" placeholder="Asset" style="flex:0 0 90px;font-size:12px">
+          <input id="rg-prices" type="text" placeholder="أسعار: 100,101,99,..." style="flex:1;font-size:12px">
+          <button class="btn btn-g" onclick="regimeDetect()" data-ar="تحليل" data-en="Detect">تحليل</button>
+        </div>
+      </div>
+      <div class="card" style="margin:0">
+        <div class="ctitle"><span data-ar="⚠️ التلاعب" data-en="⚠️ Manipulation">⚠️ التلاعب</span></div>
+        <div id="mp-cur" style="font-size:13px;margin-bottom:6px"></div>
+        <div id="mp-out" style="font-size:12px;color:var(--muted)">—</div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <input id="mp-asset" type="text" placeholder="Asset" style="flex:0 0 90px;font-size:12px">
+          <input id="mp-prices" type="text" placeholder="أسعار" style="flex:1;font-size:12px">
+          <input id="mp-vols" type="text" placeholder="أحجام" style="flex:1;font-size:12px">
+          <button class="btn btn-g" onclick="manipDetect()" data-ar="فحص" data-en="Scan">فحص</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🚨 Emergency + 🔬 Simulator -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:12px">
+      <div class="card" style="margin:0">
+        <div class="ctitle" style="justify-content:space-between">
+          <span data-ar="🚨 الطوارئ" data-en="🚨 Emergency">🚨 الطوارئ</span>
+          <button class="btn btn-g" onclick="emReport()" style="font-size:11px;padding:4px 8px" data-ar="تقرير" data-en="Report">تقرير</button>
+        </div>
+        <div id="em-out" style="font-size:13px;color:var(--muted)">—</div>
+        <pre id="em-report" style="display:none;white-space:pre-wrap;font-size:12px;background:var(--card3);padding:8px;border-radius:8px;margin-top:8px"></pre>
+      </div>
+      <div class="card" style="margin:0">
+        <div class="ctitle"><span data-ar="🔬 محاكاة صفقة" data-en="🔬 Simulate Entry">🔬 محاكاة صفقة</span></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:6px">
+          <input id="sm-asset" type="text" placeholder="Asset" style="font-size:12px">
+          <input id="sm-entry" type="number" step="any" placeholder="Entry" style="font-size:12px">
+          <input id="sm-tp" type="number" step="any" placeholder="TP" style="font-size:12px">
+          <input id="sm-sl" type="number" step="any" placeholder="SL" style="font-size:12px">
+          <input id="sm-pattern" type="text" placeholder="Pattern" style="font-size:12px">
+        </div>
+        <div style="margin-top:8px"><button class="btn btn-p" onclick="simEntry()" data-ar="محاكاة" data-en="Simulate">محاكاة</button></div>
+        <div id="sm-out" style="font-size:13px;color:var(--muted);margin-top:8px">—</div>
+      </div>
+    </div>
+
+    <div class="card">
       <div class="ctitle" style="justify-content:space-between">
         <span data-ar="📈 الصفقات" data-en="📈 Trades">📈 الصفقات</span>
         <select id="tr-filter" onchange="loadTrades()" style="width:auto;font-size:11px;padding:4px 8px">
@@ -1096,8 +1165,8 @@ code{font-family:monospace;font-size:11px;background:rgba(139,148,158,.1);paddin
       </div>
       <div style="overflow-x:auto">
         <table class="tbl">
-          <thead><tr><th data-ar="الأصل" data-en="Asset">الأصل</th><th data-ar="الدخول" data-en="Entry">الدخول</th><th>TP</th><th>SL</th><th data-ar="النمط" data-en="Pattern">النمط</th><th data-ar="الجلسة" data-en="Session">الجلسة</th><th data-ar="النتيجة" data-en="Outcome">النتيجة</th><th>PnL%</th><th data-ar="التاريخ" data-en="Date">التاريخ</th></tr></thead>
-          <tbody id="tr-body"><tr><td colspan="9" style="color:var(--muted)">—</td></tr></tbody>
+          <thead><tr><th>#</th><th data-ar="الأصل" data-en="Asset">الأصل</th><th data-ar="الدخول" data-en="Entry">الدخول</th><th>TP</th><th>SL</th><th data-ar="النمط" data-en="Pattern">النمط</th><th data-ar="الجلسة" data-en="Session">الجلسة</th><th data-ar="النتيجة" data-en="Outcome">النتيجة</th><th>PnL%</th><th data-ar="التاريخ" data-en="Date">التاريخ</th><th></th></tr></thead>
+          <tbody id="tr-body"><tr><td colspan="11" style="color:var(--muted)">—</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1298,7 +1367,7 @@ function nav(page,btn){
   else if(page==='channels') loadTelegram();
   else if(page==='models') loadModelsCatalog();
   else if(page==='dreaming') loadDreaming();
-  else if(page==='trading'){ loadTrades(); loadPatterns(); }
+  else if(page==='trading'){ loadTrades(); loadPatterns(); loadRegime(); loadManip(); loadEmergency(); }
   else if(page==='workboard') wbLoad();
   else if(page==='pairing') loadPairing();
   else if(page==='usage') loadUsage();
@@ -1686,12 +1755,86 @@ async function send(){
   ATTACH=[];renderAttach();
   const typing=document.getElementById('typing');typing.classList.add('show');
   document.getElementById('chat-wrap').scrollTop=99999;
-  const r=await api('/api/chat','POST',{message:msg,model,session:SESSION,
-                                        attachments:atts.length?atts:undefined});
+  const r=await api('/api/chat','POST',injectWebToolIfEnabled({message:msg,model,session:SESSION,
+                                        attachments:atts.length?atts:undefined}));
   typing.classList.remove('show');btn.disabled=false;
   if(r?.reply) addBubble('agent',r.reply,r.model_used,r.tools);
   else addBubble('agent',LANG==='ar'?'⚠️ تعذّر الاتصال. تحقق من مفاتيح API في الإعدادات.':'⚠️ Connection failed. Check API keys in Settings.');
   inp.focus();
+}
+
+// ── Web Intelligence 🌐 ──────────────────────────────────
+let webToolEnabled=false;
+const WEB_TOOL_MODES=['auto','stealth','crawl','browser'];
+let webToolMode='auto';
+
+function toggleWebTool(){
+  webToolEnabled=!webToolEnabled;
+  const btn=document.getElementById('web-tool-btn');
+  const dot=document.getElementById('web-tool-status');
+  if(!btn||!dot) return;
+  if(webToolEnabled){
+    btn.style.borderColor='var(--orange)';
+    btn.style.color='var(--orange)';
+    btn.style.background='color-mix(in srgb, var(--orange) 12%, transparent)';
+    dot.style.background='var(--orange)';
+    dot.style.boxShadow='0 0 6px var(--orange)';
+    btn.title=(LANG==='ar'?`Web Intelligence — مفعّل (${webToolMode}) — ضغط مطوّل لتغيير الوضع`:`Web Intelligence — on (${webToolMode}) — long-press to change mode`);
+    showWebToolBadge(webToolMode);
+  }else{
+    btn.style.borderColor='var(--border)';
+    btn.style.color='var(--muted)';
+    btn.style.background='var(--card)';
+    dot.style.background='var(--card3)';
+    dot.style.boxShadow='none';
+    btn.title=(LANG==='ar'?'Web Intelligence — معطّل':'Web Intelligence — off');
+    hideWebToolBadge();
+  }
+}
+
+// ضغط طويل لتغيير الوضع
+let webToolHoldTimer=null;
+document.getElementById('web-tool-btn')?.addEventListener('mousedown',()=>{
+  webToolHoldTimer=setTimeout(()=>{
+    const idx=WEB_TOOL_MODES.indexOf(webToolMode);
+    webToolMode=WEB_TOOL_MODES[(idx+1)%WEB_TOOL_MODES.length];
+    const labels={auto:'تلقائي',stealth:'خفي',crawl:'زحف',browser:'متصفح'};
+    showNotif('Web Tool: '+(LANG==='ar'?labels[webToolMode]:webToolMode));
+    if(webToolEnabled){
+      showWebToolBadge(webToolMode);
+      const b=document.getElementById('web-tool-btn');
+      if(b) b.title=(LANG==='ar'?`Web Intelligence — مفعّل (${webToolMode})`:`Web Intelligence — on (${webToolMode})`);
+    }
+  },600);
+});
+document.getElementById('web-tool-btn')?.addEventListener('mouseup',()=>clearTimeout(webToolHoldTimer));
+document.getElementById('web-tool-btn')?.addEventListener('mouseleave',()=>clearTimeout(webToolHoldTimer));
+
+function showWebToolBadge(mode){
+  const btn=document.getElementById('web-tool-btn'); if(!btn) return;
+  let badge=document.getElementById('web-tool-badge');
+  if(!badge){
+    badge=document.createElement('span');
+    badge.id='web-tool-badge';
+    badge.style.cssText='position:absolute;top:-8px;inset-inline-start:-6px;background:var(--orange);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;letter-spacing:.5px;pointer-events:none';
+    btn.appendChild(badge);
+  }
+  badge.textContent=mode.toUpperCase();
+}
+function hideWebToolBadge(){ document.getElementById('web-tool-badge')?.remove(); }
+
+// حقن web_tool في الرسالة عند الإرسال
+function injectWebToolIfEnabled(payload){
+  if(!webToolEnabled) return payload;
+  return {...payload, web_tool:{enabled:true, mode:webToolMode}};
+}
+
+function showNotif(msg){
+  const n=document.createElement('div');
+  n.textContent=msg;
+  n.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid var(--orange);color:var(--text);padding:8px 16px;border-radius:8px;font-size:12px;z-index:9999';
+  document.body.appendChild(n);
+  setTimeout(()=>n.remove(),2000);
 }
 
 // ── MEMORY ──────────────────────────────────────────
@@ -1914,12 +2057,38 @@ async function loadTrades(){
   const body=document.getElementById('tr-body'); if(!body)return;
   const rows=(r&&r.trades)||[];
   body.innerHTML=rows.length?rows.map(t=>`<tr>
+    <td style="color:var(--muted)">${t.id}</td>
     <td><code>${esc(t.asset)}</code></td><td>${t.entry}</td><td>${t.tp??'—'}</td><td>${t.sl??'—'}</td>
     <td>${t.pattern?'<code>'+esc(t.pattern)+'</code>':'—'}</td><td>${esc(t.session||'—')}</td>
     <td>${t.outcome?`<span class="badge ${t.outcome==='hit_tp'?'bg':t.outcome==='hit_sl'?'br':'bm'}">${t.outcome}</span>`:'<span class="badge bo">'+(LANG==='ar'?'مفتوحة':'open')+'</span>'}</td>
     <td style="color:${(t.pnl_pct||0)>=0?'var(--green)':'var(--red)'}">${t.pnl_pct??'—'}</td>
-    <td style="font-size:10px;color:var(--muted)">${fmtTs(t.opened_at)}</td></tr>`).join('')
-    :'<tr><td colspan="9" style="color:var(--muted)">'+(LANG==='ar'?'لا صفقات':'No trades')+'</td></tr>';
+    <td style="font-size:10px;color:var(--muted)">${fmtTs(t.opened_at)}</td>
+    <td>${t.closed_at?'':`<button class="btn btn-g" style="padding:3px 8px;font-size:11px" onclick="closeTrade(${t.id})" data-ar="إغلاق" data-en="Close">${LANG==='ar'?'إغلاق':'Close'}</button>`}</td></tr>`).join('')
+    :'<tr><td colspan="11" style="color:var(--muted)">'+(LANG==='ar'?'لا صفقات':'No trades')+'</td></tr>';
+}
+async function logTrade(){
+  const asset=(document.getElementById('tl-asset').value||'').trim();
+  const entry=document.getElementById('tl-entry').value;
+  const msg=document.getElementById('tl-msg');
+  if(!asset||entry===''){ msg.textContent=LANG==='ar'?'الأصل والدخول مطلوبان':'Asset and entry required'; return; }
+  const b={asset,entry,tp:document.getElementById('tl-tp').value,sl:document.getElementById('tl-sl').value,
+    pattern:document.getElementById('tl-pattern').value,session:document.getElementById('tl-session').value,
+    notes:document.getElementById('tl-notes').value};
+  const r=await api('/api/trades','POST',b);
+  if(r&&r.ok){
+    msg.textContent=(LANG==='ar'?'✅ سُجّلت الصفقة #':'✅ Logged trade #')+r.trade_id;
+    ['tl-asset','tl-entry','tl-tp','tl-sl','tl-pattern','tl-session','tl-notes'].forEach(id=>document.getElementById(id).value='');
+    loadTrades();
+  } else { msg.textContent=(r&&r.error)||(LANG==='ar'?'تعذّر التسجيل':'Failed'); }
+}
+async function closeTrade(id){
+  const outcome=prompt(LANG==='ar'?'النتيجة: hit_tp / hit_sl / manual':'Outcome: hit_tp / hit_sl / manual','hit_tp');
+  if(!outcome)return;
+  const pnl=prompt(LANG==='ar'?'نسبة الربح/الخسارة %':'PnL %','0');
+  if(pnl===null)return;
+  const r=await api('/api/trades/close','POST',{trade_id:id,outcome:outcome.trim(),pnl_pct:pnl});
+  if(r&&r.ok){ loadTrades(); loadPatterns(); }
+  else { alert((r&&r.error)||(LANG==='ar'?'تعذّر الإغلاق':'Close failed')); }
 }
 async function loadPatterns(){
   const r=await api('/api/trades/patterns');
@@ -1931,6 +2100,86 @@ async function loadPatterns(){
     <td style="color:${p.total_pnl>=0?'var(--green)':'var(--red)'}">${p.total_pnl}%</td>
     <td><div style="height:8px;background:var(--card3);border-radius:4px;overflow:hidden"><div style="height:100%;width:${p.win_rate}%;background:var(--orange)"></div></div></td></tr>`).join('')
     :'<tr><td colspan="6" style="color:var(--muted)">'+(LANG==='ar'?'لا أنماط بعد':'No patterns yet')+'</td></tr>';
+}
+
+/* ── حالة السوق (Regime) ── */
+function _regClr(r){ return r==='trending'?'var(--green)':r==='volatile'?'var(--red)':'var(--orange)'; }
+function _renderRegime(r){
+  const el=document.getElementById('rg-out'); if(!el)return;
+  const g=r&&(r.regime?r:(r.latest?{regime:r.latest.regime,strength:r.latest.strength,recommended_strategy:r.latest.strategy,reasoning:''}:null));
+  if(!g||!g.regime){ el.innerHTML='<span style="color:var(--muted)">'+(LANG==='ar'?'لا بيانات — الصق أسعاراً ثم حلّل':'No data — paste prices and detect')+'</span>'; return; }
+  el.innerHTML=`<div style="display:flex;align-items:center;gap:8px">
+    <span class="badge" style="background:${_regClr(g.regime)}22;color:${_regClr(g.regime)}">${g.regime}</span>
+    <div style="flex:1;height:8px;background:var(--card3);border-radius:4px;overflow:hidden"><div style="height:100%;width:${g.strength||0}%;background:${_regClr(g.regime)}"></div></div>
+    <span style="font-size:11px">${g.strength||0}%</span></div>
+    <div style="margin-top:6px"><b>${LANG==='ar'?'الاستراتيجية:':'Strategy:'}</b> ${esc(g.recommended_strategy||'—')}</div>
+    ${g.reasoning?'<div style="font-size:12px;color:var(--muted);margin-top:4px">'+esc(g.reasoning)+'</div>':''}`;
+}
+async function loadRegime(){ _renderRegime(await api('/api/trades/regime')); }
+async function regimeDetect(){
+  const prices=(document.getElementById('rg-prices').value||'').trim();
+  const b={asset:document.getElementById('rg-asset').value,prices};
+  _renderRegime(await api('/api/trades/regime','POST',b));
+}
+
+/* ── التلاعب (Manipulation) ── */
+function _renderManip(r){
+  const cur=document.getElementById('mp-cur'), out=document.getElementById('mp-out');
+  if(!out)return;
+  const c=r&&r.current;
+  if(cur){ cur.innerHTML=(c&&c.manipulation_detected)
+    ?`<span class="badge br">${c.type}</span> <span style="font-size:12px">${esc(c.warning||'')} (${c.confidence}%)</span>`
+    :(c?'<span class="badge bg">'+(LANG==='ar'?'لا تلاعب':'clean')+'</span>':''); }
+  const rows=(r&&r.recent)||[];
+  out.innerHTML=rows.length?rows.map(m=>`<div style="display:flex;justify-content:space-between;gap:6px;padding:3px 0;border-bottom:1px solid var(--card3)">
+    <span><code>${esc(m.asset||'—')}</code> ${esc(m.type)}</span>
+    <span style="color:var(--muted)">${m.confidence}% · ${esc(m.action)}</span></div>`).join('')
+    :('<span style="color:var(--muted)">'+(LANG==='ar'?'لا أحداث مسجّلة':'No events')+'</span>');
+}
+async function loadManip(){ _renderManip(await api('/api/trades/manipulation')); }
+async function manipDetect(){
+  const b={asset:document.getElementById('mp-asset').value,
+    prices:(document.getElementById('mp-prices').value||'').trim(),
+    volumes:(document.getElementById('mp-vols').value||'').trim()};
+  _renderManip(await api('/api/trades/manipulation','POST',b));
+}
+
+/* ── الطوارئ (Emergency) ── */
+async function loadEmergency(){
+  const r=await api('/api/trades/emergency');
+  const el=document.getElementById('em-out'); if(!el)return;
+  const s=(r&&r.stats)||{};
+  const active=r&&r.active;
+  el.innerHTML=`<div><span class="badge ${active?'br':'bg'}">${active?(LANG==='ar'?'🚨 نشطة':'🚨 ACTIVE'):(LANG==='ar'?'✅ طبيعي':'✅ OK')}</span></div>
+    <div style="font-size:12px;margin-top:6px">
+      ${LANG==='ar'?'خسارة يومية':'Daily'}: <b style="color:${(s.daily_loss_pct||0)<0?'var(--red)':'var(--green)'}">${s.daily_loss_pct??0}%</b> ·
+      ${LANG==='ar'?'أسبوعية':'Weekly'}: <b style="color:${(s.weekly_loss_pct||0)<0?'var(--red)':'var(--green)'}">${s.weekly_loss_pct??0}%</b> ·
+      ${LANG==='ar'?'متتالية':'Streak'}: <b>${s.consecutive_losses??0}</b></div>
+    ${active&&r.reason?'<div style="font-size:12px;color:var(--red);margin-top:4px">'+esc(r.reason)+'</div>':''}`;
+}
+async function emReport(){
+  const r=await api('/api/trades/emergency/report');
+  const pre=document.getElementById('em-report'); if(!pre)return;
+  pre.style.display='block'; pre.textContent=(r&&r.report)||'—';
+}
+
+/* ── المحاكي (Simulator) ── */
+async function simEntry(){
+  const asset=(document.getElementById('sm-asset').value||'').trim();
+  const entry=document.getElementById('sm-entry').value;
+  const out=document.getElementById('sm-out');
+  if(!asset||entry===''){ out.textContent=LANG==='ar'?'الأصل والدخول مطلوبان':'Asset and entry required'; return; }
+  const b={asset,entry,tp:document.getElementById('sm-tp').value,sl:document.getElementById('sm-sl').value,
+    pattern:document.getElementById('sm-pattern').value};
+  const r=await api('/api/trades/simulate','POST',b);
+  if(!r||r.error){ out.textContent=(r&&r.error)||'—'; return; }
+  const ok=r.recommended;
+  out.innerHTML=`<div><span class="badge ${ok?'bg':'br'}">${ok?(LANG==='ar'?'✅ يُنصح':'✅ Go'):(LANG==='ar'?'⛔ لا يُنصح':'⛔ Skip')}</span>
+    <b style="margin-inline-start:6px">score ${r.signal_score}/100</b></div>
+    <div style="font-size:12px;margin-top:6px">${LANG==='ar'?'احتمال الفوز':'Win prob'}: <b>${r.win_probability}%</b> ·
+      ${LANG==='ar'?'عائد متوقّع':'Exp PnL'}: <b style="color:${(r.expected_pnl||0)>=0?'var(--green)':'var(--red)'}">${r.expected_pnl}%</b> ·
+      R:R <b>${r.risk_reward_actual}</b></div>
+    <div style="font-size:12px;color:var(--muted);margin-top:4px">${esc(r.reasoning||'')}</div>`;
 }
 
 /* ── Workboard ── */

@@ -382,6 +382,64 @@ def update_setting(key: str, value: str) -> str:
         return f"تعذّر ضبط الإعداد: {str(e)[:100]}"
 
 
+# ── التداول (memory/trading/trade_memory.py) ─────────────────
+def log_trade(asset: str, entry: float, tp: float = None, sl: float = None,
+              pattern: str = None, session: str = None, notes: str = None) -> str:
+    """يسجّل صفقة تداول جديدة ويُعيد رقمها."""
+    if not asset:
+        return "لا يوجد أصل (asset)."
+    try:
+        from memory.trading.trade_memory import init_trade_db, log_trade as _log
+        init_trade_db()
+        entry = float(entry)
+        res = _log(asset, entry, tp=_f(tp), sl=_f(sl),
+                   pattern=pattern or None, session=session or None, notes=notes or None)
+        if not res.get("ok"):
+            return "⛔ " + res.get("error", "تعذّر تسجيل الصفقة.")
+        return f"✅ سُجّلت الصفقة #{res.get('trade_id')} — {asset} @ {entry}"
+    except (TypeError, ValueError):
+        return "قيمة السعر (entry) يجب أن تكون رقماً."
+    except Exception as e:
+        return f"تعذّر تسجيل الصفقة: {str(e)[:100]}"
+
+
+def close_trade(trade_id: int, outcome: str, pnl_pct: float = 0.0) -> str:
+    """يُغلق صفقة: outcome=hit_tp/hit_sl/manual و pnl_pct نسبة الربح/الخسارة."""
+    if not trade_id:
+        return "لا يوجد رقم صفقة (trade_id)."
+    if not outcome:
+        return "لا توجد نتيجة (outcome)."
+    try:
+        from memory.trading.trade_memory import init_trade_db, close_trade as _close
+        init_trade_db()
+        _close(int(trade_id), outcome, _f(pnl_pct) or 0.0)
+        return f"✅ أُغلقت الصفقة #{trade_id} — {outcome} ({_f(pnl_pct) or 0.0}%)"
+    except (TypeError, ValueError):
+        return "trade_id يجب أن يكون رقماً."
+    except Exception as e:
+        return f"تعذّر إغلاق الصفقة: {str(e)[:100]}"
+
+
+def trade_stats(_: str = "") -> str:
+    """ملخّص أداء أنماط التداول (win rate و PnL لكل نمط)."""
+    try:
+        from memory.trading.trade_memory import init_trade_db, weekly_summary
+        init_trade_db()
+        return weekly_summary()
+    except Exception as e:
+        return f"تعذّر جلب إحصاءات التداول: {str(e)[:100]}"
+
+
+def _f(v):
+    """يحوّل إلى float أو None عند الفراغ."""
+    if v in (None, ""):
+        return None
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
 # ── OpenAI-style schema + dispatcher ─────────────────────────
 TOOLS_SCHEMA = [
     {"type": "function", "function": {
@@ -448,6 +506,30 @@ TOOLS_SCHEMA = [
         "description": "اضبط إعداداً للوكيل: name/style/language/specialization/memory_size/mission_anchor.",
         "parameters": {"type": "object", "properties": {
             "key": {"type": "string"}, "value": {"type": "string"}}, "required": ["key", "value"]}}},
+    {"type": "function", "function": {
+        "name": "log_trade",
+        "description": "سجّل صفقة تداول فعلية نفّذها المستخدم (لا توصية). أدخل الأصل وسعر الدخول.",
+        "parameters": {"type": "object", "properties": {
+            "asset": {"type": "string", "description": "رمز الأصل، مثل BTCUSDT"},
+            "entry": {"type": "number", "description": "سعر الدخول"},
+            "tp": {"type": "number", "description": "هدف الربح (اختياري)"},
+            "sl": {"type": "number", "description": "وقف الخسارة (اختياري)"},
+            "pattern": {"type": "string", "description": "اسم النمط/الاستراتيجية (اختياري)"},
+            "session": {"type": "string", "description": "الجلسة الزمنية، مثل asia/london (اختياري)"},
+            "notes": {"type": "string", "description": "ملاحظات (اختياري)"}},
+            "required": ["asset", "entry"]}}},
+    {"type": "function", "function": {
+        "name": "close_trade",
+        "description": "أغلق صفقة مسجّلة بنتيجتها. outcome: hit_tp أو hit_sl أو manual.",
+        "parameters": {"type": "object", "properties": {
+            "trade_id": {"type": "integer", "description": "رقم الصفقة"},
+            "outcome": {"type": "string", "description": "hit_tp/hit_sl/manual"},
+            "pnl_pct": {"type": "number", "description": "نسبة الربح/الخسارة %"}},
+            "required": ["trade_id", "outcome"]}}},
+    {"type": "function", "function": {
+        "name": "trade_stats",
+        "description": "احصل على ملخّص أداء أنماط التداول (win rate و PnL لكل نمط).",
+        "parameters": {"type": "object", "properties": {}}}},
 ]
 
 _DISPATCH = {
@@ -464,6 +546,10 @@ _DISPATCH = {
     "set_memory_fact": lambda a: set_memory_fact(a.get("key", ""), a.get("value", "")),
     "delete_memory_fact": lambda a: delete_memory_fact(a.get("key", "")),
     "update_setting": lambda a: update_setting(a.get("key", ""), a.get("value", "")),
+    "log_trade": lambda a: log_trade(a.get("asset", ""), a.get("entry"), a.get("tp"),
+                                     a.get("sl"), a.get("pattern"), a.get("session"), a.get("notes")),
+    "close_trade": lambda a: close_trade(a.get("trade_id"), a.get("outcome", ""), a.get("pnl_pct", 0.0)),
+    "trade_stats": lambda a: trade_stats(),
 }
 
 # ── أدوات الذاكرة المدمجة (CLAUDE_UPGRADE — المرحلة C) ─────────────
@@ -516,6 +602,18 @@ def _memory_tool(name: str, args: dict) -> str:
 
 for _mt in ("memory_add", "memory_delete", "memory_list", "memory_prune"):
     _DISPATCH[_mt] = (lambda n: (lambda a: _memory_tool(n, a)))(_mt)
+
+
+# ── أداة ذكاء الويب (web_intelligence) ────────────────────────────
+# تُسجَّل دائماً، لكنها تُعرَض للنموذج فقط حين تفعيل 🌐 من اللوحة
+# (يُفلترها model_router عبر WEB_TOOL_ENABLED). تتدهور بأمان بلا تبعيات.
+try:
+    from tools.web_tool import WEB_TOOL_SCHEMA, execute_web_tool
+    TOOLS_SCHEMA.append({"type": "function", "function": WEB_TOOL_SCHEMA})
+    _DISPATCH["web_intelligence"] = (
+        lambda a: json.dumps(execute_web_tool(a or {}), ensure_ascii=False))
+except Exception as _e:  # pragma: no cover — لا يكسر تحميل الأدوات
+    pass
 
 
 def execute(name: str, args: dict) -> str:

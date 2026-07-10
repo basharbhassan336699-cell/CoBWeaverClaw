@@ -359,7 +359,11 @@ class ModelRouter:
             if base not in sys.path:
                 sys.path.insert(0, base)
             from tools.agent_tools import TOOLS_SCHEMA
-            return TOOLS_SCHEMA
+            # web_intelligence لا يُعرَض إلا عند تفعيل 🌐 من اللوحة (WEB_TOOL_ENABLED)
+            if os.environ.get("WEB_TOOL_ENABLED") == "1":
+                return TOOLS_SCHEMA
+            return [t for t in TOOLS_SCHEMA
+                    if t.get("function", {}).get("name") != "web_intelligence"]
         except Exception:
             return None
 

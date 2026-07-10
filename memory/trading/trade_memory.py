@@ -33,12 +33,45 @@ def init_trade_db() -> None:
             total_pnl REAL    DEFAULT 0.0,
             last_seen INTEGER
         );
+        CREATE TABLE IF NOT EXISTS regime_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            asset TEXT, regime TEXT, strength INTEGER,
+            strategy TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS manipulation_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            asset TEXT, type TEXT, confidence INTEGER,
+            action TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS emergency_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            reason TEXT, daily_loss_pct REAL,
+            consecutive_losses INTEGER, cooldown_until DATETIME,
+            report TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
     """)
     con.commit(); con.close()
 
 def log_trade(asset: str, entry: float, tp: Optional[float]=None,
               sl: Optional[float]=None, pattern: Optional[str]=None,
               session: Optional[str]=None, notes: Optional[str]=None) -> Dict:
+    # ── حارس ما قبل التنفيذ: مكابح الطوارئ + محاكاة قوة الإشارة ──
+    # (فشل آمن: أي خلل في الوحدات لا يمنع التسجيل؛ فقط قرار صريح يمنع)
+    try:
+        from memory.trading.emergency_stop import is_trading_allowed
+        if not is_trading_allowed():
+            return {"ok": False, "error": "النظام في وضع الطوارئ، التداول موقوف"}
+    except Exception:
+        pass
+    try:
+        from memory.trading.scenario_simulator import simulate_trade
+        simulation = simulate_trade(asset, entry, tp, sl, pattern, regime="auto")
+        if simulation.get("signal_score", 100) < 75:
+            return {"ok": False,
+                    "error": f"الإشارة ضعيفة ({simulation['signal_score']}/100)، لم تُنفَّذ",
+                    "simulation": simulation}
+    except Exception:
+        pass
     now = int(time.time())
     con = _con()
     cur = con.execute(
