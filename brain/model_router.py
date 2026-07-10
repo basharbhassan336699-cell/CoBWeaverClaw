@@ -10,8 +10,21 @@ Model Router — يبني هوية الوكيل ويحقن الذاكرة ويو
 """
 import os
 import json
+import logging
 import urllib.request
 import urllib.error
+
+logger = logging.getLogger(__name__)
+
+# ── ضغط التوكينات (cobweaverclaw_compress) — اختياري ودفاعي ──
+# إن فشل الاستيراد (اعتماديات ناقصة) يستمر الوكيل بلا ضغط.
+try:
+    from cobweaverclaw_compress import compress as cwc_compress
+except Exception as _cwc_err:   # pragma: no cover
+    cwc_compress = None
+    logging.getLogger(__name__).warning(
+        f"cobweaverclaw_compress unavailable — compression disabled: {_cwc_err}"
+    )
 
 
 class ModelRouter:
@@ -71,6 +84,7 @@ class ModelRouter:
         self.agent_cfg  = self.full_config.get("agent", {})
         self.keys_cfg   = self.full_config.get("keys", {})
         self._last_tools = []   # الأدوات المُنفّذة في آخر رد (لعرض النشاط)
+        self.last_compression = None   # إحصاءات آخر ضغط توكينات
 
         for role in self.ALL_ROLES:
             setattr(self, role, brain.get(role))
@@ -265,8 +279,35 @@ class ModelRouter:
                                          "your", "you use", "are you", "which", "what", "اسم"])
         return has_model and self_ref
 
+    # ── token compression (cobweaverclaw_compress) ──────────
+    def _compress_messages(self, model, messages):
+        """يضغط التوكينات قبل الإرسال — آمن: أي فشل يعيد الرسائل كما هي."""
+        if cwc_compress is None or not messages:
+            return messages
+        try:
+            _compressed = cwc_compress(messages, model=model)
+            self.last_compression = {
+                "tokens_before": getattr(_compressed, "tokens_before", 0),
+                "tokens_after": getattr(_compressed, "tokens_after", 0),
+                "tokens_saved": getattr(_compressed, "tokens_saved", 0),
+                "ratio": getattr(_compressed, "compression_ratio", 0.0),
+            }
+            if self.last_compression["tokens_saved"] > 0:
+                logger.info(
+                    "compression: %s -> %s tokens (saved %.1f%%)",
+                    self.last_compression["tokens_before"],
+                    self.last_compression["tokens_after"],
+                    self.last_compression["ratio"] * 100,
+                )
+            return _compressed.messages
+        except Exception as e:
+            logger.debug(f"compression skipped: {e}")
+            return messages
+
     # ── provider dispatch ────────────────────────────────────
     async def _call(self, provider, model, system, messages):
+        # ضغط التوكينات قبل الإرسال
+        messages = self._compress_messages(model, messages)
         url, env_key, api_style = self.PROVIDERS[provider]
         if api_style == "anthropic":
             return await self._call_anthropic(model, system, messages)
