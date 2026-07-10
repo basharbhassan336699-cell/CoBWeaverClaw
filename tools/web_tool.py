@@ -76,6 +76,19 @@ WEB_TOOL_SCHEMA = {
 
 
 # ── التنفيذ ────────────────────────────────────────────────
+def _consent(import_name: str, pip_name: str, action: str):
+    """إن غابت الحزمة: يسجّلها معلّقة ويعيد رسالة موافقة؛ وإلا None."""
+    try:
+        from tools import pkg_guard
+        if not pkg_guard.available(import_name):
+            pkg_guard.remember(import_name, pip_name)
+            return {"success": False, "action": action, "needs_install": True,
+                    "packages": [pip_name], "message": pkg_guard.consent_message()}
+    except Exception as e:
+        logger.debug("pkg_guard unavailable: %s", e)
+    return None
+
+
 def execute_web_tool(args: dict[str, Any]) -> dict[str, Any]:
     """
     ينفّذ طلب الويب ويعيد نتيجة منظمة للوكيل.
@@ -96,7 +109,7 @@ def execute_web_tool(args: dict[str, Any]) -> dict[str, Any]:
     force = None if tool == "auto" else tool
 
     # ── موافقة التثبيت: لا نُشغّل pip دون إذن المستخدم ──
-    # نحدّد الحزمة اللازمة لهذا الطلب؛ إن غابت نطلب الموافقة بدل التثبيت الصامت.
+    # نطلب الموافقة للأفعال التي تلزمها حزمة قطعاً؛ وحالة fetch/auto تُعالَج لاحقاً.
     needed = None
     if action in ("search", "crawl", "map"):
         needed = ("firecrawl", "firecrawl-py")
@@ -106,16 +119,10 @@ def execute_web_tool(args: dict[str, Any]) -> dict[str, Any]:
         needed = ("firecrawl", "firecrawl-py")
     elif action == "fetch" and tool == "browser":
         needed = ("browser_use", "browser-use")
-    # fetch/auto وstealth يعملان عبر requests بلا أي تثبيت
     if needed:
-        try:
-            from tools import pkg_guard
-            if not pkg_guard.available(needed[0]):
-                pkg_guard.remember(needed[0], needed[1])
-                return {"success": False, "action": action, "needs_install": True,
-                        "packages": [needed[1]], "message": pkg_guard.consent_message()}
-        except Exception as e:
-            logger.debug("pkg_guard unavailable: %s", e)
+        c = _consent(needed[0], needed[1], action)
+        if c:
+            return c
 
     try:
         from claw_web import get_claw_web, WebResult
@@ -134,8 +141,29 @@ def execute_web_tool(args: dict[str, Any]) -> dict[str, Any]:
         if action == "fetch":
             if not url:
                 return {"success": False, "error": "url مطلوب لـ fetch"}
-            r = web.fetch(url, force=force, prompt=prompt)
-            return _format_result(r)
+            if force:  # وضع صريح — الحزمة تحقّقت في الفحص المسبق
+                r = web.fetch(url, force=force, prompt=prompt)
+                return _format_result(r)
+            # auto: احسم الأداة المقصودة (heuristics claw_web) واطلب الموافقة إن لزم
+            if web._should_use_browser(url):
+                c = _consent("browser_use", "browser-use", "fetch")
+                if c:
+                    return c
+                return _format_result(web.fetch(url, force="browser", prompt=prompt))
+            if web._should_use_crawl(url):
+                c = _consent("firecrawl", "firecrawl-py", "fetch")
+                if c:
+                    return c
+                return _format_result(web.fetch(url, force="crawl", prompt=prompt))
+            # موقع عادي → المسار السريع أولاً (requests، بلا تثبيت)
+            r = web.stealth.fetch(url)
+            if r.success:
+                return _format_result(r)
+            # فشل السريع → استخدم crawl إن توفّر، وإلا اطلب الموافقة لتنفيذ الطلب
+            c = _consent("firecrawl", "firecrawl-py", "fetch")
+            if c:
+                return c
+            return _format_result(web.crawl.scrape(url, prompt=prompt))
 
         elif action == "search":
             if not query:
