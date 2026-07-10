@@ -43,6 +43,7 @@ class ModelRouter:
         "moonshot":   ("https://api.moonshot.ai/v1/chat/completions",     "MOONSHOT_API_KEY",   "openai"),
         "nararouter": ("https://router.bynara.id/v1/chat/completions",    "NARAROUTER_API_KEY", "openai"),
         "agentrouter":("https://agentrouter.org/v1/chat/completions",     "AGENTROUTER_API_KEY","openai"),
+        "aerolink":   ("https://capi.aerolink.lat/v1/chat/completions",   "AEROLINK_API_KEY",   "openai"),
         "cloudflare": ("",                                                "CLOUDFLARE_API_TOKEN", "cloudflare"),
         "gemini":     ("",                                                "GEMINI_API_KEY",     "gemini"),
         "ollama":     ("http://localhost:11434/api/chat",                 "",                   "ollama"),
@@ -58,6 +59,7 @@ class ModelRouter:
         "moonshot": "moonshot-v1-8k",
         "nararouter": "Claude Sonnet 4.5 (Free)",
         "agentrouter": "GLM-4.6 (Free)",
+        "aerolink": "claude-opus-4-8",
         "cloudflare": "@cf/meta/llama-3.1-8b-instruct",
     }
 
