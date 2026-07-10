@@ -22,6 +22,7 @@ class ColabIntegration(BaseIntegration):
 
     name        = "colab"
     description = "Google Colab — إنشاء وتشغيل notebooks، ربط Google Drive"
+    ENV_CREDENTIALS = {"access_token": "GOOGLE_ACCESS_TOKEN"}
 
     def _headers(self) -> dict:
         return {

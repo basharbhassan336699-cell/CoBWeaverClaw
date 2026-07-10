@@ -17,6 +17,7 @@ class GitLabIntegration(BaseIntegration):
 
     name        = "gitlab"
     description = "GitLab — مستودعات، Issues، CI/CD، MRs"
+    ENV_CREDENTIALS = {"token": "GITLAB_TOKEN"}
 
     def _base_url(self) -> str:
         return self.credentials.get("base_url", "https://gitlab.com").rstrip("/")

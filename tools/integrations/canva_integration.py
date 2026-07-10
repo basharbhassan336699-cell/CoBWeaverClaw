@@ -16,6 +16,7 @@ class CanvaIntegration(BaseIntegration):
 
     name        = "canva"
     description = "Canva — إنشاء تصاميم، تصدير، إدارة assets"
+    ENV_CREDENTIALS = {"access_token": "CANVA_ACCESS_TOKEN"}
 
     def _headers(self) -> dict:
         return {

@@ -39,6 +39,8 @@ class BaseIntegration(ABC):
 
     name:        str = ""
     description: str = ""
+    # cred_key → env var — يجعل توكينات .env تعمل مباشرة بلا save_credentials
+    ENV_CREDENTIALS: dict = {}
 
     def __init__(self, credentials: dict | None = None):
         self.credentials = credentials or self._load_credentials()
@@ -50,10 +52,13 @@ class BaseIntegration(ABC):
         path = self._creds_path()
         if path.exists():
             try:
-                return json.loads(path.read_text(encoding="utf-8"))
+                saved = json.loads(path.read_text(encoding="utf-8"))
+                if saved:
+                    return saved
             except Exception:
                 pass
-        return {}
+        # fallback: من متغيرات البيئة (.env) — {cred_key: env_value} غير الفارغة
+        return {k: os.environ[v] for k, v in self.ENV_CREDENTIALS.items() if os.environ.get(v)}
 
     def save_credentials(self, creds: dict) -> None:
         INTEGRATIONS_DIR.mkdir(parents=True, exist_ok=True)

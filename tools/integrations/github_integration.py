@@ -21,6 +21,7 @@ class GitHubIntegration(BaseIntegration):
 
     name        = "github"
     description = "GitHub — إدارة المستودعات والكود والـ Issues والـ PRs"
+    ENV_CREDENTIALS = {"token": "GITHUB_TOKEN"}
 
     def _headers(self) -> dict:
         token = self.credentials.get("token") or os.environ.get("GITHUB_TOKEN", "")
