@@ -616,6 +616,18 @@ except Exception as _e:  # pragma: no cover — لا يكسر تحميل الأ�
     pass
 
 
+# ── تكاملات الخدمات (github/gitlab/canva/colab) ───────────────────
+# النتيجة dict تُغلَّف JSON لتصل النموذج نظيفة (execute() يلفّ str()).
+try:
+    from tools.integrations.integrations_manager import (
+        INTEGRATIONS_TOOL_SCHEMA, execute_integration)
+    TOOLS_SCHEMA.append({"type": "function", "function": INTEGRATIONS_TOOL_SCHEMA})
+    _DISPATCH["integrations"] = (
+        lambda a: json.dumps(execute_integration(a or {}), ensure_ascii=False))
+except Exception as _e:  # pragma: no cover — لا يكسر تحميل الأدوات
+    pass
+
+
 def execute(name: str, args: dict) -> str:
     """ينفّذ أداة باسمها ويُعيد نصّ النتيجة."""
     fn = _DISPATCH.get(name)
