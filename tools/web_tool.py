@@ -95,6 +95,28 @@ def execute_web_tool(args: dict[str, Any]) -> dict[str, Any]:
         tool = os.environ.get("WEB_TOOL_MODE", "auto") or "auto"
     force = None if tool == "auto" else tool
 
+    # ── موافقة التثبيت: لا نُشغّل pip دون إذن المستخدم ──
+    # نحدّد الحزمة اللازمة لهذا الطلب؛ إن غابت نطلب الموافقة بدل التثبيت الصامت.
+    needed = None
+    if action in ("search", "crawl", "map"):
+        needed = ("firecrawl", "firecrawl-py")
+    elif action == "interact":
+        needed = ("browser_use", "browser-use")
+    elif action == "fetch" and tool == "crawl":
+        needed = ("firecrawl", "firecrawl-py")
+    elif action == "fetch" and tool == "browser":
+        needed = ("browser_use", "browser-use")
+    # fetch/auto وstealth يعملان عبر requests بلا أي تثبيت
+    if needed:
+        try:
+            from tools import pkg_guard
+            if not pkg_guard.available(needed[0]):
+                pkg_guard.remember(needed[0], needed[1])
+                return {"success": False, "action": action, "needs_install": True,
+                        "packages": [needed[1]], "message": pkg_guard.consent_message()}
+        except Exception as e:
+            logger.debug("pkg_guard unavailable: %s", e)
+
     try:
         from claw_web import get_claw_web, WebResult
     except Exception as e:

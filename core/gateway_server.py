@@ -100,6 +100,14 @@ def run_chat(message: str, model: str = None, session: str = "dashboard",
     web_tool: {"enabled":bool,"mode":"auto|stealth|crawl|browser"} — تفعيل 🌐 لهذه الجلسة.
     """
     load_env_into_os()
+    # موافقة/رفض تثبيت حزمة معلّقة (لا نشغّل pip دون إذن)
+    try:
+        from tools.pkg_guard import handle_command as _pkg_cmd
+        _reply = _pkg_cmd(message)
+        if _reply is not None:
+            return {"reply": _reply, "model_used": "system", "tools": []}
+    except Exception:
+        pass
     # تفعيل/إيقاف أداة ذكاء الويب لهذه الرسالة (يفلترها model_router)
     _wt = web_tool or {}
     if _wt.get("enabled"):

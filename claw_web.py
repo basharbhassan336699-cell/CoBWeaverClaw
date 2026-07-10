@@ -160,13 +160,8 @@ class ClawCrawl:
 
     def _get_client(self):
         if self._client is None:
-            try:
-                from firecrawl import Firecrawl as _FC
-            except ImportError:
-                import subprocess, sys
-                subprocess.run([sys.executable, "-m", "pip", "install",
-                               "firecrawl-py", "-q"], check=True)
-                from firecrawl import Firecrawl as _FC
+            # التثبيت (إن لزم) يتم بموافقة المستخدم عبر tools/pkg_guard، لا هنا
+            from firecrawl import Firecrawl as _FC
             self._client = _FC(
                 api_key=self.api_key,
                 **({"base_url": self.base_url} if self.base_url else {})
@@ -275,13 +270,7 @@ class ClawCrawl:
     async def scrape_async(self, url: str, formats: list[str] | None = None) -> WebResult:
         """نسخة async من scrape"""
         try:
-            try:
-                from firecrawl import AsyncFirecrawl
-            except ImportError:
-                import subprocess, sys
-                subprocess.run([sys.executable, "-m", "pip", "install",
-                               "firecrawl-py", "-q"], check=True)
-                from firecrawl import AsyncFirecrawl
+            from firecrawl import AsyncFirecrawl
             client  = AsyncFirecrawl(api_key=self.api_key)
             result  = await client.scrape(url, formats=formats or ["markdown"])
             content = getattr(result, "markdown", "") or str(result)
@@ -316,27 +305,18 @@ class ClawBrowser:
         self.headless     = headless
 
     def _build_llm(self):
-        """بناء LLM client من المفتاح المتاح"""
+        """بناء LLM client من المفتاح المتاح.
+
+        التثبيت (إن لزم) يتم بموافقة المستخدم عبر tools/pkg_guard، لا هنا.
+        """
         if "claude" in self.llm_model.lower() or "anthropic" in (self.llm_base_url or ""):
-            try:
-                from browser_use.llm.anthropic.chat import ChatAnthropic
-            except ImportError:
-                import subprocess, sys
-                subprocess.run([sys.executable, "-m", "pip", "install",
-                               "browser-use", "-q"], check=True)
-                from browser_use.llm.anthropic.chat import ChatAnthropic
+            from browser_use.llm.anthropic.chat import ChatAnthropic
             return ChatAnthropic(
                 model_name=self.llm_model,
                 api_key=self.llm_api_key,
             )
         else:
-            try:
-                from browser_use.llm.openai.like import ChatOpenAILike
-            except ImportError:
-                import subprocess, sys
-                subprocess.run([sys.executable, "-m", "pip", "install",
-                               "browser-use", "-q"], check=True)
-                from browser_use.llm.openai.like import ChatOpenAILike
+            from browser_use.llm.openai.like import ChatOpenAILike
             return ChatOpenAILike(
                 model=self.llm_model,
                 api_key=self.llm_api_key,
@@ -357,13 +337,7 @@ class ClawBrowser:
         screenshot: هل تريد screenshot عند الانتهاء؟
         """
         try:
-            try:
-                from browser_use import Agent, Browser, BrowserProfile
-            except ImportError:
-                import subprocess, sys
-                subprocess.run([sys.executable, "-m", "pip", "install",
-                               "browser-use", "-q"], check=True)
-                from browser_use import Agent, Browser, BrowserProfile
+            from browser_use import Agent, Browser, BrowserProfile
 
             llm     = self._build_llm()
             profile = BrowserProfile(headless=self.headless)
